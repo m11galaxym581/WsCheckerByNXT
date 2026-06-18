@@ -1,0 +1,7 @@
+node_modules/
+.env
+users.json
+users.json.bak*
+dynamic_config.json
+session_*/
+*.log

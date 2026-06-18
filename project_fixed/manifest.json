@@ -1,0 +1,9 @@
+{
+  "name": "WS CHECKER v5.01.49",
+  "short_name": "WS CHECKER",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#030305",
+  "theme_color": "#00ff88",
+  "icons": []
+}
