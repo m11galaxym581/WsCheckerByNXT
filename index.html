@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cyber" dir="ltr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>⚡ BLAZE NXT — WS CHECKER v5.01.49</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet"/>
+<link rel="manifest" href="/manifest.json"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  /* ================= THEME SYSTEM ================= */
+  [data-theme="cyber"] {
+      --bg: #030305; --bg2: #0a0a0f; --bg3: #12121a; --border: #222233;
+      --accent: #00ff88; --accent2: #00ccff; --accent3: #ff3366; --accent-gold: #ffd700;
+      --text: #e8e8f0; --text2: #888899; --glow: 0 0 25px rgba(0,255,136,0.3);
+      --dot-color: rgba(0,255,136,0.05);
+  }
+  [data-theme="ocean"] {
+      --bg: #020a14; --bg2: #081828; --bg3: #0c2238; --border: #1a3550;
+      --accent: #00bcd4; --accent2: #4fc3f7; --accent3: #ff7043; --accent-gold: #ffca28;
+      --text: #e0f0ff; --text2: #7799bb; --glow: 0 0 25px rgba(0,188,212,0.3);
+      --dot-color: rgba(0,188,212,0.05);
+  }
+  [data-theme="crimson"] {
+      --bg: #0a0204; --bg2: #150508; --bg3: #1f0a10; --border: #3a1525;
+      --accent: #ff4444; --accent2: #ff8a65; --accent3: #e040fb; --accent-gold: #ffab00;
+      --text: #ffe8e8; --text2: #996666; --glow: 0 0 25px rgba(255,68,68,0.3);
+      --dot-color: rgba(255,68,68,0.05);
+  }
+  [data-theme="purple"] {
+      --bg: #06020e; --bg2: #0e0820; --bg3: #160e2a; --border: #2a1f44;
+      --accent: #b388ff; --accent2: #82b1ff; --accent3: #ff5252; --accent-gold: #ffd740;
+      --text: #ece0ff; --text2: #8877aa; --glow: 0 0 25px rgba(179,136,255,0.3);
+      --dot-color: rgba(179,136,255,0.05);
+  }
+  [data-theme="light"] {
+      --bg: #f5f5f8; --bg2: #ffffff; --bg3: #eeeef2; --border: #d0d0dd;
+      --accent: #00895e; --accent2: #0077b6; --accent3: #d32f2f; --accent-gold: #e68900;
+      --text: #1a1a2e; --text2: #666680; --glow: 0 0 15px rgba(0,137,94,0.15);
+      --dot-color: rgba(0,137,94,0.04);
+  }
+
+  /* ================= CORE RESET ================= */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; overflow-x: hidden; scroll-behavior: smooth; transition: background 0.4s, color 0.4s; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: radial-gradient(var(--dot-color) 1px, transparent 1px); background-size: 30px 30px; pointer-events: none; z-index: 0; }
+
+  .shell { position: relative; z-index: 1; max-width: 1150px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ================= HEADER ================= */
+  header { display: flex; align-items: center; justify-content: space-between; padding: 25px 0 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 45px; height: 45px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; box-shadow: var(--glow); color: #000; animation: pulse 2s infinite; }
+  .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; } .logo-text span { color: var(--accent); }
+  .logo-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent-gold); letter-spacing: 3px; font-weight:bold; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  .header-right { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  #live-clock { font-family:'Space Mono',monospace; font-size:11px; color:var(--accent2); background:var(--bg2); padding:6px 12px; border:1px solid var(--border); border-radius:8px; }
+
+  @keyframes pulse { 0% { box-shadow: 0 0 15px rgba(0,255,136,0.2); } 50% { box-shadow: 0 0 30px rgba(0,255,136,0.6); } 100% { box-shadow: 0 0 15px rgba(0,255,136,0.2); } }
+
+  /* ================= INPUTS & BUTTONS ================= */
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 8px; border: none; font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; justify-content: center; text-transform: uppercase; }
+  .btn:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,0.4); }
+  .btn:disabled { opacity: 0.5; transform:none; cursor:not-allowed; box-shadow:none; }
+  .btn-primary { background: var(--accent); color: #000; width: 100%; margin-top: 10px;}
+  .btn-gold { background: var(--accent-gold); color: #000; }
+  .btn-danger { background: transparent; border: 1px solid var(--accent3); color: var(--accent3); }
+  .btn-danger:hover { background: var(--accent3); color: #fff; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn-sm { padding: 8px 16px; font-size: 10px;}
+  .btn-icon { padding:8px; border:none; background:var(--bg2); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:16px; transition:0.2s; color:var(--text2); }
+  .btn-icon:hover { border-color:var(--accent); color:var(--accent); transform:scale(1.05); }
+
+  textarea, .input-txt, select { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 15px; font-family: 'Space Mono', monospace; font-size: 13px; color: var(--text); outline: none; margin-bottom: 12px; transition:0.3s; }
+  textarea:focus, .input-txt:focus { border-color: var(--accent); box-shadow: inset 0 0 10px rgba(0,255,136,0.1); }
+  textarea { min-height: 150px; resize: vertical; }
+  textarea.dragover { border-color: var(--accent-gold); background: rgba(255,215,0,0.05); }
+  select option { background: var(--bg2); color: var(--text); }
+
+  /* ================= NAV & CARDS ================= */
+  .nav-bar { display: flex; gap: 10px; margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px; overflow-x: auto; }
+  .nav-item { background: transparent; color: var(--text2); border: none; padding: 10px 20px; font-family: 'Space Mono', monospace; font-size: 11px; cursor: pointer; border-radius: 8px; transition: 0.2s; font-weight:bold; white-space:nowrap; }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+  .nav-item.active { background: var(--bg3); color: var(--accent); border: 1px solid var(--border); box-shadow: var(--glow); }
+  @media (min-width: 901px) {
+    .shell { padding-left: 250px; }
+    #main-nav.nav-bar { position:fixed; left:18px; top:92px; bottom:18px; width:210px; display:none; flex-direction:column; padding:16px; border:1px solid var(--border); border-radius:18px; background:rgba(10,10,15,0.92); backdrop-filter:blur(12px); z-index:90; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.45); }
+    #main-nav .nav-item { text-align:left; width:100%; padding:13px 14px; border:1px solid transparent; }
+    #main-nav .nav-item.active { border-color:var(--accent); background:linear-gradient(90deg, rgba(0,255,136,.14), transparent); }
+  }
+  .dash-card-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top:20px; }
+  .pro-grid { display:grid; grid-template-columns: 340px 1fr; gap:18px; margin-top:18px; }
+  .pro-side { background:var(--bg3); border:1px solid var(--border); border-radius:14px; padding:16px; }
+  .pro-list { max-height:560px; overflow:auto; font-family:'Space Mono'; font-size:11px; color:var(--text2); }
+  .pill { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border-radius:999px; border:1px solid var(--border); font-family:'Space Mono'; font-size:9px; color:var(--text2); }
+  @media(max-width:1000px){ .pro-grid{grid-template-columns:1fr;} }
+  @media(max-width:900px){ .dash-card-grid{grid-template-columns:repeat(2,1fr);} }
+  .ring-wrap{display:flex; align-items:center; gap:18px; margin-top:15px; flex-wrap:wrap;}
+  .progress-ring{width:116px;height:116px;transform:rotate(-90deg)} .progress-ring circle{fill:none;stroke-width:10;stroke-linecap:round}.ring-bg{stroke:var(--bg3)}.ring-fg{stroke:var(--accent);stroke-dasharray:314;stroke-dashoffset:314;transition:.4s}.ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Space Mono';font-size:20px;color:var(--accent);font-weight:800}.ring-box{position:relative;width:116px;height:116px}
+  .page-crumb { display:none; margin-top:12px; padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:linear-gradient(90deg, rgba(0,255,136,0.06), rgba(0,204,255,0.03)); font-family:'Space Mono'; font-size:11px; color:var(--text2); }
+  .page-crumb b { color:var(--accent); }
+  .mini-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .mini-input { flex:1; min-width:160px; background:var(--bg2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-family:'Space Mono'; font-size:11px; outline:none; }
+  .copy-mini { padding:6px 8px; font-size:11px; min-width:32px; }
+  .human-box { display:flex; gap:8px; align-items:center; background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:10px; margin-bottom:12px; }
+  .human-q { min-width:120px; font-family:'Space Mono'; color:var(--accent-gold); font-weight:800; font-size:13px; text-align:center; }
+  .human-input { flex:1; margin:0 !important; padding:10px !important; }
+  .tab-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); } .tab-section.active { display: block; }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; margin-top: 20px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } .header-right { justify-content:flex-end; } }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; position:relative; overflow:hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: background 0.4s, border-color 0.4s; }
+  .card-title { font-size: 12px; font-family: 'Space Mono', monospace; letter-spacing: 2px; color: var(--text2); margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:12px; }
+
+  /* ================= CUSTOM UI ELEMENTS ================= */
+  .bot-console { background: #000; border: 1px solid #111; border-radius: 10px; padding: 18px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--accent); line-height: 1.6; white-space: pre-wrap; margin-top: 10px; box-shadow: inset 0 0 20px rgba(0,255,136,0.1); text-shadow: 0 0 5px rgba(0,255,136,0.5); }
+  .result-list { font-family: 'Space Mono', monospace; font-size: 11px; height: 260px; overflow-y: auto; background: var(--bg3); padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
+  .list-item { display:flex; justify-content:space-between; align-items:center; padding:12px 15px; background:var(--bg2); border:1px solid var(--border); font-family:'Space Mono'; border-radius:8px; margin-bottom:8px; transition:0.2s;}
+  .list-item:hover { border-color:#444; }
+  .avatar-mini { width:30px; height:30px; border-radius:50%; border:1px solid #333; margin-left:10px; object-fit:cover; }
+
+  .filter-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 5px 10px; font-size: 10px; font-family: 'Space Mono'; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+  .filter-btn.active { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(255,215,0,0.1); }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+  @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-box { background: var(--bg3); padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--border); transition: transform 0.2s; }
+  .stat-box:hover { transform: translateY(-3px); }
+  .stat-val { font-size: 22px; font-weight: 800; font-family: 'Space Mono'; }
+  .stat-label { font-size: 9px; font-family: 'Space Mono'; color: var(--text2); margin-top: 6px; letter-spacing: 1px;}
+
+  .user-info { display: flex; align-items: center; gap: 15px; padding: 20px; background: var(--bg3); border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border); flex-wrap:wrap; }
+  .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, var(--accent2), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 22px; color: #000; flex-shrink:0; }
+  .badge-pro { margin-left: auto; padding: 6px 12px; border-radius: 999px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; background: rgba(0,255,136,0.1); border: 1px solid var(--accent); color: var(--accent); }
+  .badge-vip { background: rgba(255,215,0,0.1); border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  #maintenance-screen { display:none; position:fixed; inset:0; background:rgba(3,3,5,0.98); z-index:9999; align-items:center; justify-content:center; flex-direction:column; text-align:center; }
+  #toast-wrap { position: fixed; top: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+  [dir="rtl"] #toast-wrap { right:auto; left:20px; }
+  .toast { padding: 15px 25px; border-radius: 10px; font-family: 'Space Mono', monospace; font-size: 12px; font-weight:bold; background: var(--bg2); border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.8); animation: slideLeft 0.3s ease; }
+  @keyframes slideLeft { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1;} }
+  .toast.success { border-left: 4px solid var(--accent); color: var(--accent); } .toast.error { border-left: 4px solid var(--accent3); color: var(--accent3); }
+
+  .chat-container { display: flex; flex-direction: column; height: 400px; background: var(--bg3); border-radius: 12px; border: 1px solid var(--border); overflow: hidden;}
+  .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+  .chat-msg { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 12px; font-family: 'Space Mono'; line-height: 1.5; animation: slideUp 0.2s ease;}
+  .msg-user { background: var(--bg2); color: #fff; align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 2px; }
+  .msg-admin { background: rgba(0, 255, 136, 0.1); color: var(--accent); align-self: flex-end; border: 1px solid var(--accent); border-bottom-right-radius: 2px; }
+  .chat-input-area { display: flex; border-top: 1px solid var(--border); background: var(--bg2); padding: 10px; gap: 10px; }
+
+  #auth-panel { margin: 80px auto; max-width: 420px; text-align: center; }
+  .auth-title { font-size: 36px; font-weight: 800; margin-bottom: 10px; } .auth-title span { color: var(--accent); }
+  .auth-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+  .auth-box input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; font-family: 'Space Mono', monospace; color: var(--text); outline: none; margin-bottom: 16px; text-align: center; font-size: 14px; transition: 0.3s; }
+  .auth-box input:focus { border-color: var(--accent); box-shadow: 0 0 15px rgba(0,255,136,0.1); }
+
+  /* ================= SETTINGS MODAL ================= */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:5000; display:none; align-items:center; justify-content:center; backdrop-filter:blur(5px); }
+  .modal-overlay.open { display:flex; }
+  .modal { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:30px; max-width:500px; width:90%; max-height:85vh; overflow-y:auto; animation:slideUp 0.3s ease; box-shadow:0 20px 60px rgba(0,0,0,0.8); }
+  .modal h2 { font-size:22px; font-weight:800; margin-bottom:20px; color:var(--accent); font-family:'Syne'; }
+  .modal-section { margin-bottom:25px; }
+  .modal-section h3 { font-size:12px; font-family:'Space Mono',monospace; letter-spacing:2px; color:var(--text2); margin-bottom:12px; text-transform:uppercase; }
+  .theme-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
+  @media (max-width:500px) { .theme-grid { grid-template-columns:repeat(3,1fr); } }
+  .theme-swatch { width:100%; aspect-ratio:1; border-radius:12px; cursor:pointer; border:2px solid transparent; transition:0.3s; position:relative; display:flex; align-items:center; justify-content:center; font-size:10px; font-family:'Space Mono'; font-weight:bold; text-align:center; line-height:1.3; }
+  .theme-swatch:hover { transform:scale(1.08); }
+  .theme-swatch.active { border-color:var(--accent); box-shadow:var(--glow); }
+  .lang-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .lang-btn { padding:12px; border-radius:10px; border:1px solid var(--border); background:var(--bg3); cursor:pointer; text-align:center; font-family:'Space Mono',monospace; font-size:11px; color:var(--text2); transition:0.2s; }
+  .lang-btn:hover { border-color:var(--text); color:var(--text); }
+  .lang-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(0,255,136,0.05); }
+  .toggle-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); }
+  .toggle-label { font-family:'Space Mono',monospace; font-size:12px; color:var(--text); }
+  .toggle-switch { position:relative; width:44px; height:24px; background:var(--bg3); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:0.3s; flex-shrink:0; }
+  .toggle-switch::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--text2); transition:0.3s; }
+  .toggle-switch.on { background:var(--accent); border-color:var(--accent); }
+  .toggle-switch.on::after { left:22px; background:#000; }
+
+  /* ================= KEYBOARD SHORTCUT HELP ================= */
+  .kbd { display:inline-block; padding:2px 6px; border-radius:4px; background:var(--bg3); border:1px solid var(--border); font-family:'Space Mono'; font-size:10px; color:var(--text2); }
+  .shortcut-list { list-style:none; }
+  .shortcut-list li { display:flex; justify-content:space-between; padding:6px 0; font-family:'Space Mono'; font-size:11px; color:var(--text2); border-bottom:1px solid rgba(255,255,255,0.03); }
+
+  body.compact .card{padding:16px} body.compact textarea{min-height:110px} body.compact .result-list{height:210px} body.high-contrast{--border:#666;--text:#fff;--text2:#ddd;--bg:#000;--bg2:#050505;--bg3:#111;}
+
+
+  /* ================= CLEAN UI PATCH v5.01.49 ================= */
+  :root { color-scheme: dark; }
+  body { background: radial-gradient(circle at top left, rgba(0,255,136,.08), transparent 32%), var(--bg); }
+  .shell { max-width: 1480px; }
+  header { position: sticky; top: 0; z-index: 120; background: rgba(3,3,5,.78); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); margin: -24px -24px 0; padding: 18px 24px; }
+  .logo-text { letter-spacing: .5px; }
+  .logo-sub { opacity:.85; }
+  .card { border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.22); overflow: hidden; }
+  .card::before { content:""; position:absolute; inset:0; pointer-events:none; background: linear-gradient(130deg, rgba(255,255,255,.045), transparent 38%); }
+  .btn { border-radius: 12px; text-transform: none; letter-spacing: .3px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color:#00130b; }
+  .btn-ghost { background: rgba(255,255,255,.025); }
+  .input-txt, textarea, select, .mini-input { border-radius: 12px !important; }
+  .page-crumb { border-style: dashed; opacity:.9; }
+  .result-list, .bot-console, pre.bot-console { border-radius: 14px; }
+  @media (min-width: 901px) {
+    .shell { padding-left: 292px; }
+    #main-nav.nav-bar { left:20px; top:82px; bottom:20px; width:240px; padding:14px; gap:6px; border-radius:22px; background: linear-gradient(180deg, rgba(18,18,26,.96), rgba(8,8,12,.96)); }
+    .nav-head { display:block; padding:13px 12px 8px; margin-top:4px; color:var(--text2); font-family:'Space Mono'; font-size:9px; letter-spacing:1.8px; text-transform:uppercase; opacity:.75; }
+    #main-nav .nav-item { display:flex; align-items:center; gap:10px; padding:12px 13px; border-radius:14px; font-size:12px; color:var(--text2) !important; }
+    #main-nav .nav-item:hover { color:var(--text) !important; background: rgba(255,255,255,.055); transform: translateX(2px); }
+    #main-nav .nav-item.active { color:var(--accent) !important; border-color: rgba(0,255,136,.45); box-shadow:none; background: linear-gradient(90deg, rgba(0,255,136,.16), rgba(0,204,255,.055)); }
+    #main-nav .nav-item[id^="nav-"] { color: var(--accent-gold) !important; }
+  }
+  @media (max-width: 900px) {
+    .shell { padding: 12px; }
+    header { margin:-12px -12px 0; padding:14px 12px; }
+    #main-nav.nav-bar { position: sticky; top: 72px; z-index: 80; background: rgba(10,10,15,.92); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 16px; padding:10px; gap:8px; }
+    .nav-head { display:none; }
+    .nav-item { padding:10px 12px; border:1px solid var(--border); background:var(--bg2); }
+    .grid-2, .pro-grid { grid-template-columns: 1fr !important; }
+    .dash-card-grid { grid-template-columns: repeat(2,1fr); }
+  }
+
+
+
+  /* ================= LANDING + MOBILE FIX PATCH ================= */
+  .landing { display:none; padding:28px 0; }
+  .landing-hero { display:grid; grid-template-columns:1.25fr .75fr; gap:24px; align-items:stretch; }
+  .hero-card { min-height:360px; display:flex; flex-direction:column; justify-content:center; background:linear-gradient(135deg, rgba(0,255,136,.12), rgba(0,204,255,.08)), var(--bg2); }
+  .hero-title { font-family:'Syne'; font-size:44px; line-height:1.05; font-weight:900; letter-spacing:-1px; margin-bottom:16px; }
+  .hero-title span { color:var(--accent); }
+  .hero-sub { color:var(--text2); font-family:'Space Mono'; line-height:1.8; max-width:720px; }
+  .hero-actions { display:flex; gap:12px; flex-wrap:wrap; margin-top:24px; }
+  .feature-row { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:16px; }
+  .feature-card { background:var(--bg3); border:1px solid var(--border); border-radius:14px; padding:14px; font-family:'Space Mono'; font-size:12px; color:var(--text2); }
+  .feature-card b { color:var(--text); display:block; margin-bottom:6px; }
+  .login-shell { display:none; }
+  .result-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin-bottom:12px; }
+  .result-tab-item { display:flex; gap:6px; min-width:0; }
+  .result-tab-item .btn { flex:1; min-width:0; }
+  .checker-actions { display:flex; gap:10px; }
+  @media(max-width: 700px){
+    body { overflow-x:hidden; }
+    .logo-icon { width:58px; height:58px; font-size:28px; }
+    .logo-text { font-size:28px; line-height:1; }
+    .logo-sub { font-size:10px; letter-spacing:4px; }
+    .header-right { width:100%; justify-content:flex-start; gap:8px; margin-top:10px; }
+    #live-clock, #global-status { font-size:11px !important; padding:9px 10px !important; }
+    .btn-icon { width:44px; height:44px; display:inline-flex; align-items:center; justify-content:center; }
+    #logout-btn { margin-left:auto; }
+    .landing-hero { grid-template-columns:1fr; }
+    .hero-title { font-size:34px; }
+    .feature-row { grid-template-columns:1fr; }
+    .checker-actions { flex-direction:column; }
+    #check-btn, .checker-actions .btn { width:100%; }
+    .mini-toolbar { display:grid !important; grid-template-columns:1fr 1fr; align-items:stretch; }
+    .mini-toolbar .mini-input, .mini-toolbar .btn, .mini-toolbar select { width:100%; min-width:0; }
+    .result-tabs { grid-template-columns:1fr; }
+    .result-tab-item { width:100%; }
+    .result-tab-item .btn { min-height:58px; font-size:14px !important; justify-content:center; }
+    #filter-box { flex-wrap:wrap; }
+    #filter-box .filter-btn { flex:1; min-width:95px; padding:10px; }
+    textarea { min-height:130px; }
+    .result-list { height:330px; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- MAINTENANCE LOCK SCREEN -->
+<div id="maintenance-screen">
+    <div style="font-size:60px; margin-bottom:20px; animation: pulse 2s infinite;">🚧</div>
+    <h1 style="color:var(--accent-gold); font-size:36px; font-weight:800; font-family:'Syne'; letter-spacing:2px;" data-i18n="maint_title">SYSTEM OFFLINE</h1>
+    <p style="color:var(--text2); font-family:'Space Mono'; font-size:14px; margin-top:15px; line-height:1.6;" data-i18n="maint_desc">The OMNI-BEAST Engine is upgrading.<br>Please hold tight.</p>
+</div>
+
+<div id="toast-wrap"></div><div class="modal-overlay" id="cmd-palette"><div class="modal"><h2>⌘ Command Palette</h2><input id="cmd-input" class="input-txt" placeholder="Type command..." oninput="renderCommands()"><div id="cmd-results" style="font-family:'Space Mono';font-size:12px;color:var(--text2)"></div></div></div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+      <h2 data-i18n="settings">⚙️ Settings</h2>
+      <button class="btn-icon" onclick="closeSettings()" style="font-size:20px;">✕</button>
+    </div>
+
+    <div class="modal-section">
+      <h3 data-i18n="theme">🎨 Theme</h3>
+      <div class="theme-grid">
+        <div class="theme-swatch active" style="background:linear-gradient(135deg,#030305,#00ff88);" onclick="setTheme('cyber')" data-theme-btn="cyber">CYBER</div>
+        <div class="theme-swatch" style="background:linear-gradient(135deg,#020a14,#00bcd4);" onclick="setTheme('ocean')" data-theme-btn="ocean">OCEAN</div>
+        <div class="theme-swatch" style="background:linear-gradient(135deg,#0a0204,#ff4444);" onclick="setTheme('crimson')" data-theme-btn="crimson">CRIMSON</div>
+        <div class="theme-swatch" style="background:linear-gradient(135deg,#06020e,#b388ff);" onclick="setTheme('purple')" data-theme-btn="purple">PURPLE</div>
+        <div class="theme-swatch" style="background:linear-gradient(135deg,#f5f5f8,#00895e); color:#1a1a2e;" onclick="setTheme('light')" data-theme-btn="light">LIGHT</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <h3 data-i18n="language">🌐 Language</h3>
+      <div class="lang-grid">
+        <div class="lang-btn active" onclick="setLang('en')" data-lang-btn="en">🇬🇧 English</div>
+        <div class="lang-btn" onclick="setLang('hi')" data-lang-btn="hi">🇮🇳 हिंदी</div>
+        <div class="lang-btn" onclick="setLang('ar')" data-lang-btn="ar">🇸🇦 العربية</div>
+        <div class="lang-btn" onclick="setLang('es')" data-lang-btn="es">🇪🇸 Español</div>
+        <div class="lang-btn" onclick="setLang('pt')" data-lang-btn="pt">🇧🇷 Português</div>
+        <div class="lang-btn" onclick="setLang('id')" data-lang-btn="id">🇮🇩 Indonesia</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <h3 data-i18n="preferences">⚡ Preferences</h3>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="sound_effects">🔊 Sound Effects</span>
+        <div class="toggle-switch on" id="toggle-sound" onclick="togglePref('sound')"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="auto_refresh">🔄 Auto-Refresh Status</span>
+        <div class="toggle-switch on" id="toggle-refresh" onclick="togglePref('refresh')"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="toggle-label" data-i18n="auto_sort">📊 Auto-Sort by Country</span>
+        <div class="toggle-switch on" id="toggle-sort" onclick="togglePref('sort')"></div>
+      </div>
+      <div class="toggle-row"><span class="toggle-label" data-i18n="notifications_pref">🔔 Desktop Notifications</span><div class="toggle-switch" id="toggle-desknot" onclick="togglePref('desknot')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">✅ Completion Sound</span><div class="toggle-switch on" id="toggle-completeSound" onclick="togglePref('completeSound')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">❌ Error Sound</span><div class="toggle-switch on" id="toggle-errorSound" onclick="togglePref('errorSound')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">🌓 Auto Theme</span><div class="toggle-switch" id="toggle-autoTheme" onclick="togglePref('autoTheme')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">📱 Compact/Mobile Mode</span><div class="toggle-switch" id="toggle-compact" onclick="togglePref('compact')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">♿ High Contrast</span><div class="toggle-switch" id="toggle-contrast" onclick="togglePref('contrast')"></div></div>
+    </div>
+
+    <div class="modal-section">
+      <h3 data-i18n="keyboard_shortcuts">⌨️ Keyboard Shortcuts</h3>
+      <ul class="shortcut-list">
+        <li><span data-i18n="sc_settings">Open Settings</span> <span><span class="kbd">Ctrl</span>+<span class="kbd">,</span></span></li>
+        <li><span data-i18n="sc_checker">Checker Tab</span> <span><span class="kbd">Alt</span>+<span class="kbd">1</span></span></li>
+        <li><span data-i18n="sc_history">History Tab</span> <span><span class="kbd">Alt</span>+<span class="kbd">2</span></span></li>
+        <li><span data-i18n="sc_node">Add Node Tab</span> <span><span class="kbd">Alt</span>+<span class="kbd">3</span></span></li>
+        <li><span data-i18n="sc_profile">Profile Tab</span> <span><span class="kbd">Alt</span>+<span class="kbd">4</span></span></li>
+        <li><span data-i18n="sc_fire">Fire Engine</span> <span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span></li>
+        <li><span data-i18n="sc_fullscreen">Toggle Fullscreen</span> <span><span class="kbd">F11</span></span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div><div class="logo-text">BLAZE <span>NXT</span></div><div class="logo-sub">WS CHECKER v5.01.49</div></div>
+    </div>
+    <div class="header-right">
+        <div id="live-clock" style="display:none;"></div>
+        <div id="global-status" style="display:none; font-family:'Space Mono'; font-size:10px; background:var(--bg2); padding:8px 12px; border:1px solid var(--border); border-radius:8px; color:var(--accent2); font-weight:bold;">Nodes: 0 | Jobs: 0</div>
+        <button class="btn-icon" id="btn-notif" style="display:none; position:relative;" onclick="toggleNotifs()">
+            🔔 <span id="notif-badge" style="position:absolute; top:-5px; right:-5px; background:var(--accent3); color:#fff; font-size:10px; font-weight:bold; padding:2px 6px; border-radius:10px; display:none; box-shadow:0 0 10px var(--accent3);">0</span>
+        </button>
+        <button class="btn-icon" id="btn-settings" onclick="openSettings()" title="Settings (Ctrl+,)">⚙️</button>
+        <button class="btn-icon" id="btn-fullscreen" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+        <button class="btn btn-danger btn-sm" id="logout-btn" style="display:none; border-color:var(--border); color:var(--text2);" onclick="logout()" data-i18n="logout">LOGOUT</button>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION PANEL -->
+  <div id="notif-dropdown" style="position:absolute; top:80px; right:24px; width:320px; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:15px; display:none; z-index:100; box-shadow:0 15px 40px rgba(0,0,0,0.9);">
+      <div style="display:flex; justify-content:space-between; font-family:'Space Mono'; font-size:11px; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+          <b style="color:var(--accent);" data-i18n="system_alerts">🔔 SYSTEM ALERTS</b> <span style="cursor:pointer; color:var(--text2); transition:0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='var(--text2)'" onclick="clearNotifs()" data-i18n="clear_all">Clear All</span>
+      </div>
+      <div id="notif-list" style="max-height: 250px; overflow-y:auto; font-family:'Space Mono'; font-size:11px; color:var(--text2);" data-i18n="no_alerts">No new alerts.</div>
+  </div>
+
+  <!-- LANDING -->
+  <div id="landing-panel" class="landing">
+    <div class="landing-hero">
+      <div class="card hero-card">
+        <div class="hero-title">Run WhatsApp checks with <span>WS CHECKER</span></div>
+        <div class="hero-sub">A fast BlazeNXT powered dashboard for checker jobs, proxy pools, saved lists, API access, vouchers, and admin tools — optimized for mobile and desktop.</div>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="showLoginPage()">Login to Dashboard</button>
+          <button class="btn btn-ghost" onclick="showSignupPage()">Create / Get Access</button>
+          <button class="btn btn-ghost" onclick="showSignupPage()">How to Access</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Quick Features</div>
+        <div class="feature-row">
+          <div class="feature-card"><b>Checker Engine</b>Live progress, retry failed, CSV/TXT export.</div>
+          <div class="feature-card"><b>Proxy Pool</b>Bulk residential proxy assignment per node.</div>
+          <div class="feature-card"><b>Saved Lists</b>Save, load, copy and manage number lists.</div>
+          <div class="feature-card"><b>Admin Suite</b>Vouchers, audit logs, CRM, force join, branding.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="auth-panel" class="login-shell">
+    <div class="auth-title" data-i18n="login_title">System <span>Login</span></div>
+    <div class="auth-box">
+      <input type="number" id="inp-uid" data-i18n-placeholder="ph_uid" placeholder="Telegram User ID"/>
+      <input type="password" id="inp-pass" data-i18n-placeholder="ph_pass" placeholder="Web Password"/>
+      <button class="btn btn-primary" onclick="login()" style="height:45px; font-size:14px; letter-spacing:1px;" data-i18n="login_btn">⚡ INITIATE LINK</button>
+      <button class="btn btn-ghost" onclick="showLandingPage()" style="width:100%;margin-top:10px;">← Back</button>
+    </div>
+  </div>
+
+  <!-- SIGNUP / ACCESS -->
+  <div id="signup-panel" class="login-shell">
+    <div class="auth-title">Get <span>Access</span></div>
+    <div class="auth-box" style="max-width:620px;margin:auto;text-align:left;">
+      <p style="font-family:'Space Mono';color:var(--text2);line-height:1.8;">To create your dashboard access, open the Telegram bot, press <b>Login to Dashboard</b>, and use the generated password here.</p>
+      <div class="feature-card"><b>Step 1</b>Open Telegram bot and send /start</div>
+      <div class="feature-card"><b>Step 2</b>Click “Login to Dashboard” to generate your web password.</div>
+      <div class="feature-card"><b>Step 3</b>Return here and login with your Telegram ID + password.</div>
+      <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="showLoginPage()">I Have Password — Login</button>
+      <button class="btn btn-ghost" onclick="showLandingPage()" style="width:100%;margin-top:10px;">← Back</button>
+    </div>
+  </div>
+
+  <!-- NAVIGATION -->
+  <div class="nav-bar" id="main-nav" style="display:none;">
+    <div class="nav-head">Main</div>
+    <button class="nav-item active" onclick="switchTab('tab-dashboard', this)">🏠 Dashboard</button>
+    <button class="nav-item" onclick="switchTab('tab-check', this)" data-i18n="nav_checker">🔍 Checker</button>
+    <button class="nav-item" onclick="switchTab('tab-history', this)" data-i18n="nav_history">📜 History</button>
+    <button class="nav-item" onclick="switchTab('tab-jobs', this)">🧾 Jobs & Queue</button>
+    <div class="nav-head">Workspace</div>
+    <button class="nav-item" onclick="switchTab('tab-session', this)" data-i18n="nav_node">📡 Sessions</button>
+    <button class="nav-item" onclick="switchTab('tab-lists', this)">📚 Saved Lists</button>
+    <button class="nav-item" onclick="switchTab('tab-templates', this)">🧩 Templates</button>
+    <button class="nav-item" onclick="switchTab('tab-files', this)">📁 Files & Share</button>
+    <div class="nav-head">Account</div>
+    <button class="nav-item" onclick="switchTab('tab-profile', this)">🔌 API & Webhooks</button>
+    <button class="nav-item" onclick="switchTab('tab-webhook-logs', this)">🔗 Webhook Logs</button>
+    <button class="nav-item" onclick="switchTab('tab-docs', this)">📘 API Docs</button>
+    <button class="nav-item" onclick="switchTab('tab-settings', this)">⚙️ Settings</button>
+    <button class="nav-item" onclick="switchTab('tab-help', this)">❓ Help</button>
+    <button class="nav-item" onclick="switchTab('tab-status', this)">📡 Status</button>
+    <button class="nav-item" onclick="switchTab('tab-changelog', this)">📝 Changelog</button>
+    <div class="nav-head" id="nav-admin-head" style="display:none;">Admin</div>
+    <button class="nav-item" id="nav-support" style="display:none;" onclick="switchTab('tab-support', this)" data-i18n="nav_inbox">💬 Inbox</button>
+    <button class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('tab-admin', this)" data-i18n="nav_admin">👑 Console</button>
+    <button class="nav-item" id="nav-audit" style="display:none;" onclick="switchTab('tab-audit', this)">🛡️ Audit Logs</button>
+    <button class="nav-item" id="nav-vouchers" style="display:none;" onclick="switchTab('tab-vouchers', this)">🎁 Vouchers</button>
+    <button class="nav-item" id="nav-proxies" style="display:none;" onclick="switchTab('tab-proxies', this)">🛡️ Proxies</button>
+    <button class="nav-item" id="nav-forcejoin" style="display:none;" onclick="switchTab('tab-forcejoin', this)">🔒 Force Join</button>
+    <button class="nav-item" id="nav-branding" style="display:none;" onclick="switchTab('tab-branding', this)">🏷️ Branding</button>
+    <button class="nav-item" id="nav-security" style="display:none;" onclick="switchTab('tab-security', this)">🔐 Security</button>
+  </div>
+  <div class="page-crumb" id="page-crumb">Route: <b>/checker</b></div>
+
+  <!-- APPLICATION -->
+  <div id="app-container" style="display:none;">
+
+    <div id="tab-dashboard" class="tab-section active">
+      <div class="card">
+        <div class="card-title"><span>🏠 DASHBOARD HOME</span><button class="btn btn-ghost btn-sm" onclick="refreshDashboardHome()">🔄</button></div>
+        <div class="dash-card-grid">
+          <div class="stat-box"><div class="stat-val" id="home-total">0</div><div class="stat-label">TOTAL CHECKS</div></div>
+          <div class="stat-box"><div class="stat-val" id="home-nodes">0</div><div class="stat-label">ACTIVE NODES</div></div>
+          <div class="stat-box"><div class="stat-val" id="home-last">-</div><div class="stat-label">LAST SCAN</div></div>
+          <div class="stat-box"><div class="stat-val" id="home-sub">-</div><div class="stat-label">SUBSCRIPTION</div></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;"><button class="btn btn-primary btn-sm" onclick="switchTab('tab-check')">Start Check</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-session')">Add Session</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-history')">View History</button><button class="btn btn-ghost btn-sm" onclick="resumeLastJob()">Resume Last Job</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-docs')">API Docs</button></div>
+      </div>
+    </div>
+
+    <!-- 1. CHECKER -->
+    <div id="tab-check" class="tab-section">
+      <div class="grid-2">
+        <div>
+           <div class="card">
+              <div class="card-title"><span data-i18n="terminal">TERMINAL CONSOLE</span> <button class="btn btn-ghost btn-sm" onclick="clearTerminal()" data-i18n="clear">🗑️ CLEAR</button></div>
+              <div id="bot-console" class="bot-console">╭━━━[ 🚀 𝗘𝗡𝗚𝗜𝗡𝗘 𝗜𝗗𝗟𝗘 ]━━━╮
+┣ 💡 Ready for targets.
+┣ 🛡️ Mode: Omni-Beast Anti-Ban
+╰━━━━━━━━━━━━━━━━━━━━━━╯</div>
+              <div class="ring-wrap">
+                <div class="ring-box"><svg class="progress-ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="50"/><circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="50"/></svg><div class="ring-text" id="ring-pct">0%</div></div>
+                <div style="font-family:'Space Mono';font-size:12px;color:var(--text2);line-height:1.9;"><div>⚡ Speed: <b id="speed-meter" style="color:var(--accent)">0/sec</b></div><div>⏱️ ETA: <b id="eta-meter" style="color:var(--accent2)">--</b></div><div>🔌 Nodes: <b id="node-meter" style="color:var(--accent-gold)">0</b></div><div>⚠️ Failed: <b id="failed-meter" style="color:var(--accent3)">0</b></div></div>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:15px;">
+                  <button class="btn btn-primary" id="btn-dl-csv" style="display:none; flex:1; background:var(--accent-gold); color:#000;" onclick="downloadRes('csv')">📊 CSV</button>
+                  <button class="btn btn-primary" id="btn-dl-txt" style="display:none; flex:1; background:var(--accent2); color:#000;" onclick="downloadRes('txt')">📥 TXT</button>
+                  <button class="btn btn-ghost" id="btn-copy-res" style="display:none; flex:0.5; border-color:var(--text);" onclick="copyResults()">📋</button>
+              </div>
+           </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-title"><span data-i18n="targets">📝 DRAG & DROP TARGETS</span> <span id="check-stats" style="color:var(--accent); font-weight:bold; font-size:14px;">0 / 0</span></div>
+            <div style="margin-bottom:10px;">
+                <input type="file" id="file-uploader" style="display:none;" onchange="handleFile(this.files[0])" accept=".txt,.csv">
+                <button class="btn btn-ghost" style="width:100%; border-style:dashed;" onclick="document.getElementById('file-uploader').click()" data-i18n="upload_file">📁 UPLOAD .TXT / .CSV FILE</button>
+            </div>
+            <div class="mini-toolbar">
+                <button class="btn btn-ghost btn-sm" onclick="cleanNumbersInput()">🧹 CLEAN DUPES</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyInputNumbers()">📋 COPY INPUT</button>
+                <span id="num-preview" style="font-family:'Space Mono'; font-size:10px; color:var(--text2); margin-left:auto;">0 valid / 0 duplicate</span>
+            </div>
+            <textarea id="numbers-input" oninput="updateNumberPreview()" data-i18n-placeholder="ph_numbers" placeholder="Paste numbers here OR Drag & Drop a file inside this box..."></textarea>
+            <div class="checker-actions">
+              <button class="btn btn-primary" id="check-btn" onclick="startCheck()" style="font-size:14px; letter-spacing:1px;" data-i18n="fire_engine">⚡ FIRE ENGINE</button>
+              <button class="btn btn-danger" onclick="cancelCheck()" data-i18n="abort">✕ ABORT</button>
+            </div>
+            <div class="mini-toolbar" style="margin-top:10px;">
+              <select id="scan-speed" class="mini-input"><option value="safe">Safe</option><option value="balanced" selected>Balanced</option><option value="fast">Fast</option><option value="beast">Beast</option></select>
+              <label style="font-family:'Space Mono';font-size:11px;color:var(--text2);"><input type="checkbox" id="deep-scan" checked> Deep Scan</label>
+              <button class="btn btn-ghost btn-sm" onclick="retryFailedNumbers()">🔁 RETRY FAILED</button>
+              <button class="btn btn-ghost btn-sm" onclick="saveCurrentList()">💾 SAVE LIST</button>
+            </div>
+            <div style="margin-top:25px;">
+                <div class="result-tabs">
+                    <div class="result-tab-item">
+                        <button class="btn btn-ghost" onclick="showRes('reg')" style="border-color:var(--accent); color:var(--accent); font-size:13px;">✅ <span data-i18n="found">Found</span> (<span id="c-reg">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy found numbers" onclick="copySection('reg')">📋</button>
+                    </div>
+                    <div class="result-tab-item">
+                        <button class="btn btn-ghost" onclick="showRes('unreg')" style="border-color:var(--accent3); color:var(--accent3); font-size:13px;">❌ <span data-i18n="unreg">Unreg</span> (<span id="c-unreg">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy unregistered numbers" onclick="copySection('unreg')">📋</button>
+                    </div>
+                    <div class="result-tab-item">
+                        <button class="btn btn-ghost" onclick="showRes('failed')" style="border-color:var(--accent-gold); color:var(--accent-gold); font-size:13px;">⚠️ Failed (<span id="c-failed">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy failed/unknown numbers" onclick="copySection('failed')">📋</button>
+                    </div>
+                </div>
+                <div class="mini-toolbar">
+                    <input id="result-search" class="mini-input" placeholder="Search result number/bio..." oninput="showRes(currentResType)">
+                    <button class="btn btn-ghost btn-sm" onclick="copyResults()">📋 COPY CURRENT</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copyAllResults()">📦 COPY ALL</button>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:10px;" id="filter-box">
+                    <button class="filter-btn active" onclick="applyFilter('ALL', this)">ALL</button>
+                    <button class="filter-btn" onclick="applyFilter('BIZ', this)" data-i18n="biz_only">💼 BIZ ONLY</button>
+                    <button class="filter-btn" onclick="applyFilter('DP', this)" data-i18n="has_dp">🖼️ HAS DP</button>
+                </div>
+                <div class="result-list" id="result-list"><div style="text-align:center; color:var(--text2); margin-top:80px; opacity:0.5;" data-i18n="awaiting">Awaiting Targets...</div></div>
+                <div id="render-limit-msg" style="text-align:center; font-size:9px; color:var(--accent-gold); font-family:'Space Mono'; margin-top:5px; display:none;" data-i18n="render_limit">Display limited to Top 100. Download to view all.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. HISTORY -->
+    <div id="tab-history" class="tab-section">
+      <div class="card" style="max-width:750px; margin:20px auto;">
+        <div class="card-title"><span data-i18n="recent_checks">📜 RECENT CHECKS</span> <button class="btn btn-ghost btn-sm" onclick="fetchHistory()">🔄</button></div>
+        <div id="history-list" style="margin-top:10px; max-height:500px; overflow-y:auto; color:var(--text2);"></div>
+      </div>
+    </div>
+
+    <!-- 3. SESSION / NODE PAIRING -->
+    <div id="tab-session" class="tab-section">
+      <div class="card" style="max-width:550px; margin:40px auto; text-align:center; padding:40px;">
+        <div class="card-title" style="justify-content:center; font-size:14px; margin-bottom:10px;"><span data-i18n="connect_node">📡 CONNECT PRIVATE NODE</span></div>
+        <p style="font-size:12px; color:var(--text2); margin-bottom:30px; line-height:1.6; font-family:'Space Mono';" data-i18n="node_desc">Add your private WhatsApp node for Ultra-Fast load balancing.<br>Format: Digits only (e.g. 919876543210)</p>
+        <input type="number" id="pair-phone" class="input-txt" data-i18n-placeholder="ph_phone" placeholder="Phone Number" style="text-align:center; font-size: 18px; letter-spacing:2px; height:55px;">
+        <button class="btn btn-primary" id="btn-pair" onclick="reqPairing()" style="height:50px; font-size:14px; letter-spacing:1px;" data-i18n="gen_pairing">📡 GENERATE PAIRING CODE</button>
+        <div id="pair-result" style="display:none; margin-top:30px; font-size:40px; color:var(--accent-gold); font-family:'Space Mono'; font-weight:800; letter-spacing:8px; border:2px dashed var(--accent-gold); padding:25px; border-radius:15px; background:rgba(255, 215, 0, 0.05); text-shadow: 0 0 10px rgba(255,215,0,0.5);">XXXX-XXXX</div>
+      </div>
+    </div>
+
+    <!-- 4. PROFILE & API -->
+    <div id="tab-profile" class="tab-section">
+      <div class="card" style="max-width:650px; margin:20px auto;">
+        <div class="card-title"><span data-i18n="profile_title">👤 PROFILE & INTEGRATIONS</span></div>
+        <div class="user-info">
+          <div class="user-avatar">⚡</div>
+          <div><div style="font-size: 20px; font-weight: 800;" id="prof-name">User</div><div style="font-family:'Space Mono'; font-size: 11px; color: var(--text2);" id="prof-id">ID: ---</div></div>
+          <div style="margin-left:auto; text-align:right;">
+             <span class="badge-pro" id="prof-badge">FREE TIER</span>
+             <div id="prof-expiry" style="font-family:'Space Mono'; font-size:10px; color:var(--accent-gold); margin-top:6px; font-weight:bold;">Expiry: Lifetime</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
+            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="buyPrem()" data-i18n="upgrade_tier">💎 UPGRADE TIER</button>
+            <button class="btn btn-danger" style="flex:1; min-width:140px;" onclick="cmdReset()" data-i18n="reset_engine">🔄 RESET ENGINE</button>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:25px;">
+            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="api_key_title">🔌 REST API KEY (PRO/VIP)</b>
+            <p style="font-size:11px; color:var(--text2); margin:8px 0; font-family:'Space Mono';" data-i18n="api_key_desc">Embed the Beast Engine into your own software.</p>
+            <div id="api-key-box" style="font-family:'Space Mono'; font-size:14px; color:var(--accent-gold); background:#000; padding:15px; border-radius:8px; margin:15px 0; border:1px solid var(--border); text-align:center; letter-spacing:1px; word-break:break-all;">Hidden.</div>
+            <select id="api-expiry" class="mini-input" style="margin-bottom:10px"><option value="never">Never expires</option><option value="7">Expires in 7 days</option><option value="30">Expires in 30 days</option></select><button class="btn btn-ghost btn-sm" style="width:100%; border-color:var(--border);" onclick="generateAPI()" data-i18n="gen_api_key">🔄 GENERATE NEW API KEY</button>
+            <div id="api-usage-box" style="font-family:'Space Mono';font-size:11px;color:var(--text2);margin-top:14px;line-height:1.7;">API usage loading...</div>
+        </div>
+        <div style="border-top:1px solid var(--border); padding-top:25px; margin-top:25px;">
+            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="webhook_title">🔗 WEBHOOK URL (PRO/VIP)</b>
+            <p style="font-size:11px; color:var(--text2); margin:8px 0 15px; font-family:'Space Mono';" data-i18n="webhook_desc">Get JSON payload on your server when a scan finishes.</p>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="webhook-input" class="input-txt" placeholder="https://your-domain.com/api/receive" style="margin:0;">
+                <button class="btn btn-primary" style="margin:0; width:120px;" onclick="saveWebhook()" data-i18n="save">SAVE</button><button class="btn btn-ghost" style="margin:0; width:90px;" onclick="testWebhook()">TEST</button>
+            </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. SYS INFO -->
+    <div id="tab-sysinfo" class="tab-section">
+      <div class="card" style="max-width:700px; margin:20px auto;">
+        <div class="card-title"><span data-i18n="sysinfo_title">ℹ️ SYSTEM INFORMATION</span></div>
+        <div id="sys-info-text" style="font-family: 'Space Mono', monospace; font-size:13px; line-height:1.8; color:var(--accent2); background:#000; padding:25px; border-radius:12px; white-space: pre-wrap; border:1px solid var(--border); box-shadow:inset 0 0 20px rgba(0,204,255,0.05);" data-i18n="fetching">Fetching...</div>
+      </div>
+    </div>
+
+
+    <div id="tab-jobs" class="tab-section">
+      <div class="card"><div class="card-title">🧾 JOBS / QUEUE CENTER <button class="btn btn-ghost btn-sm" onclick="fetchJobs()">🔄</button></div><div id="jobs-list" class="pro-list">Loading...</div></div>
+    </div>
+
+    <div id="tab-lists" class="tab-section">
+      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent);font-family:'Syne'">📚 Create Number List</h3><input id="list-name" class="mini-input" placeholder="List name"><textarea id="list-desc" placeholder="Description / notes" style="min-height:80px"></textarea><button class="btn btn-primary" onclick="saveCurrentList()">💾 SAVE CURRENT CHECKER INPUT</button><button class="btn btn-ghost" style="margin-top:10px" onclick="cleanNumbersInput();switchTab('tab-check')">🧹 Clean Input First</button></div><div class="card"><div class="card-title">Saved Lists <button class="btn btn-ghost btn-sm" onclick="fetchLists()">🔄</button></div><div id="lists-box" class="pro-list"></div></div></div>
+    </div>
+
+    <div id="tab-templates" class="tab-section">
+      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent2);font-family:'Syne'">🧩 New Scan Template</h3><input id="tpl-name" class="mini-input" placeholder="Template name"><select id="tpl-speed" class="mini-input"><option>safe</option><option selected>balanced</option><option>fast</option><option>beast</option></select><label style="font-family:'Space Mono';font-size:12px"><input type="checkbox" id="tpl-deep" checked> Deep scan</label><button class="btn btn-primary" style="margin-top:12px" onclick="saveTemplate()">SAVE TEMPLATE</button></div><div class="card"><div class="card-title">Templates <button class="btn btn-ghost btn-sm" onclick="fetchTemplates()">🔄</button></div><div id="templates-box" class="pro-list"></div></div></div>
+    </div>
+
+    <div id="tab-files" class="tab-section"><div class="card"><div class="card-title">📁 FILE MANAGER / SHARE</div><p style="color:var(--text2);font-family:'Space Mono'">Create temporary result share links and view saved file records.</p><button class="btn btn-primary btn-sm" onclick="shareCurrentResults()">🔗 SHARE CURRENT RESULTS</button><div id="share-box" style="margin-top:12px;font-family:'Space Mono';color:var(--accent2)"></div><div id="files-box" class="pro-list" style="margin-top:18px"></div></div></div>
+
+    <div id="tab-forcejoin" class="tab-section"><div class="card"><div class="card-title">🔒 FORCE JOIN SETTINGS</div><div class="mini-toolbar"><select id="fj-enabled" class="mini-input"><option value="false">Disabled</option><option value="true">Enabled</option></select><button class="btn btn-primary btn-sm" onclick="saveForceJoinSettings()">SAVE</button></div><textarea id="fj-channels" placeholder='One per line: title|@channel|https://t.me/channel' style="min-height:150px"></textarea><div id="forcejoin-box" class="pro-list"></div></div></div>
+
+    <div id="tab-proxies" class="tab-section"><div class="card"><div class="card-title">🛡️ RESIDENTIAL PROXY POOL <button class="btn btn-ghost btn-sm" onclick="fetchProxies()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="toggleProxyPool(true)">ENABLE</button><button class="btn btn-danger btn-sm" onclick="toggleProxyPool(false)">DISABLE</button><button class="btn btn-ghost btn-sm" onclick="reloadProxies()">RELOAD</button></div><div id="proxy-summary" style="font-family:'Space Mono';font-size:12px;color:var(--accent2);margin-bottom:12px"></div><div id="proxy-list" class="pro-list">Loading proxies...</div></div></div>
+
+    <div id="tab-webhook-logs" class="tab-section"><div class="card"><div class="card-title">🔗 WEBHOOK LOGS <button class="btn btn-ghost btn-sm" onclick="fetchWebhookLogs()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="testWebhook()">SEND TEST WEBHOOK</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-profile')">Webhook Settings</button></div><div id="webhook-logs-box" class="pro-list">No logs yet.</div></div></div>
+
+    <div id="tab-audit" class="tab-section"><div class="card"><div class="card-title">🛡️ ADMIN AUDIT LOGS <button class="btn btn-ghost btn-sm" onclick="fetchAuditLogsFull()">🔄</button></div><input id="audit-search" class="mini-input" placeholder="Search audit logs..." oninput="renderAuditLogs()"><div id="audit-full-box" class="pro-list"></div></div></div>
+    <div id="tab-vouchers" class="tab-section"><div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent-gold);font-family:'Syne'">🎁 Generate Voucher</h3><select id="vm-type" class="mini-input"><option value="PRO">PRO</option><option value="VIP">VIP</option></select><input id="vm-days" class="mini-input" type="number" value="30" placeholder="Days"><input id="vm-count" class="mini-input" type="number" value="1" placeholder="Uses"><input id="vm-bulk" class="mini-input" type="number" value="1" placeholder="Bulk count"><input id="vm-expiry" class="mini-input" type="date" placeholder="Expiry"><button class="btn btn-gold" onclick="genVoucherManager()">GENERATE</button><button class="btn btn-ghost btn-sm" onclick="exportVouchersCSV()">EXPORT CSV</button><div id="vm-result" style="margin-top:12px;color:var(--accent-gold);font-family:'Space Mono'"></div></div><div class="card"><div class="card-title">Voucher Manager <button class="btn btn-ghost btn-sm" onclick="fetchVoucherManager()">🔄</button></div><div id="voucher-manager-box" class="pro-list"></div></div></div></div>
+    <div id="tab-branding" class="tab-section"><div class="card"><div class="card-title">🏷️ OWNER WHITE-LABEL BRANDING</div><div class="mini-toolbar"><input id="brand-app" class="mini-input" placeholder="App name"><input id="brand-powered" class="mini-input" placeholder="Powered by"><input id="brand-support" class="mini-input" placeholder="Support username"><input id="brand-domain" class="mini-input" placeholder="Custom domain"><input id="brand-footer" class="mini-input" placeholder="Footer text"><input id="brand-primary" class="mini-input" placeholder="Primary color #00ff88"><input id="brand-logo-file" type="file" accept="image/*" onchange="loadBrandLogo(this.files[0])"><button class="btn btn-primary btn-sm" onclick="saveBranding()">SAVE BRANDING</button></div><div id="brand-logo-preview" style="margin:10px 0"></div><div id="branding-box" class="pro-list"></div></div></div>
+
+    <div id="tab-docs" class="tab-section"><div class="card"><div class="card-title">📘 INTERACTIVE API DOCS</div><div class="mini-toolbar"><input id="docs-api-key" class="mini-input" placeholder="API Key"><input id="docs-number" class="mini-input" placeholder="Number e.g. 919999999999"><button class="btn btn-primary btn-sm" onclick="tryApiDocs()">TRY REQUEST</button></div><div class="grid-2"><pre class="bot-console" id="docs-code">curl "${location.origin}/api/v1/check?key=API_KEY&number=919999999999"
+
+Node.js:
+fetch('/api/v1/check?key=API_KEY&number=919999999999')
+
+Python:
+requests.get('/api/v1/check', params={'key':'API_KEY','number':'919999999999'})
+
+PHP:
+file_get_contents('/api/v1/check?key=API_KEY&number=919999999999')</pre><pre class="bot-console" id="docs-response">Response will appear here...</pre></div><h3 style="font-family:'Space Mono';color:var(--accent2)">Batch API</h3><pre class="bot-console">POST /api/v1/batch-check
+{ "key":"API_KEY", "numbers":["919999999999"] }</pre></div></div>
+
+    <div id="tab-settings" class="tab-section"><div class="card"><div class="card-title">⚙️ SETTINGS</div><p style="color:var(--text2);font-family:'Space Mono'">Open the full settings modal for theme, compact/mobile mode, sounds and notifications.</p><button class="btn btn-primary" onclick="openSettings()">OPEN SETTINGS</button><div id="device-list" style="margin-top:20px;font-family:'Space Mono';font-size:11px;color:var(--text2)"></div><button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="logoutAllDevices()">Logout All Devices</button></div></div>
+
+    <div id="tab-security" class="tab-section"><div class="card"><div class="card-title">🔐 SECURITY CENTER <button class="btn btn-ghost btn-sm" onclick="fetchSecurityCenter()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-gold btn-sm" onclick="encryptedBackup()">Encrypted Backup</button><button class="btn btn-ghost btn-sm" onclick="saveFeatureFlags()">Save Feature Flags</button></div><div id="security-box" class="pro-list"></div></div></div>
+    <div id="tab-help" class="tab-section"><div class="card"><div class="card-title">❓ HELP CENTER</div><div class="bot-console">1. Generate web password from bot.
+2. Add WhatsApp node in Sessions.
+3. Paste numbers in Checker.
+4. Choose speed/deep scan.
+5. Download CSV/TXT results.
+
+Proxy help: create proxies.txt and enable from /proxies.</div></div></div>
+    <div id="tab-status" class="tab-section"><div class="card"><div class="card-title">📡 PUBLIC STATUS <button class="btn btn-ghost btn-sm" onclick="fetchPublicStatus()">🔄</button></div><div id="status-box" class="pro-list"></div></div></div>
+    <div id="tab-changelog" class="tab-section"><div class="card"><div class="card-title">📝 CHANGELOG</div><div class="bot-console">v5.01.49
+- Proxy pool
+- Queue/jobs
+- Saved lists
+- Voucher manager
+- Audit logs
+- White-label foundation
+- Login fixed without captcha
+- Interactive API docs</div></div></div>
+
+    <!-- 6. SUPPORT CHAT -->
+    <div id="tab-support" class="tab-section">
+      <div class="grid-2">
+          <div class="card" style="padding:0;">
+              <div class="card-title" style="padding:20px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="user_inbox">👥 USER INBOX</span> <button class="btn btn-ghost btn-sm" onclick="fetchChats()">🔄</button></div>
+              <div id="chat-user-list" style="height:400px; overflow-y:auto; font-family:'Space Mono'; font-size:11px;" data-i18n="loading_chats">Loading chats...</div>
+          </div>
+          <div class="card" style="padding:0;">
+              <div class="card-title" style="padding:20px 20px 10px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="chat_panel">💬 CHAT PANEL</span> <span id="chat-active-user" style="color:var(--accent2); text-transform:none;" data-i18n="select_user">Select a user</span></div>
+              <div class="chat-container">
+                  <div class="chat-box" id="chat-box"><div style="text-align:center; color:var(--text2); margin-top:150px; font-family:'Space Mono'; opacity:0.5;" data-i18n="select_convo">Select a conversation to start.</div></div>
+                  <div class="chat-input-area">
+                      <input type="text" id="chat-input" data-i18n-placeholder="ph_reply" placeholder="Type reply here... (Press Enter to send)" style="flex:1; background:var(--bg3); border:1px solid var(--border); color:#fff; padding:12px 15px; border-radius:8px; font-family:'Space Mono'; font-size:12px; outline:none;">
+                      <button class="btn btn-primary" style="margin:0; width:100px;" onclick="sendChat()" data-i18n="send">SEND</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>
+
+    <!-- 7. GOD CONSOLE (ADMIN) -->
+    <div id="tab-admin" class="tab-section">
+      <div class="grid-2" style="margin-bottom:20px;">
+          <div class="card" style="border-color:var(--accent3); background:rgba(255,51,102,0.02);">
+              <div class="card-title" style="margin-bottom:10px; border:none; padding:0;"><span data-i18n="broadcast">📢 GLOBAL BROADCAST</span></div>
+              <div style="display:flex; gap:10px;">
+                  <input type="text" id="broadcast-msg" class="input-txt" data-i18n-placeholder="ph_broadcast" placeholder="Type broadcast message..." style="margin:0; flex:1;">
+                  <button class="btn btn-danger" style="margin:0; width:100px; background:var(--accent3); color:#fff;" onclick="sendBroadcast()" data-i18n="send">SEND</button>
+              </div>
+          </div>
+          <div class="card" style="display:flex; flex-direction:column; justify-content:center; gap:15px; padding:15px 24px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div><b style="color:var(--accent-gold); font-size:13px;" data-i18n="lockdown">🚧 LOCKDOWN MODE</b></div>
+                  <button class="btn btn-danger btn-sm" id="btn-maint" onclick="toggleMaint()" data-i18n="enable">ENABLE</button>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div><b style="color:var(--accent2); font-size:13px;" data-i18n="warmup">🛡️ ANTI-BAN WARMUP</b></div>
+                  <button class="btn btn-primary btn-sm" style="background:var(--accent2); color:#000;" onclick="warmupNodes()" data-i18n="ping_nodes">PING NODES</button>
+              </div>
+              <div id="owner-mode-card" style="display:none; border-top:1px solid var(--border); padding-top:12px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                      <div><b style="color:var(--accent-gold); font-size:13px;">🌐 SYSTEM MODE</b><br><span id="current-mode" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">Loading...</span></div>
+                      <select id="system-mode-select" class="input-txt" style="margin:0; width:190px;"><option value="free">FREE MODE</option><option value="subscription">SUBSCRIPTION MODE</option></select>
+                      <button class="btn btn-gold btn-sm" onclick="setSystemMode()">SAVE MODE</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div class="card" style="margin-bottom:24px;">
+          <div class="card-title"><span data-i18n="live_metrics">📊 LIVE ENGINE METRICS</span> <button class="btn btn-ghost btn-sm" onclick="fetchAdminStats()">🔄</button></div>
+          <div class="stats-grid">
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent);" id="st-users">0</div><div class="stat-label">👥 USERS</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent-gold);" id="st-vip">0</div><div class="stat-label">🔥 VIP</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:#00ccff;" id="st-pro">0</div><div class="stat-label">💎 PRO</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--text);" id="st-jobs">0</div><div class="stat-label">⚙️ ACTIVE JOBS</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent3);" id="st-ban">0</div><div class="stat-label">🚫 BANNED</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:#b266ff;" id="st-ram">0.0</div><div class="stat-label">⚡ RAM (MB)</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent2); font-size:16px;" id="st-mode">SUB</div><div class="stat-label">🌐 MODE</div></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-family:'Space Mono'; font-size:11px; color:var(--text2); border-top:1px solid var(--border); padding-top:15px; flex-wrap:wrap; gap:8px;">
+              <span>🔌 <span data-i18n="connected_nodes">Connected Nodes</span>: <b id="st-sess" style="color:var(--accent);">0/0</b></span>
+              <span><span data-i18n="uptime">Server Uptime</span>: <b id="st-uptime" style="color:var(--text);">0h 0m 0s</b></span>
+          </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;"><div class="card-title">🛡️ ADMIN FEATURE CENTER</div><div class="mini-toolbar"><button class="btn btn-ghost btn-sm" onclick="fetchAuditLogs()">Audit Logs</button><button class="btn btn-ghost btn-sm" onclick="fetchPlans()">Plan Manager</button><button class="btn btn-ghost btn-sm" onclick="fetchVouchers()">Voucher Manager</button><input id="detail-uid" class="mini-input" placeholder="User ID"><button class="btn btn-primary btn-sm" onclick="fetchUserDetail()">User Detail</button></div><div id="admin-feature-box" style="font-family:'Space Mono';font-size:11px;color:var(--text2);max-height:260px;overflow:auto"></div></div>
+
+      <div class="grid-2">
+          <div class="card">
+              <div class="card-title"><span data-i18n="analytics">📈 7-DAY ANALYTICS</span></div>
+              <canvas id="usageChart" height="120"></canvas>
+          </div>
+          <div class="card">
+              <div class="card-title"><span data-i18n="manage_sessions">🗄️ MANAGE SESSIONS</span> <button class="btn btn-ghost btn-sm" onclick="fetchSessions()">🔄</button></div>
+              <div id="admin-sess-list" style="font-family:'Space Mono'; font-size:11px; max-height:150px; overflow-y:auto; color:var(--text2);" data-i18n="loading_sessions">Loading sessions...</div>
+          </div>
+      </div>
+
+      <div class="grid-2">
+          <div>
+              <div class="card" style="margin-bottom:24px;">
+                  <div class="card-title"><span data-i18n="voucher_gen">🎁 VOUCHER GENERATOR</span></div>
+                  <div style="display:flex; gap:10px;">
+                      <select id="v-type" class="input-txt" style="margin:0; width:30%; cursor:pointer;"><option value="PRO">PRO</option><option value="VIP">VIP</option></select>
+                      <input type="number" id="v-days" class="input-txt" placeholder="Days" value="30" style="margin:0; width:30%;">
+                      <input type="number" id="v-count" class="input-txt" placeholder="Uses" value="1" style="margin:0; width:30%;">
+                  </div>
+                  <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="genVoucher()" data-i18n="gen_promo">GENERATE PROMO CODE</button>
+                  <div id="v-result" style="margin-top:15px; font-family:'Space Mono'; color:var(--accent); text-align:center; font-weight:bold; letter-spacing:2px; font-size:16px;"></div>
+              </div>
+              <div class="card">
+                  <div class="card-title"><span data-i18n="pro_vip_mgmt">⚙️ PRO & VIP MANAGEMENT</span></div>
+                  <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                      <input type="number" id="target-uid" class="input-txt" data-i18n-placeholder="ph_target_uid" placeholder="🆔 Target UID" style="margin:0; text-align:center; flex:1; min-width:120px;">
+                      <input type="number" id="pro-days" class="input-txt" placeholder="Days" value="30" style="margin:0; width:80px; text-align:center;">
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                      <button class="btn btn-ghost" style="border-color:var(--accent-gold); color:var(--accent-gold);" onclick="adminAct('add_vip')">🔥 ADD VIP</button>
+                      <button class="btn btn-ghost" style="border-color:var(--accent2); color:var(--accent2);" onclick="adminAct('add_sub')">💎 ADD PRO</button>
+                      <button class="btn btn-ghost" onclick="adminAct('rem_vip')">➖ REM VIP</button>
+                      <button class="btn btn-ghost" onclick="adminAct('rem_sub')">➖ REM PRO</button>
+                      <button class="btn btn-ghost" style="border-color:var(--accent3); color:var(--accent3);" onclick="adminAct('ban')">🚫 BAN</button>
+                      <button class="btn btn-ghost" onclick="adminAct('unban')">✅ UNBAN</button>
+                  </div>
+              </div>
+          </div>
+          <div>
+              <div class="card">
+                  <div class="card-title"><span data-i18n="db_dump">👥 DATABASE DUMP</span>
+                      <div style="display:flex; gap:8px;">
+                          <button class="btn btn-primary btn-sm" onclick="fetchAllUsers()">🔄</button>
+                          <button class="btn btn-gold btn-sm" onclick="exportCSVAdmin()">📥 CSV</button>
+                      </div>
+                  </div>
+                  <div id="admin-users-list" style="max-height:430px; overflow-y:auto; font-family:'Space Mono'; font-size:11px;"></div>
+              </div>
+              <div class="card" style="margin-top:24px;">
+                  <div class="card-title"><span data-i18n="node_health">🔌 NODE HEALTH</span></div>
+                  <div id="node-health-list" style="font-family:'Space Mono'; font-size:11px; max-height:200px; overflow-y:auto; color:var(--text2);">No data yet.</div>
+              </div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   i18n — MULTI-LANGUAGE SYSTEM
+   ============================================================ */
+const LANGS = {
+  en: {
+    maint_title:"SYSTEM OFFLINE", maint_desc:"The OMNI-BEAST Engine is upgrading.<br>Please hold tight.",
+    settings:"⚙️ Settings", theme:"🎨 Theme", language:"🌐 Language", preferences:"⚡ Preferences",
+    sound_effects:"🔊 Sound Effects", auto_refresh:"🔄 Auto-Refresh Status", auto_sort:"📊 Auto-Sort by Country",
+    notifications_pref:"🔔 Desktop Notifications",
+    keyboard_shortcuts:"⌨️ Keyboard Shortcuts", sc_settings:"Open Settings", sc_checker:"Checker Tab",
+    sc_history:"History Tab", sc_node:"Add Node Tab", sc_profile:"Profile Tab", sc_fire:"Fire Engine", sc_fullscreen:"Toggle Fullscreen",
+    login_title:'System <span>Login</span>', login_btn:"⚡ INITIATE LINK", logout:"LOGOUT",
+    ph_uid:"Telegram User ID", ph_pass:"Web Password",
+    nav_checker:"🔍 CHECKER", nav_history:"📜 HISTORY", nav_node:"📡 ADD NODE", nav_profile:"👤 PROFILE & API",
+    nav_sysinfo:"ℹ️ SYSTEM INFO", nav_inbox:"💬 INBOX", nav_admin:"👑 GOD CONSOLE",
+    terminal:"TERMINAL CONSOLE", clear:"🗑️ CLEAR", targets:"📝 DRAG & DROP TARGETS",
+    upload_file:"📁 UPLOAD .TXT / .CSV FILE", fire_engine:"⚡ FIRE ENGINE", abort:"✕ ABORT",
+    found:"Found", unreg:"Unreg", biz_only:"💼 BIZ ONLY", has_dp:"🖼️ HAS DP",
+    awaiting:"Awaiting Targets...", render_limit:"Display limited to Top 100. Download to view all.",
+    recent_checks:"📜 RECENT CHECKS", connect_node:"📡 CONNECT PRIVATE NODE",
+    node_desc:"Add your private WhatsApp node for Ultra-Fast load balancing.<br>Format: Digits only (e.g. 919876543210)",
+    ph_phone:"Phone Number", gen_pairing:"📡 GENERATE PAIRING CODE",
+    profile_title:"👤 PROFILE & INTEGRATIONS", upgrade_tier:"💎 UPGRADE TIER", reset_engine:"🔄 RESET ENGINE",
+    api_key_title:"🔌 REST API KEY (PRO/VIP)", api_key_desc:"Embed the Beast Engine into your own software.",
+    gen_api_key:"🔄 GENERATE NEW API KEY", webhook_title:"🔗 WEBHOOK URL (PRO/VIP)",
+    webhook_desc:"Get JSON payload on your server when a scan finishes.", save:"SAVE",
+    sysinfo_title:"ℹ️ SYSTEM INFORMATION", fetching:"Fetching...",
+    user_inbox:"👥 USER INBOX", loading_chats:"Loading chats...", chat_panel:"💬 CHAT PANEL",
+    select_user:"Select a user", select_convo:"Select a conversation to start.",
+    ph_reply:"Type reply here... (Press Enter to send)", send:"SEND",
+    broadcast:"📢 GLOBAL BROADCAST", ph_broadcast:"Type broadcast message...",
+    lockdown:"🚧 LOCKDOWN MODE", enable:"ENABLE", warmup:"🛡️ ANTI-BAN WARMUP", ping_nodes:"PING NODES",
+    live_metrics:"📊 LIVE ENGINE METRICS", connected_nodes:"Connected Nodes", uptime:"Server Uptime",
+    analytics:"📈 7-DAY ANALYTICS", manage_sessions:"🗄️ MANAGE SESSIONS", loading_sessions:"Loading sessions...",
+    voucher_gen:"🎁 VOUCHER GENERATOR", gen_promo:"GENERATE PROMO CODE",
+    pro_vip_mgmt:"⚙️ PRO & VIP MANAGEMENT", ph_target_uid:"🆔 Target UID",
+    db_dump:"👥 DATABASE DUMP", node_health:"🔌 NODE HEALTH",
+    system_alerts:"🔔 SYSTEM ALERTS", clear_all:"Clear All", no_alerts:"No new alerts.",
+    ph_numbers:"Paste numbers here OR Drag & Drop a file inside this box..."
+  },
+  hi: {
+    maint_title:"सिस्टम ऑफ़लाइन", maint_desc:"OMNI-BEAST इंजन अपग्रेड हो रहा है।<br>कृपया प्रतीक्षा करें।",
+    settings:"⚙️ सेटिंग्स", theme:"🎨 थीम", language:"🌐 भाषा", preferences:"⚡ प्राथमिकताएं",
+    sound_effects:"🔊 ध्वनि प्रभाव", auto_refresh:"🔄 ऑटो-रिफ्रेश", auto_sort:"📊 देश के अनुसार क्रम",
+    notifications_pref:"🔔 डेस्कटॉप सूचनाएं",
+    keyboard_shortcuts:"⌨️ कीबोर्ड शॉर्टकट", sc_settings:"सेटिंग्स खोलें", sc_checker:"चेकर टैब",
+    sc_history:"इतिहास टैब", sc_node:"नोड जोड़ें टैब", sc_profile:"प्रोफ़ाइल टैब", sc_fire:"इंजन शुरू", sc_fullscreen:"फ़ुलस्क्रीन टॉगल",
+    login_title:'सिस्टम <span>लॉगिन</span>', login_btn:"⚡ लिंक शुरू करें", logout:"लॉग आउट",
+    ph_uid:"टेलीग्राम यूजर आईडी", ph_pass:"वेब पासवर्ड",
+    nav_checker:"🔍 चेकर", nav_history:"📜 इतिहास", nav_node:"📡 नोड जोड़ें", nav_profile:"👤 प्रोफ़ाइल",
+    nav_sysinfo:"ℹ️ सिस्टम जानकारी", nav_inbox:"💬 इनबॉक्स", nav_admin:"👑 गॉड कंसोल",
+    terminal:"टर्मिनल कंसोल", clear:"🗑️ साफ़", targets:"📝 नंबर डालें",
+    upload_file:"📁 .TXT / .CSV फ़ाइल अपलोड", fire_engine:"⚡ इंजन चालू", abort:"✕ रद्द",
+    found:"मिले", unreg:"अपंजीकृत", biz_only:"💼 सिर्फ बिज़", has_dp:"🖼️ DP वाले",
+    awaiting:"लक्ष्यों की प्रतीक्षा...", render_limit:"शीर्ष 100 तक सीमित। सभी देखने के लिए डाउनलोड करें।",
+    recent_checks:"📜 हाल की जांचें", connect_node:"📡 प्राइवेट नोड कनेक्ट करें",
+    node_desc:"अल्ट्रा-फास्ट लोड बैलेंसिंग के लिए अपना व्हाट्सएप नोड जोड़ें।<br>फ़ॉर्मेट: केवल अंक (जैसे 919876543210)",
+    ph_phone:"फ़ोन नंबर", gen_pairing:"📡 पेयरिंग कोड बनाएं",
+    profile_title:"👤 प्रोफ़ाइल और इंटीग्रेशन", upgrade_tier:"💎 टियर अपग्रेड", reset_engine:"🔄 इंजन रीसेट",
+    api_key_title:"🔌 REST API कुंजी (PRO/VIP)", api_key_desc:"बीस्ट इंजन को अपने सॉफ़्टवेयर में एम्बेड करें।",
+    gen_api_key:"🔄 नई API कुंजी बनाएं", webhook_title:"🔗 वेबहुक URL (PRO/VIP)",
+    webhook_desc:"स्कैन पूरा होने पर JSON पेलोड प्राप्त करें।", save:"सेव",
+    sysinfo_title:"ℹ️ सिस्टम जानकारी", fetching:"लोड हो रहा है...",
+    user_inbox:"👥 यूजर इनबॉक्स", loading_chats:"चैट लोड हो रही हैं...", chat_panel:"💬 चैट पैनल",
+    select_user:"यूजर चुनें", select_convo:"बातचीत शुरू करने के लिए चुनें।",
+    ph_reply:"यहां जवाब टाइप करें... (भेजने के लिए Enter दबाएं)", send:"भेजें",
+    broadcast:"📢 वैश्विक प्रसारण", ph_broadcast:"प्रसारण संदेश टाइप करें...",
+    lockdown:"🚧 लॉकडाउन मोड", enable:"चालू", warmup:"🛡️ एंटी-बैन वॉर्मअप", ping_nodes:"नोड पिंग",
+    live_metrics:"📊 लाइव मेट्रिक्स", connected_nodes:"कनेक्टेड नोड्स", uptime:"सर्वर अपटाइम",
+    analytics:"📈 7-दिन विश्लेषण", manage_sessions:"🗄️ सत्र प्रबंधित करें", loading_sessions:"सत्र लोड हो रहे...",
+    voucher_gen:"🎁 वाउचर जनरेटर", gen_promo:"प्रोमो कोड बनाएं",
+    pro_vip_mgmt:"⚙️ PRO और VIP प्रबंधन", ph_target_uid:"🆔 लक्ष्य UID",
+    db_dump:"👥 डेटाबेस डंप", node_health:"🔌 नोड स्वास्थ्य",
+    system_alerts:"🔔 सिस्टम अलर्ट", clear_all:"सभी साफ़", no_alerts:"कोई नया अलर्ट नहीं।",
+    ph_numbers:"नंबर यहां पेस्ट करें या फ़ाइल ड्रैग एंड ड्रॉप करें..."
+  },
+  ar: {
+    maint_title:"النظام غير متصل", maint_desc:"محرك OMNI-BEAST يتم ترقيته.<br>يرجى الانتظار.",
+    settings:"⚙️ الإعدادات", theme:"🎨 السمة", language:"🌐 اللغة", preferences:"⚡ التفضيلات",
+    sound_effects:"🔊 المؤثرات الصوتية", auto_refresh:"🔄 تحديث تلقائي", auto_sort:"📊 ترتيب حسب البلد",
+    notifications_pref:"🔔 إشعارات سطح المكتب",
+    keyboard_shortcuts:"⌨️ اختصارات لوحة المفاتيح", sc_settings:"فتح الإعدادات", sc_checker:"تبويب الفاحص",
+    sc_history:"تبويب السجل", sc_node:"تبويب إضافة عقدة", sc_profile:"تبويب الملف الشخصي", sc_fire:"تشغيل المحرك", sc_fullscreen:"تبديل ملء الشاشة",
+    login_title:'تسجيل <span>الدخول</span>', login_btn:"⚡ بدء الاتصال", logout:"خروج",
+    ph_uid:"معرف مستخدم تيليجرام", ph_pass:"كلمة مرور الويب",
+    nav_checker:"🔍 الفاحص", nav_history:"📜 السجل", nav_node:"📡 إضافة عقدة", nav_profile:"👤 الملف الشخصي",
+    nav_sysinfo:"ℹ️ معلومات النظام", nav_inbox:"💬 صندوق الوارد", nav_admin:"👑 وحدة التحكم",
+    terminal:"وحدة الطرفية", clear:"🗑️ مسح", targets:"📝 إسقاط الأهداف",
+    upload_file:"📁 رفع ملف TXT / CSV", fire_engine:"⚡ تشغيل المحرك", abort:"✕ إلغاء",
+    found:"موجود", unreg:"غير مسجل", biz_only:"💼 أعمال فقط", has_dp:"🖼️ لديه صورة",
+    awaiting:"بانتظار الأهداف...", render_limit:"العرض محدود بأول 100. حمّل لعرض الكل.",
+    recent_checks:"📜 الفحوصات الأخيرة", connect_node:"📡 ربط عقدة خاصة",
+    node_desc:"أضف عقدة واتساب خاصة لموازنة التحميل.<br>الصيغة: أرقام فقط (مثل 919876543210)",
+    ph_phone:"رقم الهاتف", gen_pairing:"📡 إنشاء رمز الإقران",
+    profile_title:"👤 الملف الشخصي والتكاملات", upgrade_tier:"💎 ترقية المستوى", reset_engine:"🔄 إعادة تعيين المحرك",
+    api_key_title:"🔌 مفتاح API (PRO/VIP)", api_key_desc:"دمج محرك Beast في برنامجك.",
+    gen_api_key:"🔄 إنشاء مفتاح جديد", webhook_title:"🔗 رابط Webhook (PRO/VIP)",
+    webhook_desc:"احصل على البيانات تلقائياً عند انتهاء الفحص.", save:"حفظ",
+    sysinfo_title:"ℹ️ معلومات النظام", fetching:"جارِ التحميل...",
+    user_inbox:"👥 صندوق الوارد", loading_chats:"جارِ تحميل المحادثات...", chat_panel:"💬 لوحة الدردشة",
+    select_user:"اختر مستخدم", select_convo:"اختر محادثة للبدء.",
+    ph_reply:"اكتب الرد هنا... (اضغط Enter للإرسال)", send:"إرسال",
+    broadcast:"📢 بث عام", ph_broadcast:"اكتب رسالة البث...",
+    lockdown:"🚧 وضع الإغلاق", enable:"تفعيل", warmup:"🛡️ إحماء مضاد للحظر", ping_nodes:"اختبار العقد",
+    live_metrics:"📊 المقاييس المباشرة", connected_nodes:"العقد المتصلة", uptime:"وقت التشغيل",
+    analytics:"📈 تحليلات 7 أيام", manage_sessions:"🗄️ إدارة الجلسات", loading_sessions:"جارِ تحميل الجلسات...",
+    voucher_gen:"🎁 مولد القسائم", gen_promo:"إنشاء رمز ترويجي",
+    pro_vip_mgmt:"⚙️ إدارة PRO و VIP", ph_target_uid:"🆔 معرف الهدف",
+    db_dump:"👥 تصدير قاعدة البيانات", node_health:"🔌 صحة العقد",
+    system_alerts:"🔔 تنبيهات النظام", clear_all:"مسح الكل", no_alerts:"لا توجد تنبيهات جديدة.",
+    ph_numbers:"الصق الأرقام هنا أو اسحب وأفلت ملفاً..."
+  },
+  es: {
+    maint_title:"SISTEMA FUERA DE LÍNEA", maint_desc:"El motor OMNI-BEAST se está actualizando.<br>Por favor espere.",
+    settings:"⚙️ Ajustes", theme:"🎨 Tema", language:"🌐 Idioma", preferences:"⚡ Preferencias",
+    sound_effects:"🔊 Efectos de sonido", auto_refresh:"🔄 Auto-actualizar", auto_sort:"📊 Ordenar por país",
+    notifications_pref:"🔔 Notificaciones de escritorio",
+    keyboard_shortcuts:"⌨️ Atajos de teclado", sc_settings:"Abrir ajustes", sc_checker:"Pestaña verificador",
+    sc_history:"Pestaña historial", sc_node:"Pestaña agregar nodo", sc_profile:"Pestaña perfil", sc_fire:"Iniciar motor", sc_fullscreen:"Pantalla completa",
+    login_title:'Inicio de <span>sesión</span>', login_btn:"⚡ INICIAR ENLACE", logout:"SALIR",
+    ph_uid:"ID de usuario Telegram", ph_pass:"Contraseña web",
+    nav_checker:"🔍 VERIFICADOR", nav_history:"📜 HISTORIAL", nav_node:"📡 AGREGAR NODO", nav_profile:"👤 PERFIL",
+    nav_sysinfo:"ℹ️ INFO SISTEMA", nav_inbox:"💬 BANDEJA", nav_admin:"👑 CONSOLA ADMIN",
+    terminal:"CONSOLA TERMINAL", clear:"🗑️ LIMPIAR", targets:"📝 ARRASTRAR OBJETIVOS",
+    upload_file:"📁 SUBIR ARCHIVO .TXT / .CSV", fire_engine:"⚡ INICIAR MOTOR", abort:"✕ ABORTAR",
+    found:"Encontrados", unreg:"No reg.", biz_only:"💼 SOLO BIZ", has_dp:"🖼️ CON FOTO",
+    awaiting:"Esperando objetivos...", render_limit:"Limitado a 100. Descargue para ver todo.",
+    recent_checks:"📜 VERIFICACIONES RECIENTES", connect_node:"📡 CONECTAR NODO PRIVADO",
+    node_desc:"Agregue su nodo WhatsApp privado para balanceo de carga.<br>Formato: Solo dígitos (ej. 919876543210)",
+    ph_phone:"Número de teléfono", gen_pairing:"📡 GENERAR CÓDIGO",
+    profile_title:"👤 PERFIL E INTEGRACIONES", upgrade_tier:"💎 MEJORAR NIVEL", reset_engine:"🔄 REINICIAR MOTOR",
+    api_key_title:"🔌 CLAVE API REST (PRO/VIP)", api_key_desc:"Integre el motor Beast en su software.",
+    gen_api_key:"🔄 GENERAR NUEVA CLAVE", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    webhook_desc:"Reciba datos JSON al terminar un escaneo.", save:"GUARDAR",
+    sysinfo_title:"ℹ️ INFORMACIÓN DEL SISTEMA", fetching:"Cargando...",
+    user_inbox:"👥 BANDEJA DE USUARIOS", loading_chats:"Cargando chats...", chat_panel:"💬 PANEL DE CHAT",
+    select_user:"Seleccionar usuario", select_convo:"Seleccione una conversación.",
+    ph_reply:"Escriba respuesta... (Enter para enviar)", send:"ENVIAR",
+    broadcast:"📢 DIFUSIÓN GLOBAL", ph_broadcast:"Escriba mensaje de difusión...",
+    lockdown:"🚧 MODO BLOQUEO", enable:"ACTIVAR", warmup:"🛡️ CALENTAMIENTO ANTI-BAN", ping_nodes:"PING NODOS",
+    live_metrics:"📊 MÉTRICAS EN VIVO", connected_nodes:"Nodos conectados", uptime:"Tiempo activo",
+    analytics:"📈 ANÁLISIS 7 DÍAS", manage_sessions:"🗄️ GESTIONAR SESIONES", loading_sessions:"Cargando sesiones...",
+    voucher_gen:"🎁 GENERADOR DE CUPONES", gen_promo:"GENERAR CÓDIGO PROMO",
+    pro_vip_mgmt:"⚙️ GESTIÓN PRO Y VIP", ph_target_uid:"🆔 UID objetivo",
+    db_dump:"👥 VOLCADO BD", node_health:"🔌 SALUD DE NODOS",
+    system_alerts:"🔔 ALERTAS DEL SISTEMA", clear_all:"Limpiar todo", no_alerts:"Sin alertas nuevas.",
+    ph_numbers:"Pegue números aquí o arrastre un archivo..."
+  },
+  pt: {
+    maint_title:"SISTEMA OFFLINE", maint_desc:"O motor OMNI-BEAST está sendo atualizado.<br>Por favor aguarde.",
+    settings:"⚙️ Configurações", theme:"🎨 Tema", language:"🌐 Idioma", preferences:"⚡ Preferências",
+    sound_effects:"🔊 Efeitos sonoros", auto_refresh:"🔄 Atualização automática", auto_sort:"📊 Ordenar por país",
+    notifications_pref:"🔔 Notificações desktop",
+    keyboard_shortcuts:"⌨️ Atalhos do teclado", sc_settings:"Abrir configurações", sc_checker:"Aba verificador",
+    sc_history:"Aba histórico", sc_node:"Aba adicionar nó", sc_profile:"Aba perfil", sc_fire:"Iniciar motor", sc_fullscreen:"Tela cheia",
+    login_title:'Login do <span>Sistema</span>', login_btn:"⚡ INICIAR LINK", logout:"SAIR",
+    ph_uid:"ID de usuário Telegram", ph_pass:"Senha web",
+    nav_checker:"🔍 VERIFICADOR", nav_history:"📜 HISTÓRICO", nav_node:"📡 ADICIONAR NÓ", nav_profile:"👤 PERFIL",
+    nav_sysinfo:"ℹ️ INFO SISTEMA", nav_inbox:"💬 CAIXA", nav_admin:"👑 CONSOLE ADMIN",
+    terminal:"CONSOLE TERMINAL", clear:"🗑️ LIMPAR", targets:"📝 ARRASTAR ALVOS",
+    upload_file:"📁 ENVIAR ARQUIVO .TXT / .CSV", fire_engine:"⚡ INICIAR MOTOR", abort:"✕ CANCELAR",
+    found:"Encontrados", unreg:"Não reg.", biz_only:"💼 SÓ BIZ", has_dp:"🖼️ COM FOTO",
+    awaiting:"Aguardando alvos...", render_limit:"Limitado a 100. Baixe para ver todos.",
+    recent_checks:"📜 VERIFICAÇÕES RECENTES", connect_node:"📡 CONECTAR NÓ PRIVADO",
+    node_desc:"Adicione seu nó WhatsApp privado para balanceamento de carga.<br>Formato: Apenas dígitos (ex. 5511999998888)",
+    ph_phone:"Número de telefone", gen_pairing:"📡 GERAR CÓDIGO",
+    profile_title:"👤 PERFIL E INTEGRAÇÕES", upgrade_tier:"💎 ATUALIZAR NÍVEL", reset_engine:"🔄 REINICIAR MOTOR",
+    api_key_title:"🔌 CHAVE API REST (PRO/VIP)", api_key_desc:"Integre o motor Beast ao seu software.",
+    gen_api_key:"🔄 GERAR NOVA CHAVE", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    webhook_desc:"Receba dados JSON quando uma varredura terminar.", save:"SALVAR",
+    sysinfo_title:"ℹ️ INFORMAÇÕES DO SISTEMA", fetching:"Carregando...",
+    user_inbox:"👥 CAIXA DE USUÁRIOS", loading_chats:"Carregando chats...", chat_panel:"💬 PAINEL DE CHAT",
+    select_user:"Selecionar usuário", select_convo:"Selecione uma conversa.",
+    ph_reply:"Digite resposta... (Enter para enviar)", send:"ENVIAR",
+    broadcast:"📢 TRANSMISSÃO GLOBAL", ph_broadcast:"Digite mensagem de transmissão...",
+    lockdown:"🚧 MODO BLOQUEIO", enable:"ATIVAR", warmup:"🛡️ AQUECIMENTO ANTI-BAN", ping_nodes:"PING NÓS",
+    live_metrics:"📊 MÉTRICAS AO VIVO", connected_nodes:"Nós conectados", uptime:"Tempo ativo",
+    analytics:"📈 ANÁLISE 7 DIAS", manage_sessions:"🗄️ GERENCIAR SESSÕES", loading_sessions:"Carregando sessões...",
+    voucher_gen:"🎁 GERADOR DE VOUCHERS", gen_promo:"GERAR CÓDIGO PROMO",
+    pro_vip_mgmt:"⚙️ GESTÃO PRO E VIP", ph_target_uid:"🆔 UID alvo",
+    db_dump:"👥 DUMP DO BANCO", node_health:"🔌 SAÚDE DOS NÓS",
+    system_alerts:"🔔 ALERTAS DO SISTEMA", clear_all:"Limpar tudo", no_alerts:"Sem novos alertas.",
+    ph_numbers:"Cole números aqui ou arraste um arquivo..."
+  },
+  id: {
+    maint_title:"SISTEM OFFLINE", maint_desc:"Mesin OMNI-BEAST sedang diperbarui.<br>Harap tunggu.",
+    settings:"⚙️ Pengaturan", theme:"🎨 Tema", language:"🌐 Bahasa", preferences:"⚡ Preferensi",
+    sound_effects:"🔊 Efek suara", auto_refresh:"🔄 Auto-refresh", auto_sort:"📊 Urutkan per negara",
+    notifications_pref:"🔔 Notifikasi desktop",
+    keyboard_shortcuts:"⌨️ Pintasan keyboard", sc_settings:"Buka pengaturan", sc_checker:"Tab pemeriksa",
+    sc_history:"Tab riwayat", sc_node:"Tab tambah node", sc_profile:"Tab profil", sc_fire:"Jalankan mesin", sc_fullscreen:"Layar penuh",
+    login_title:'Login <span>Sistem</span>', login_btn:"⚡ MULAI LINK", logout:"KELUAR",
+    ph_uid:"ID pengguna Telegram", ph_pass:"Kata sandi web",
+    nav_checker:"🔍 PEMERIKSA", nav_history:"📜 RIWAYAT", nav_node:"📡 TAMBAH NODE", nav_profile:"👤 PROFIL",
+    nav_sysinfo:"ℹ️ INFO SISTEM", nav_inbox:"💬 KOTAK MASUK", nav_admin:"👑 KONSOL ADMIN",
+    terminal:"KONSOL TERMINAL", clear:"🗑️ BERSIHKAN", targets:"📝 SERET & LEPAS TARGET",
+    upload_file:"📁 UNGGAH FILE .TXT / .CSV", fire_engine:"⚡ JALANKAN MESIN", abort:"✕ BATALKAN",
+    found:"Ditemukan", unreg:"Tidak terdaftar", biz_only:"💼 BISNIS SAJA", has_dp:"🖼️ ADA DP",
+    awaiting:"Menunggu target...", render_limit:"Terbatas 100. Unduh untuk melihat semua.",
+    recent_checks:"📜 PEMERIKSAAN TERBARU", connect_node:"📡 HUBUNGKAN NODE PRIBADI",
+    node_desc:"Tambahkan node WhatsApp pribadi untuk load balancing.<br>Format: Hanya angka (mis. 628123456789)",
+    ph_phone:"Nomor telepon", gen_pairing:"📡 BUAT KODE PAIRING",
+    profile_title:"👤 PROFIL & INTEGRASI", upgrade_tier:"💎 UPGRADE TIER", reset_engine:"🔄 RESET MESIN",
+    api_key_title:"🔌 KUNCI API REST (PRO/VIP)", api_key_desc:"Integrasikan mesin Beast ke software Anda.",
+    gen_api_key:"🔄 BUAT KUNCI BARU", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    webhook_desc:"Dapatkan data JSON saat pemindaian selesai.", save:"SIMPAN",
+    sysinfo_title:"ℹ️ INFORMASI SISTEM", fetching:"Memuat...",
+    user_inbox:"👥 KOTAK MASUK PENGGUNA", loading_chats:"Memuat chat...", chat_panel:"💬 PANEL CHAT",
+    select_user:"Pilih pengguna", select_convo:"Pilih percakapan untuk memulai.",
+    ph_reply:"Ketik balasan... (Tekan Enter untuk kirim)", send:"KIRIM",
+    broadcast:"📢 SIARAN GLOBAL", ph_broadcast:"Ketik pesan siaran...",
+    lockdown:"🚧 MODE LOCKDOWN", enable:"AKTIFKAN", warmup:"🛡️ PEMANASAN ANTI-BAN", ping_nodes:"PING NODE",
+    live_metrics:"📊 METRIK LANGSUNG", connected_nodes:"Node terhubung", uptime:"Waktu aktif server",
+    analytics:"📈 ANALISIS 7 HARI", manage_sessions:"🗄️ KELOLA SESI", loading_sessions:"Memuat sesi...",
+    voucher_gen:"🎁 GENERATOR VOUCHER", gen_promo:"BUAT KODE PROMO",
+    pro_vip_mgmt:"⚙️ MANAJEMEN PRO & VIP", ph_target_uid:"🆔 UID target",
+    db_dump:"👥 DUMP DATABASE", node_health:"🔌 KESEHATAN NODE",
+    system_alerts:"🔔 PERINGATAN SISTEM", clear_all:"Hapus semua", no_alerts:"Tidak ada peringatan baru.",
+    ph_numbers:"Tempel nomor di sini atau seret file..."
+  }
+};
+
+const RTL_LANGS = ['ar'];
+let currentLang = localStorage.getItem('blaze_lang') || 'en';
+
+function applyLang(lang) {
+    currentLang = lang; localStorage.setItem('blaze_lang', lang);
+    const strings = LANGS[lang] || LANGS.en;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (strings[key] !== undefined) el.innerHTML = strings[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (strings[key] !== undefined) el.placeholder = strings[key];
+    });
+    document.documentElement.dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+    document.documentElement.lang = lang;
+}
+
+function setLang(lang) {
+    applyLang(lang);
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    const btn = document.querySelector(`[data-lang-btn="${lang}"]`);
+    if(btn) btn.classList.add('active');
+}
+
+/* ============================================================
+   THEME SYSTEM
+   ============================================================ */
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('blaze_theme', theme);
+    document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+    const sw = document.querySelector(`[data-theme-btn="${theme}"]`);
+    if(sw) sw.classList.add('active');
+}
+
+/* ============================================================
+   PREFERENCES SYSTEM
+   ============================================================ */
+let prefs = { sound: true, completeSound:true, errorSound:true, refresh: true, sort: true, desknot: false, autoTheme:false, compact:false, contrast:false };
+
+function loadPrefs() {
+    try { const saved = JSON.parse(localStorage.getItem('blaze_prefs')); if(saved) prefs = {...prefs, ...saved}; } catch(e) {}
+    Object.keys(prefs).forEach(k => {
+        const toggle = document.getElementById('toggle-' + k);
+        if(toggle) { toggle.classList.toggle('on', prefs[k]); }
+    });
+    applyDisplayPrefs(); if(prefs.autoTheme) applyAutoTheme();
+}
+
+function applyAutoTheme(){ if(!prefs.autoTheme) return; const dark=window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; setTheme(dark?'cyber':'light'); }
+function applyDisplayPrefs(){ document.body.classList.toggle('compact', !!prefs.compact); document.body.classList.toggle('high-contrast', !!prefs.contrast); }
+
+function togglePref(key) {
+    prefs[key] = !prefs[key];
+    const toggle = document.getElementById('toggle-' + key);
+    if(toggle) toggle.classList.toggle('on', prefs[key]);
+    applyDisplayPrefs();
+    localStorage.setItem('blaze_prefs', JSON.stringify(prefs));
+
+    if(key === 'refresh') {
+        if(prefs.refresh && USER_ID) { if(!liveStatusPoll) liveStatusPoll = setInterval(fetchSysStatus, 10000); }
+        else { clearInterval(liveStatusPoll); liveStatusPoll = null; }
+    }
+    if(key === 'desknot' && prefs.desknot) { Notification.requestPermission(); }
+    if(key === 'autoTheme' && prefs.autoTheme) applyAutoTheme();
+}
+
+/* ============================================================
+   SETTINGS MODAL
+   ============================================================ */
+function openSettings() { document.getElementById('settings-modal').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
+
+/* ============================================================
+   FULLSCREEN & CLOCK
+   ============================================================ */
+function toggleFullscreen() {
+    if(!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+    else document.exitFullscreen().catch(()=>{});
+}
+
+function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0'), m = String(now.getMinutes()).padStart(2,'0'), s = String(now.getSeconds()).padStart(2,'0');
+    setTxt('live-clock', `${h}:${m}:${s}`);
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUTS
+   ============================================================ */
+document.addEventListener('keydown', function(e) {
+    if(e.ctrlKey && e.key === ',') { e.preventDefault(); openSettings(); }
+    if(e.ctrlKey && e.key === 'Enter') { e.preventDefault(); startCheck(); }
+    if(e.altKey && e.key === '1') { e.preventDefault(); switchTab('tab-check'); }
+    if(e.altKey && e.key === '2') { e.preventDefault(); switchTab('tab-history'); }
+    if(e.altKey && e.key === '3') { e.preventDefault(); switchTab('tab-session'); }
+    if(e.altKey && e.key === '4') { e.preventDefault(); switchTab('tab-profile'); }
+    if(e.key === 'Escape') closeSettings();
+});
+
+/* ============================================================
+   WEB AUDIO API
+   ============================================================ */
+let audioCtx;
+function playBeep(freq, type, duration, vol=0.1) {
+    if(!prefs.sound) return;
+    try {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    } catch(e) {}
+}
+function playStartSound() { playBeep(880,'sine',0.2); setTimeout(()=>playBeep(1200,'sine',0.3),100); }
+function playSuccessSound() { if(!prefs.completeSound) return; playBeep(600,'triangle',0.1); setTimeout(()=>playBeep(800,'triangle',0.1),100); setTimeout(()=>playBeep(1200,'triangle',0.4),200); }
+function playErrorSound() { if(!prefs.errorSound) return; playBeep(200,'sawtooth',0.5,0.2); }
+
+/* ============================================================
+   SAFE DOM HELPERS
+   ============================================================ */
+function setTxt(id,txt){ const el=document.getElementById(id); if(el) el.innerText=txt; }
+function setVal(id,val){ const el=document.getElementById(id); if(el) el.value=val; }
+function getVal(id){ const el=document.getElementById(id); return el?el.value:''; }
+function setHTML(id,html){ const el=document.getElementById(id); if(el) el.innerHTML=html; }
+function setDisplay(id,disp){ const el=document.getElementById(id); if(el) el.style.display=disp; }
+
+/* ============================================================
+   STATE & INITS
+   ============================================================ */
+let USER_ID='', AUTH_TOKEN='', CSRF_TOKEN=localStorage.getItem('blaze_csrf')||'', userInfo=null, checking=false, checkInt=null, jobStartTime=0, jobDuration=0;
+let regNums=[], unregNums=[], failedNums=[]; let allUsersData={}; let activeChatUid=null, chatPoll=null;
+let myChart=null; let globalHistory=[]; let liveStatusPoll=null;
+
+function apiFetch(url, opts={}){
+    opts.headers = Object.assign({}, opts.headers || {});
+    opts.credentials = opts.credentials || 'same-origin';
+    if (AUTH_TOKEN) opts.headers.Authorization = `Bearer ${AUTH_TOKEN}`;
+    if (CSRF_TOKEN && !['GET','HEAD'].includes(String(opts.method||'GET').toUpperCase())) opts.headers['X-CSRF-Token'] = CSRF_TOKEN;
+    return window.fetch(url, opts);
+}
+function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(v){ return esc(v).replace(/`/g,'&#96;'); }
+
+const ROUTES = {
+  'tab-dashboard':'/dashboard', 'tab-check':'/checker', 'tab-history':'/history', 'tab-session':'/sessions',
+  'tab-profile':'/profile', 'tab-sysinfo':'/system', 'tab-jobs':'/jobs', 'tab-lists':'/lists', 'tab-templates':'/templates', 'tab-files':'/files', 'tab-proxies':'/proxies', 'tab-webhook-logs':'/webhooks', 'tab-docs':'/docs', 'tab-settings':'/settings', 'tab-audit':'/audit', 'tab-vouchers':'/vouchers', 'tab-branding':'/branding', 'tab-forcejoin':'/force-join', 'tab-security':'/security', 'tab-help':'/help', 'tab-status':'/status', 'tab-changelog':'/changelog', 'tab-support':'/support', 'tab-admin':'/admin'
+};
+const PATH_TO_TAB = Object.fromEntries(Object.entries(ROUTES).map(([k,v])=>[v,k]));
+function routeForTab(tab){ return ROUTES[tab] || '/checker'; }
+function updateRouteUI(tab){ const c=document.getElementById('page-crumb'); if(c){ c.style.display='block'; c.innerHTML=`Route: <b>${routeForTab(tab)}</b>`; } }
+function tabFromLocation(){ if(location.pathname==='/api') return 'tab-profile'; return PATH_TO_TAB[location.pathname] || 'tab-dashboard'; }
+function badgeText(d){
+  const tier = d.isFreeMode ? '🌍 FREE MODE' : (d.isVIP?'VIP TIER':(d.isPro?'PRO TIER':'FREE TIER'));
+  return d.isOwner ? `${tier} | OWNER` : (d.isAdmin ? `${tier} | ADMIN` : tier);
+}
+function safeInitialTab(){ const t=tabFromLocation(); if((t==='tab-admin'||t==='tab-support'||t==='tab-audit'||t==='tab-vouchers'||t==='tab-branding') && !userInfo?.isAdmin){ if(history.replaceState) history.replaceState({tab:'tab-check'},'',routeForTab('tab-check')); return 'tab-check'; } return t; }
+let currentResType='reg'; let currentFilter='ALL';
+
+function welcomeVoice(){ if(!prefs.sound) return; try{ const u=new SpeechSynthesisUtterance('Welcome to WS CHECKER. Powered by BlazeNXT'); u.rate=.92; u.pitch=1; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+
+function hidePublicPanels(){ setDisplay('landing-panel','none'); setDisplay('auth-panel','none'); setDisplay('signup-panel','none'); }
+function showLandingPage(){ hidePublicPanels(); setDisplay('landing-panel','block'); if(history.replaceState && location.pathname!=='/') history.replaceState({},'', '/'); }
+function showLoginPage(){ hidePublicPanels(); setDisplay('auth-panel','block'); if(history.pushState && location.pathname!=='/login') history.pushState({},'', '/login'); }
+function showSignupPage(){ hidePublicPanels(); setDisplay('signup-panel','block'); if(history.pushState && location.pathname!=='/signup') history.pushState({},'', '/signup'); }
+function showInitialPublicPage(){ const p=location.pathname; if(p==='/login') showLoginPage(); else if(p==='/signup') showSignupPage(); else showLandingPage(); }
+
+function toast(msg,type='info'){
+  const w=document.getElementById('toast-wrap'); if(!w) return;
+  const e=document.createElement('div'); e.className=`toast ${type}`; e.textContent=msg;
+  w.appendChild(e); setTimeout(()=>e.remove(),3500);
+  if(prefs.desknot && Notification.permission==='granted') { try { new Notification('Blaze NXT',{body:msg}); } catch(ex){} }
+}
+
+function switchTab(t, el, push=true){
+    document.querySelectorAll('.tab-section, .nav-item').forEach(e=>e.classList.remove('active'));
+    const target=document.getElementById(t); if(target) target.classList.add('active');
+    if(el) el.classList.add('active');
+    else { const navs=document.querySelectorAll('.nav-item'); const tabs=['tab-dashboard','tab-check','tab-history','tab-jobs','tab-session','tab-lists','tab-templates','tab-files','tab-profile','tab-webhook-logs','tab-docs','tab-settings','tab-help','tab-status','tab-changelog','tab-support','tab-admin','tab-audit','tab-vouchers','tab-proxies','tab-forcejoin','tab-branding','tab-security']; const idx=tabs.indexOf(t); if(idx>=0 && navs[idx]) navs[idx].classList.add('active'); }
+    if(push && history.pushState){ const path=routeForTab(t); if(location.pathname!==path) history.pushState({tab:t},'',path); }
+    updateRouteUI(t);
+
+    if(t==='tab-dashboard') refreshDashboardHome();
+    if(t==='tab-profile') fetchApiUsage();
+    if(t==='tab-jobs') fetchJobs();
+    if(t==='tab-lists') fetchLists();
+    if(t==='tab-templates') fetchTemplates();
+    if(t==='tab-files') fetchFiles();
+    if(t==='tab-proxies') fetchProxies();
+    if(t==='tab-webhook-logs') fetchWebhookLogs();
+    if(t==='tab-audit') fetchAuditLogsFull();
+    if(t==='tab-vouchers') fetchVoucherManager();
+    if(t==='tab-branding') fetchBranding();
+    if(t==='tab-forcejoin') fetchForceJoinSettings();
+    if(t==='tab-security') fetchSecurityCenter();
+    if(t==='tab-status') fetchPublicStatus();
+    if(t==='tab-history') fetchHistory();
+    if(t==='tab-sysinfo') fetchSysInfo();
+    if(t==='tab-support') fetchChats();
+    if(t==='tab-settings') fetchDeviceSessions();
+    if(t==='tab-admin'){ fetchAdminStats(); fetchAllUsers(); fetchSessions(); }
+}
+window.addEventListener('popstate',()=>{ if(!USER_ID) showInitialPublicPage(); else switchTab(tabFromLocation(), null, false); });
+
+function getProgressBar(c,t,len=14){
+    if(!t) return `[${"░".repeat(len)}] 0%`;
+    let p=Math.min(100,Math.floor((c/t)*100)), f=Math.floor((p/100)*len);
+    return `[${"█".repeat(f)}${"░".repeat(len-f)}] ${p}%`;
+}
+function calculateETA(c,t){ if(c<=0||!jobStartTime)return"Calc..."; let rem=(t-c)/(c/((Date.now()-jobStartTime)/1000)); return rem<60?`~${Math.ceil(rem)}s`:`~${Math.ceil(rem/60)}m`; }
+function fmtDuration(ms){ let s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60); return h>0?`${h}h ${m%60}m ${s%60}s`:(m>0?`${m}m ${s%60}s`:`${s}s`); }
+
+/* ============================================================
+   DRAG AND DROP & UPLOAD
+   ============================================================ */
+const dropZone=document.getElementById('numbers-input');
+if(dropZone){
+    dropZone.addEventListener('dragover',(e)=>{e.preventDefault();dropZone.classList.add('dragover');});
+    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop',(e)=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+}
+function handleFile(file){ if(!file)return; const reader=new FileReader(); reader.onload=(e)=>{setVal('numbers-input',e.target.result); updateNumberPreview(); toast("📁 File Loaded","success");}; reader.readAsText(file); }
+
+function normalizeInputNumbers(){
+    const raw=getVal('numbers-input'); const seen=new Set(); let dup=0;
+    const nums=raw.split(/[\r\n,;\s]+/).map(n=>n.replace(/[^0-9]/g,'')).filter(n=>n.length>=7&&n.length<=15).filter(n=>{ if(seen.has(n)){dup++; return false;} seen.add(n); return true; });
+    return {nums, dup};
+}
+function updateNumberPreview(){ const {nums,dup}=normalizeInputNumbers(); setTxt('num-preview',`${nums.length} valid / ${dup} duplicate`); }
+function cleanNumbersInput(){ const {nums,dup}=normalizeInputNumbers(); setVal('numbers-input',nums.join('\n')); updateNumberPreview(); toast(`Cleaned: ${nums.length} numbers (${dup} duplicates removed)`,'success'); }
+function copyInputNumbers(){ const {nums}=normalizeInputNumbers(); if(!nums.length) return toast('No input numbers','error'); copyText(nums.join('\n'),'Input copied'); }
+
+
+/* ============================================================
+   AUTHENTICATION & MAINTENANCE
+   ============================================================ */
+
+async function login(){
+  const uid=getVal('inp-uid').trim(), pass=getVal('inp-pass').trim();
+  if(!uid||!pass) return toast("Enter credentials","error");
+  try{
+    const r=await apiFetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid,password:pass})});
+    const d=await r.json(); if(!d.ok) throw new Error(d.message);
+    USER_ID=uid; CSRF_TOKEN=d.csrfToken||''; userInfo=d;
+    localStorage.setItem('blaze_uid',uid); localStorage.setItem('blaze_csrf',CSRF_TOKEN); localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_pass');
+    setTxt('prof-name',d.user.name||'User'); setTxt('prof-id','ID: '+uid);
+    const badge=document.getElementById('prof-badge');
+    if(badge){ badge.textContent=badgeText(d); badge.className=d.isVIP||d.isOwner?'badge-pro badge-vip':'badge-pro'; }
+    if(d.user.lang) setLang(d.user.lang);
+    setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
+    setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
+    if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
+    setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
+    hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
+    switchTab(safeInitialTab(), null, false);
+    fetchSysStatus();
+    if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
+    toast('System Authorized','success'); welcomeVoice();
+  } catch(e){ toast('❌ '+e.message,'error'); playErrorSound(); }
+}
+
+async function logout(){ try{await apiFetch('/api/logout',{method:'POST'});}catch(e){} localStorage.removeItem('blaze_uid'); localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); localStorage.removeItem('blaze_pass'); location.reload(); }
+
+async function hydrateSession(){
+  if(!CSRF_TOKEN && !localStorage.getItem('blaze_uid')) return false;
+  try{
+    const r=await apiFetch('/api/me'); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Session expired');
+    USER_ID=String(d.user.id); userInfo=d;
+    setTxt('prof-name',d.user.name||'User'); setTxt('prof-id','ID: '+USER_ID);
+    const badge=document.getElementById('prof-badge');
+    if(badge){ badge.textContent=badgeText(d); badge.className=d.isVIP||d.isOwner?'badge-pro badge-vip':'badge-pro'; }
+    setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
+    setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
+    if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
+    setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
+    hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
+    switchTab(safeInitialTab(), null, false); fetchSysStatus(); if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
+    welcomeVoice(); return true;
+  } catch(e){ localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); AUTH_TOKEN=''; CSRF_TOKEN=''; showInitialPublicPage(); return false; }
+}
+
+
+async function resumeLastJob(){
+  try{ const r=await apiFetch('/api/resume-job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'No job'); toast(`Resumed ${d.remaining} remaining numbers`,'success'); switchTab('tab-check'); }catch(e){ toast('❌ '+e.message,'error'); }
+}
+async function refreshDashboardHome(){
+  if(!USER_ID) return;
+  try{ const [st,h]=await Promise.all([apiFetch(`/api/status?uid=${USER_ID}`).then(r=>r.json()), apiFetch(`/api/history/${USER_ID}`).then(r=>r.json()).catch(()=>({history:[]}))]);
+    const hist=h.history||[]; const total=hist.reduce((a,x)=>a+Number(x.total||0),0); setTxt('home-total',total); setTxt('home-nodes',st.sessions?.length||0); setTxt('home-last',hist[0]?hist[0].date:'-'); setTxt('home-sub',userInfo?.isFreeMode?'FREE MODE':(userInfo?.isVIP?'VIP':(userInfo?.isPro?'PRO':'FREE')));
+  }catch(e){}
+}
+async function fetchDeviceSessions(){
+  try{ const r=await apiFetch('/api/security/sessions'); const d=await r.json(); if(!d.ok) return; setHTML('device-list', d.sessions.length?d.sessions.map(x=>`<div class="list-item"><div><b>${x.current?'🟢 Current':'⚪ Device'}</b><br>${esc(x.ip)}<br><span style="font-size:9px">${esc(x.lastLogin)} | ${esc(String(x.ua).substring(0,60))}</span></div></div>`).join(''):'No active device sessions.'); }catch(e){}
+}
+async function logoutAllDevices(){ try{await apiFetch('/api/security/logout-all',{method:'POST'});}catch(e){} logout(); }
+
+async function fetchSysStatus(){
+    try{
+        const r=await apiFetch(`/api/status?uid=${USER_ID}`); const d=await r.json();
+        if(d.maintenance && !userInfo?.isAdmin){ setDisplay('maintenance-screen','flex'); document.querySelector('.shell').style.display='none'; }
+        setTxt('global-status',`Nodes: ${d.sessions?.length||0} | Jobs: ${d.activeTasks||0}`);
+        if(userInfo?.isAdmin){
+            const mBtn=document.getElementById('btn-maint');
+            if(mBtn){ mBtn.innerText=d.maintenance?"DISABLE LOCKDOWN":"ENABLE LOCKDOWN"; mBtn.style.background=d.maintenance?"var(--accent)":"transparent"; mBtn.style.color=d.maintenance?"#000":"var(--accent3)"; }
+        }
+    } catch(e){}
+}
+
+/* ============================================================
+   OMNI-BEAST ENGINE & CONSOLE
+   ============================================================ */
+function typeWriterConsole(text){ const con=document.getElementById('bot-console'); if(con) con.textContent=text; }
+
+function setRing(c,t,failed=0){ const pct=t?Math.min(100,Math.floor((c/t)*100)):0; const fg=document.getElementById('ring-fg'); if(fg) fg.style.strokeDashoffset=314-(314*pct/100); setTxt('ring-pct',pct+'%'); setTxt('failed-meter',failed); }
+function updateConsole(type,d){
+    if(type==='start'){ setRing(0,d.total,0); setTxt('speed-meter','0/sec'); setTxt('eta-meter','--'); typeWriterConsole(`╭━━━[ 🚀 𝗢𝗠𝗡𝗜-𝗕𝗘𝗔𝗦𝗧 𝗘𝗡𝗚𝗜𝗡𝗘 ]━━━╮\n┣ 🔎 Target: ${d.total} numbers\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`); }
+    else if(type==='live'){ setRing(d.current,d.total,d.failed||0); setTxt('speed-meter',`${d.speed||0}/sec`); setTxt('eta-meter',d.eta||calculateETA(d.current,d.total)); typeWriterConsole(`╭━━━[ ⚡ 𝗟𝗜𝗩𝗘 𝗘𝗡𝗚𝗜𝗡𝗘 ]━━━╮\n┣ ${getProgressBar(d.current,d.total)}\n┣ 📊 Progress: ${d.current}/${d.total}\n┣ ✅ Found: ${d.reg} (💼 Biz: ${d.bizCount||0})\n┣ ❌ Not Found: ${d.unreg}\n┣ ⏱️ ETA: ${calculateETA(d.current,d.total)}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`); }
+    else if(type==='done') typeWriterConsole(`╭━━━━[ 🎯 𝗖𝗛𝗘𝗖𝗞 𝗖𝗢𝗠𝗣𝗟𝗘𝗧𝗘𝗗 ]━━━━╮\n┣ 📊 Total: ${d.total} | ✅ Reg: ${d.reg} | 💼 Biz: ${d.bizCount||0}\n┣ ⏱️ Time: ${fmtDuration(jobDuration)}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
+    else if(type==='cancel') typeWriterConsole(`╭━━━[ 🚫 𝗔𝗖𝗧𝗜𝗢𝗡 𝗖𝗔𝗡𝗖𝗘𝗟𝗟𝗘𝗗 ]━━━╮\n┣ ⚠️ Job Halted.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
+    else if(type==='clear') typeWriterConsole(`╭━━━[ 🚀 𝗘𝗡𝗚𝗜𝗡𝗘 𝗜𝗗𝗟𝗘 ]━━━╮\n┣ 💡 Ready for targets.\n┣ 🛡️ Mode: Omni-Beast Anti-Ban\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
+}
+
+function clearTerminal(){
+    updateConsole('clear');
+    setTxt('check-stats','0 / 0'); setTxt('c-reg','0'); setTxt('c-unreg','0'); setTxt('c-failed','0');
+    setHTML('result-list','<div style="text-align:center; color:var(--text2); margin-top:80px; opacity:0.5;">Awaiting Targets...</div>');
+    setDisplay('btn-dl-txt','none'); setDisplay('btn-dl-csv','none'); setDisplay('btn-copy-res','none'); setDisplay('render-limit-msg','none');
+    regNums=[]; unregNums=[]; failedNums=[]; toast('Terminal Cleared','success');
+}
+
+async function startCheck(){
+  if(checking) return toast("Job already running","error");
+  const nums=normalizeInputNumbers().nums;
+  if(!nums.length) return toast("No valid numbers","error");
+  checking=true; jobStartTime=Date.now(); playStartSound();
+  const cBtn=document.getElementById('check-btn'); if(cBtn){cBtn.innerText='RUNNING...'; cBtn.disabled=true;}
+  setDisplay('btn-dl-txt','none'); setDisplay('btn-dl-csv','none'); setDisplay('btn-copy-res','none');
+  updateConsole('start',{total:nums.length});
+  try { const r=await apiFetch('/api/start-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID,numbers:nums})}); const d=await r.json(); if(d.queued){ checking=false; if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;} toast(`Job queued at position ${d.position}`,'success'); fetchJobs(); return; } } catch(e) { checking=false; if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;} return toast("Network Error","error"); }
+
+  checkInt=setInterval(async()=>{
+    if(!checking) return clearInterval(checkInt);
+    try{
+      const r=await apiFetch(`/api/progress/${USER_ID}`); const d=await r.json();
+      if(d.progress){
+        const sp=((d.progress.current||0)/Math.max(1,((Date.now()-jobStartTime)/1000))).toFixed(1); const eta=calculateETA(d.progress.current,d.progress.total); setTxt('node-meter',(d.progress.nodes||'?')); updateConsole('live',{current:d.progress.current,total:d.progress.total,reg:d.progress.reg,unreg:d.progress.unreg,bizCount:d.progress.bizCount,failed:d.progress.failed||0,speed:sp,eta});
+        setTxt('check-stats',`${d.progress.current} / ${d.progress.total}`);
+        setTxt('c-reg',d.progress.reg); setTxt('c-unreg',d.progress.unreg); setTxt('c-failed',d.progress.failed||0);
+        if(d.progress.status==="Completed"||d.progress.status==="Cancelled"){
+          checking=false; jobDuration=Date.now()-jobStartTime;
+          regNums=d.results.reg||[]; unregNums=d.results.unreg||[]; failedNums=d.results.failed||[];
+          if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;}
+          showRes('reg');
+          if(d.progress.status==="Completed"){ updateConsole('done',{total:d.progress.total,reg:d.progress.reg,bizCount:d.progress.bizCount}); setDisplay('btn-dl-txt','block'); setDisplay('btn-dl-csv','block'); setDisplay('btn-copy-res','block'); toast('Scan Complete','success'); playSuccessSound(); }
+          else{ updateConsole('cancel'); playErrorSound(); }
+          fetchSysStatus();
+        }
+      }
+    } catch(e){}
+  },1000);
+}
+
+async function cancelCheck(){ if(checking){ try{await apiFetch(`/api/cancel/${USER_ID}`,{method:'POST'});}catch(e){} checking=false; } }
+
+/* ============================================================
+   SMART FILTERS & RENDERING
+   ============================================================ */
+function applyFilter(filter,el){ currentFilter=filter; document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active')); if(el) el.classList.add('active'); showRes(currentResType); }
+
+function getResultDataset(t){ if(t==='reg') return regNums; if(t==='failed') return failedNums; return unregNums; }
+function resultNum(item){ return typeof item === 'object' ? (item.num||'') : String(item||''); }
+function copyText(text, okMsg='Copied!'){
+    if(!text) return toast('Nothing to copy','error');
+    const fallback=()=>{ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); toast(okMsg,'success');}catch(e){toast('Copy failed','error');} ta.remove(); };
+    if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(()=>toast(okMsg,'success')).catch(fallback); else fallback();
+}
+function copyNumber(num){ copyText(num, `Copied ${num}`); }
+
+function showRes(t){
+    currentResType=t; let data=getResultDataset(t);
+    const q=(getVal('result-search')||'').toLowerCase().trim();
+    if(t==='reg'){ if(currentFilter==='BIZ') data=data.filter(n=>n.isBiz); if(currentFilter==='DP') data=data.filter(n=>n.dp&&n.dp!=='No DP'); }
+    if(q) data=data.filter(n=>`${resultNum(n)} ${n.about||''} ${n.bizCategory||''}`.toLowerCase().includes(q));
+    const renderLimit=150, isTruncated=data.length>renderLimit, renderData=data.slice(0,renderLimit);
+    const html = renderData.length ? renderData.map((n,i)=>{
+        const num = resultNum(n);
+        const about = typeof n === 'object' ? (n.about||'') : '';
+        const dp = typeof n === 'object' ? (n.dp||'') : '';
+        const safeDp = /^https?:\/\//i.test(dp) ? escAttr(dp) : '';
+        const color = t==='failed' ? 'var(--accent-gold)' : (t==='unreg' ? 'var(--accent3)' : (n.isBiz?'var(--accent-gold)':'var(--accent)'));
+        return `<div class="list-item"><div>${i+1}.</div> <div style="flex:1; margin-left:15px;"><div style="color:${color}; font-weight:bold; font-size:13px;">${esc(num)} ${n.isBiz?'(BIZ)':''}</div><div style="font-size:10px; color:var(--text2); margin-top:3px;">${esc(about.substring(0,60))}</div></div>${safeDp?`<img src="${safeDp}" class="avatar-mini">`:''}<button class="btn-icon copy-mini" title="Copy number" onclick="copyNumber('${escAttr(num)}')">📋</button></div>`;
+    }).join('') : '<div style="text-align:center; color:var(--text2); margin-top:80px; opacity:0.5;">No results for this filter.</div>';
+    setHTML('result-list', html);
+    setDisplay('render-limit-msg',isTruncated?'block':'none');
+}
+
+function sectionLabel(t){ return t==='reg'?'Found':(t==='unreg'?'Unregistered':'Failed/Unknown'); }
+function copySection(t){
+    const data=getResultDataset(t).map(resultNum).filter(Boolean);
+    if(!data.length) return toast(`No ${sectionLabel(t)} numbers to copy`,"error");
+    copyText(data.join('\n'), `Copied ${data.length} ${sectionLabel(t)} numbers`);
+}
+function copyResults(){
+    copySection(currentResType);
+}
+function copyAllResults(){
+    const data=[...regNums.map(resultNum),...unregNums.map(resultNum),...failedNums.map(resultNum)].filter(Boolean);
+    if(!data.length) return toast("No results to copy","error");
+    copyText(data.join('\n'), `Copied all ${data.length} numbers`);
+}
+
+function downloadRes(type){
+    if(!regNums.length&&!unregNums.length&&!failedNums.length) return;
+    const shouldSort=prefs.sort; let data="",ext="";
+    if(type==='csv'){
+        ext="csv"; data="Number,AccountType,Bio/Status,Category,Email,Website,DP_Link\n";
+        regNums.forEach(r=>{data+=`"${r.num||r}","${r.isBiz?'Business':'Normal'}","${(r.about||'N/A').replace(/"/g,'""')}","${(r.bizCategory||'N/A').replace(/"/g,'""')}","${(r.bizEmail||'N/A').replace(/"/g,'""')}","${(r.bizWebsite||'N/A').replace(/"/g,'""')}","${r.dp||'N/A'}"\n`;});
+        unregNums.forEach(u=>{data+=`"${u}","Unregistered","N/A","N/A","N/A","N/A","N/A"\n`;});
+        failedNums.forEach(u=>{data+=`"${u}","Failed/Unknown","N/A","N/A","N/A","N/A","N/A"\n`;});
+    } else {
+        ext="txt";
+        data="════════════════════════════════════════\n   ⚡ BLAZE NXT — V5.0 OMNI-BEAST\n════════════════════════════════════════\n\n";
+        data+=`📅 Date       : ${new Date().toLocaleString()}\n📊 Total      : ${regNums.length+unregNums.length+failedNums.length}\n✅ Registered : ${regNums.length}\n❌ Unreg      : ${unregNums.length}\n⚠️ Failed     : ${failedNums.length}\n⏱  Duration   : ${fmtDuration(jobDuration)}\n\n`;
+        if(shouldSort){
+            let sorted={};
+            regNums.forEach(r=>{let n=r.num||r,isB=r.isBiz?" (BUSINESS)":"",bio=r.about?` - Bio: ${r.about.substring(0,30)}`:""; let cc=n.substring(0,3); if(n.startsWith("+91"))cc="+91 (India)";else if(n.startsWith("+1"))cc="+1 (US/CA)";else if(n.startsWith("+44"))cc="+44 (UK)";else cc="Other"; if(!sorted[cc])sorted[cc]=[]; sorted[cc].push(n+isB+bio);});
+            data+="════════════════════════════════════════\n✅ REGISTERED (SORTED):\n\n";
+            for(let code in sorted){data+=`[ ${code} ] - ${sorted[code].length} numbers\n${sorted[code].join("\n")}\n\n`;}
+        } else { data+="════════════════════════════════════════\n✅ REGISTERED:\n"+(regNums.map(r=>r.isBiz?r.num+" (BUSINESS)":(r.num||r)).join("\n")||"None")+"\n\n"; }
+        data+="════════════════════════════════════════\n❌ UNREGISTERED:\n"+(unregNums.join("\n")||"None")+"\n\n⚠️ FAILED/UNKNOWN:\n"+(failedNums.join("\n")||"None")+"\n";
+    }
+    let blob=new Blob(['\ufeff',data],{type:type==='csv'?'text/csv;charset=utf-8':'text/plain;charset=utf-8'});
+    let url=window.URL.createObjectURL(blob);
+    let a=document.createElement('a'); a.href=url; a.download=`BlazeNxt_${USER_ID}_${Date.now()}.${ext}`; a.click(); window.URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+async function fetchHistory(){
+    try{
+      const r=await apiFetch(`/api/history/${USER_ID}`); const d=await r.json();
+      globalHistory=d.history||[];
+      setHTML('history-list',globalHistory.length?globalHistory.map((h,i)=>`<div class="list-item" style="display:flex; justify-content:space-between; align-items:center;"><div><strong style="color:#fff;">${i+1}. 📅 ${esc(h.date)}</strong><br><span style="color:var(--accent); font-size:10px;">✅ Reg: ${h.reg}</span> | <span style="color:var(--accent-gold); font-size:10px;">💼 Biz: ${h.isBiz||0}</span> | <span style="color:var(--accent3); font-size:10px;">❌ Unreg: ${h.unreg}</span></div><div style="display:flex; gap:10px; align-items:center;"><div style="font-weight:bold; font-size:16px;">Total: ${h.total}</div><button class="btn btn-ghost btn-sm" onclick="dlHist(${i})" style="border-color:var(--accent2); color:var(--accent2);">📥</button></div></div>`).join(''):"<div style='text-align:center; padding:20px; opacity:0.5;'>No scan history found.</div>");
+    } catch(e){ toast("Failed to fetch history","error"); }
+}
+
+function dlHist(idx){
+    const h=globalHistory[idx];
+    let data=`════════════════════════════════════════\n   ⚡ BLAZE NXT — CHECK HISTORY LOG\n════════════════════════════════════════\n\n`;
+    data+=`📅 Date Scanned   : ${esc(h.date)}\n📊 Total Numbers  : ${h.total}\n✅ Registered     : ${h.reg}\n💼 Business Accs  : ${h.isBiz||0}\n❌ Unregistered   : ${h.unreg}\n`;
+    let blob=new Blob(['\ufeff',data],{type:'text/plain;charset=utf-8'}); let url=window.URL.createObjectURL(blob);
+    let a=document.createElement('a'); a.href=url; a.download=`HistoryLog_${USER_ID}_Scan_${idx+1}.txt`; a.click(); window.URL.revokeObjectURL(url);
+}
+
+
+/* ============================================================
+   FEATURE PACK: Retry, Lists, Jobs, Templates, Files, Admin Tools
+   ============================================================ */
+async function retryFailedNumbers(){ if(!failedNums.length) return toast('No failed numbers to retry','error'); setVal('numbers-input',failedNums.join('\n')); updateNumberPreview(); switchTab('tab-check'); toast(`Loaded ${failedNums.length} failed numbers`,'success'); }
+async function saveCurrentList(){ const {nums}=normalizeInputNumbers(); if(!nums.length) return toast('No numbers to save','error'); const name=getVal('list-name')||`List ${new Date().toLocaleString()}`; try{ const r=await apiFetch('/api/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,numbers:nums,description:getVal('list-desc')})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed'); toast('List saved','success'); fetchLists(); }catch(e){toast('❌ '+e.message,'error');} }
+let savedListsCache=[];
+async function fetchLists(){
+  try{ const r=await apiFetch('/api/lists'); const d=await r.json(); if(!d.ok) return; savedListsCache=d.lists||[];
+    setHTML('lists-box', savedListsCache.length?savedListsCache.map(l=>`<div class="list-item" style="align-items:flex-start"><div><b style="color:var(--accent)">${esc(l.name)}</b> <span class="pill">${l.numbers.length} nums</span><br><span>${esc(l.createdAt)}</span><br><small>${esc(l.description||'')}</small></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="loadSavedList('${escAttr(l.id)}')">Load</button><button class="btn btn-ghost btn-sm" onclick="copyText(savedListsCache.find(x=>x.id==='${escAttr(l.id)}').numbers.join('\\n'),'List copied')">Copy</button><button class="btn btn-danger btn-sm" onclick="deleteList('${escAttr(l.id)}')">Delete</button></div></div>`).join(''):'<div style="text-align:center;padding:30px;opacity:.6">No saved lists yet. Save your current checker input.</div>');
+  }catch(e){}
+}
+function loadSavedList(id){ const l=savedListsCache.find(x=>x.id===id); if(!l) return; setVal('numbers-input',l.numbers.join('\n')); updateNumberPreview(); switchTab('tab-check'); }
+async function deleteList(id){ if(!confirm('Delete this list?')) return; try{await apiFetch(`/api/lists/${id}`,{method:'DELETE'}); fetchLists();}catch(e){} }
+async function fetchJobs(){ try{ const r=await apiFetch('/api/jobs'); const d=await r.json(); if(!d.ok) return; const queued=(d.queued||[]).map((j,i)=>`<div class="list-item"><div><b>Queued #${i+1}</b><br>${j.numbers?.length||0} numbers | ${esc(j.queuedAt)}</div><span class="pill">Waiting</span></div>`).join(''); const jobs=(d.jobs||[]).map(j=>`<div class="list-item"><div><b>${esc(j.status||'Job')}</b><br>UID ${j.uid} | ${j.checked||0}/${j.total||0} | Remaining ${(j.remaining||[]).length}<br>${esc(j.updatedAt||'')}</div><button class="btn btn-primary btn-sm" onclick="resumeLastJob()">Resume</button></div>`).join(''); setHTML('jobs-list', queued+jobs || 'No jobs found.'); }catch(e){} }
+async function saveTemplate(){ try{ const r=await apiFetch('/api/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:getVal('tpl-name')||'Template',speed:getVal('tpl-speed'),deepScan:document.getElementById('tpl-deep')?.checked})}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); toast('Template saved','success'); fetchTemplates(); }catch(e){toast('❌ '+e.message,'error');} }
+async function fetchTemplates(){ try{ const r=await apiFetch('/api/templates'); const d=await r.json(); if(!d.ok) return; setHTML('templates-box', d.templates.length?d.templates.map(t=>`<div class="list-item"><div><b>${esc(t.name)}</b><br><span class="pill">${esc(t.speed)}</span> <span class="pill">Deep: ${t.deepScan?'yes':'no'}</span></div><button class="btn btn-primary btn-sm" onclick="setVal('scan-speed','${escAttr(t.speed)}');document.getElementById('deep-scan').checked=${!!t.deepScan};switchTab('tab-check')">Use</button></div>`).join(''):'No templates.'); }catch(e){} }
+async function fetchFiles(){ try{ const r=await apiFetch('/api/files'); const d=await r.json(); if(d.ok) setHTML('files-box', d.files.length?d.files.map(f=>`<div class="list-item"><div>${esc(f.name||f.id)}</div></div>`).join(''):'No saved files yet.'); }catch(e){} }
+async function shareCurrentResults(){ try{ const r=await apiFetch('/api/share-result',{method:'POST'}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setHTML('share-box',`Share link: <b>${esc(location.origin+d.url)}</b> <button class="btn-icon copy-mini" onclick="copyText('${escAttr(location.origin+d.url)}','Share link copied')">📋</button>`); }catch(e){toast('❌ '+e.message,'error');} }
+async function testWebhook(){ try{ const r=await apiFetch('/api/webhook/test',{method:'POST'}); const d=await r.json(); toast(d.ok?'Webhook OK':'Webhook failed',d.ok?'success':'error'); fetchWebhookLogs(); }catch(e){toast('Webhook test failed','error');} }
+async function fetchForceJoinSettings(){ try{ const r=await apiFetch('/api/force-join'); const d=await r.json(); if(!d.ok) return; const s=d.settings||{}; setVal('fj-enabled',String(!!s.enabled)); setVal('fj-channels',(s.channels||[]).map(c=>`${c.title||''}|${c.chatId||''}|${c.url||''}`).join('\n')); setHTML('forcejoin-box',`<pre>${esc(JSON.stringify(d,null,2))}</pre>`); }catch(e){} }
+async function saveForceJoinSettings(){ try{ const lines=getVal('fj-channels').split(/\n+/).map(x=>x.trim()).filter(Boolean); const channels=lines.map(line=>{const [title,chatId,url]=line.split('|'); return {title:title||chatId,chatId,url};}); const r=await apiFetch('/api/admin/force-join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:getVal('fj-enabled')==='true',channels})}); const d=await r.json(); toast(d.ok?'Force join saved':'Failed',d.ok?'success':'error'); fetchForceJoinSettings(); }catch(e){toast('Force join save failed','error')} }
+async function fetchProxies(){ try{ const r=await apiFetch('/api/admin/proxies'); const d=await r.json(); if(!d.ok) return; setHTML('proxy-summary',`Enabled: <b>${d.enabled}</b> | Total proxies: <b>${d.total}</b> | File: ${esc(d.file||'')}`); setHTML('proxy-list', d.proxies?.length?d.proxies.map(p=>{const h=p.health||{};return `<div class="list-item"><div><b>${esc(p.masked)}</b> <span class="pill">${esc(p.id)}</span><br>Assigned: ${p.assigned||0} | Success: ${h.success||0} | Fail: ${h.fail||0} | Avg: ${h.avgLatency||0}ms<br><small>${esc(h.lastError||'')}</small></div></div>`}).join(''):'No proxies loaded. Create proxies.txt with one proxy per line.'); }catch(e){ toast('Proxy status failed','error'); } }
+async function reloadProxies(){ try{await apiFetch('/api/admin/proxies/reload',{method:'POST'}); fetchProxies(); toast('Proxy pool reloaded','success');}catch(e){} }
+async function toggleProxyPool(enabled){ try{await apiFetch('/api/admin/proxies/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})}); fetchProxies(); toast(`Proxy pool ${enabled?'enabled':'disabled'}`,'success');}catch(e){toast('Owner only / failed','error')} }
+async function fetchWebhookLogs(){ try{ const r=await apiFetch('/api/webhook/logs'); const d=await r.json(); if(!d.ok) return; setHTML('webhook-logs-box', d.logs.length?d.logs.map(l=>`<div class="list-item"><div><b style="color:${l.ok?'var(--accent)':'var(--accent3)'}">${l.ok?'OK':'FAILED'}</b> <span class="pill">${esc(l.type||'webhook')}</span><br>${esc(l.ts)} | HTTP ${esc(l.status||'-')}<br>${esc(l.error||'')}</div></div>`).join(''):'No webhook logs yet.'); }catch(e){} }
+let auditCache=[];
+async function fetchAuditLogs(){ const r=await apiFetch('/api/admin/audit'); const d=await r.json(); setHTML('admin-feature-box', d.logs?.map(x=>`<div class="list-item"><div><b>${esc(x.action)}</b> by ${esc(x.actor)}<br>${esc(x.ts)} | ${esc(x.target)}</div></div>`).join('')||'No logs'); }
+async function fetchAuditLogsFull(){ const r=await apiFetch('/api/admin/audit'); const d=await r.json(); auditCache=d.logs||[]; renderAuditLogs(); }
+function renderAuditLogs(){ const q=(getVal('audit-search')||'').toLowerCase(); const logs=auditCache.filter(x=>JSON.stringify(x).toLowerCase().includes(q)); setHTML('audit-full-box', logs.length?logs.map(x=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(x.action)}</b> <span class="pill">Actor ${esc(x.actor)}</span><br>${esc(x.ts)} | Target: ${esc(x.target)}<br><small>${esc(JSON.stringify(x.details||{}))}</small></div></div>`).join(''):'No audit logs found.'); }
+async function fetchPlans(){ const r=await apiFetch('/api/admin/plans'); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d.plans,null,2))}</pre>`); }
+async function fetchVouchers(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d.vouchers,null,2))}</pre>`); }
+async function fetchVoucherManager(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); const entries=Object.entries(d.vouchers||{}); setHTML('voucher-manager-box', entries.length?entries.map(([code,v])=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(code)}</b><br><span class="pill">${esc(v.type)}</span> <span class="pill">${esc(v.days)} days</span> <span class="pill">Uses left: ${esc(v.uses)}</span><br>Used by: ${(v.usedBy||[]).map(esc).join(', ')||'none'}</div><div style="display:flex;gap:6px"><button class="btn-icon copy-mini" onclick="copyText('${escAttr(code)}','Voucher copied')">📋</button><button class="btn btn-danger btn-sm" onclick="disableVoucher('${escAttr(code)}')">Disable</button></div></div>`).join(''):'No vouchers yet.'); }
+async function genVoucherManager(){ try{ const bulk=Number(getVal('vm-bulk')||1); const exp=getVal('vm-expiry')?new Date(getVal('vm-expiry')).getTime():null; const endpoint=bulk>1?'/api/admin/vouchers/bulk':'/api/admin/voucher'; const body=bulk>1?{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),uses:Number(getVal('vm-count')||1),count:bulk,expiresAt:exp}:{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),count:Number(getVal('vm-count')||1),expiresAt:exp}; const r=await apiFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setTxt('vm-result',d.code||`${d.codes.length} codes generated`); fetchVoucherManager(); }catch(e){toast('Voucher failed','error')} }
+function exportVouchersCSV(){ window.open('/api/admin/vouchers-export','_blank'); }
+async function disableVoucher(code){ await apiFetch(`/api/admin/vouchers/${encodeURIComponent(code)}/disable`,{method:'POST'}); fetchVoucherManager(); }
+let brandLogoData='';
+function loadBrandLogo(file){ if(!file) return; const reader=new FileReader(); reader.onload=e=>{brandLogoData=e.target.result; setHTML('brand-logo-preview',`<img src="${escAttr(brandLogoData)}" style="max-height:70px;border:1px solid var(--border);border-radius:8px">`);}; reader.readAsDataURL(file); }
+async function fetchBranding(){ try{ const r=await apiFetch('/api/whitelabel'); const d=await r.json(); const b=d.whiteLabel||{}; setVal('brand-app',b.appName||''); setVal('brand-powered',b.poweredBy||''); setVal('brand-support',b.support||''); setVal('brand-domain',b.customDomain||''); setVal('brand-footer',b.footer||''); setVal('brand-primary',b.primaryColor||''); brandLogoData=b.logoData||''; setHTML('brand-logo-preview',brandLogoData?`<img src="${escAttr(brandLogoData)}" style="max-height:70px;border:1px solid var(--border);border-radius:8px">`:''); setHTML('branding-box',`<pre>${esc(JSON.stringify(b,null,2))}</pre>`); }catch(e){} }
+async function saveBranding(){ try{ const body={appName:getVal('brand-app'),poweredBy:getVal('brand-powered'),support:getVal('brand-support'),customDomain:getVal('brand-domain'),footer:getVal('brand-footer'),primaryColor:getVal('brand-primary'),logoData:brandLogoData}; const r=await apiFetch('/api/admin/whitelabel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); toast('Branding saved','success'); fetchBranding(); }catch(e){toast('Branding failed','error')} }
+async function fetchUserDetail(){ const id=getVal('detail-uid'); if(!id) return toast('Enter UID','error'); const r=await apiFetch(`/api/admin/user/${id}`); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d,null,2))}</pre><div class="mini-toolbar"><input id="admin-note" class="mini-input" placeholder="Admin note"><button class="btn btn-primary btn-sm" onclick="addAdminNote('${escAttr(id)}')">Add Note</button></div>`); }
+async function addAdminNote(id){ await apiFetch(`/api/admin/user/${id}/notes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:getVal('admin-note')})}); fetchUserDetail(); }
+async function tryApiDocs(){ const key=getVal('docs-api-key'); const num=getVal('docs-number'); if(!key||!num) return toast('Enter API key and number','error'); const url=`/api/v1/check?key=${encodeURIComponent(key)}&number=${encodeURIComponent(num)}`; setTxt('docs-code',`curl "${location.origin}${url}"
+
+Node.js:
+fetch('${url}')
+
+Python:
+requests.get('${location.origin}/api/v1/check', params={'key':'${key}','number':'${num}'})
+
+PHP:
+file_get_contents('${location.origin}${url}')`); try{const r=await fetch(url); const d=await r.json(); setTxt('docs-response',JSON.stringify(d,null,2));}catch(e){setTxt('docs-response',e.message)} }
+async function fetchSecurityCenter(){ try{ const r=await apiFetch('/api/admin/security-center'); const d=await r.json(); if(!d.ok) return; setHTML('security-box',`<h3>Suspects</h3><pre>${esc(JSON.stringify(d.suspects,null,2))}</pre><h3>Feature Flags</h3><pre id="feature-flags-json">${esc(JSON.stringify(d.features||{},null,2))}</pre><h3>Security</h3><pre>${esc(JSON.stringify(d.security||{},null,2))}</pre>`); }catch(e){} }
+async function saveFeatureFlags(){ try{ const raw=document.getElementById('feature-flags-json')?.innerText||'{}'; const features=JSON.parse(raw); const r=await apiFetch('/api/admin/feature-flags',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({features})}); const d=await r.json(); toast(d.ok?'Feature flags saved':'Failed',d.ok?'success':'error'); }catch(e){toast('Invalid JSON / owner only','error')} }
+async function encryptedBackup(){ try{ const r=await apiFetch('/api/admin/backup-encrypted',{method:'POST'}); const d=await r.json(); toast(d.ok?`Backup: ${d.file}`:'Backup failed',d.ok?'success':'error'); }catch(e){toast('Backup failed','error')} }
+async function fetchPublicStatus(){ try{ const r=await fetch('/api/public-status'); const d=await r.json(); setHTML('status-box',`<pre>${esc(JSON.stringify(d,null,2))}</pre>`); }catch(e){} }
+const COMMANDS=[['Dashboard','tab-dashboard'],['Checker','tab-check'],['Jobs','tab-jobs'],['Lists','tab-lists'],['Templates','tab-templates'],['Files','tab-files'],['Proxies','tab-proxies'],['Webhook Logs','tab-webhook-logs'],['Audit Logs','tab-audit'],['Vouchers','tab-vouchers'],['Branding','tab-branding'],['API Docs','tab-docs'],['Admin','tab-admin']];
+function openCommandPalette(){document.getElementById('cmd-palette').classList.add('open');renderCommands();setTimeout(()=>document.getElementById('cmd-input')?.focus(),50)}
+function closeCommandPalette(){document.getElementById('cmd-palette').classList.remove('open')}
+function renderCommands(){ const q=(getVal('cmd-input')||'').toLowerCase(); setHTML('cmd-results',COMMANDS.filter(c=>c[0].toLowerCase().includes(q)).map(c=>`<div class="list-item" onclick="closeCommandPalette();switchTab('${c[1]}')" style="cursor:pointer">${esc(c[0])}</div>`).join('')); }
+document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCommandPalette()} if(e.key==='Escape') closeCommandPalette(); });
+
+/* ============================================================
+   REST APIs
+   ============================================================ */
+async function reqPairing(){
+    const phone=getVal('pair-phone'); if(!phone) return toast("Enter Phone","error");
+    const btn=document.getElementById('btn-pair'); if(btn){btn.innerText='⏳ GENERATING...'; btn.disabled=true;}
+    try{
+        const r=await apiFetch('/api/add-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID,phone})});
+        const d=await r.json(); if(btn){btn.innerText='📡 GENERATE PAIRING CODE'; btn.disabled=false;}
+        if(d.ok){setTxt('pair-result',d.code); setDisplay('pair-result','block'); toast("Code Generated","success");}else toast('❌ '+d.error,'error');
+    } catch(e){ if(btn){btn.disabled=false; btn.innerText='📡 GENERATE PAIRING CODE';} toast("Network Error","error"); }
+}
+
+async function buyPrem(){ try{await apiFetch('/api/premium-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Request Sent','success'); }
+async function cmdReset(){ try{await apiFetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Engine Reset','success'); }
+
+async function fetchApiUsage(){
+    try{ const r=await apiFetch('/api/user/api-usage'); const d=await r.json(); if(!d.ok) return; const u=d.usage||{}; setHTML('api-usage-box',`<b>Requests Today:</b> ${esc(u.requests||0)}<br><b>Success:</b> ${esc(u.success||0)} | <b>Fail:</b> ${esc(u.fail||0)}<br><b>Last Request:</b> ${esc(u.lastRequest||'Never')}`); }catch(e){}
+}
+async function generateAPI(){
+    if(!userInfo?.isPro&&!userInfo?.isVIP&&!userInfo?.isAdmin) return toast("PRO/VIP Required","error");
+    try{const r=await apiFetch('/api/user/generate-api',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})}); const d=await r.json(); if(d.ok){setTxt('api-key-box',d.apiKey); toast("Key Generated","success"); fetchApiUsage();}}catch(e){toast("Failed","error");}
+}
+
+async function saveWebhook(){
+    const url=getVal('webhook-input'); if(!url||!url.startsWith('http')) return toast("Invalid URL","error");
+    try{
+      const r=await apiFetch('/api/user/set-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook:url})});
+      const d=await r.json(); if(!d.ok) throw new Error(d.message||d.error||'Failed');
+      toast('Webhook Saved!','success');
+    }catch(e){ toast('❌ '+e.message,'error'); }
+}
+
+async function fetchSysInfo(){ try{const r=await apiFetch('/api/sysinfo'); const d=await r.json(); setTxt('sys-info-text',d.text);}catch(e){} }
+
+/* ============================================================
+   ADMIN: NOTIFICATIONS & CHAT
+   ============================================================ */
+let notifsOpen=false;
+function toggleNotifs(){ notifsOpen=!notifsOpen; setDisplay('notif-dropdown',notifsOpen?'block':'none'); }
+
+async function pollNotifs(){
+    try{
+        const url = userInfo?.isAdmin ? `/api/admin/notifs/${USER_ID}` : '/api/notifications';
+        const r=await apiFetch(url); const d=await r.json();
+        if(d.ok&&d.notifs.length>0){ setDisplay('notif-badge','inline-block'); setTxt('notif-badge',d.notifs.length); setHTML('notif-list',d.notifs.map(n=>`<div style="padding:12px; background:var(--bg3); border-radius:8px; margin-bottom:8px; border-left:3px solid ${n.type==='gold'?'var(--accent-gold)':(n.type==='success'?'var(--accent)':'var(--accent2)')};"><b style="color:#fff;">${esc(n.text)}</b><br><span style="font-size:9px; color:var(--text2);">${esc(n.time)}</span></div>`).join('')); }
+        else{ setDisplay('notif-badge','none'); setHTML('notif-list',"No alerts."); }
+    } catch(e){}
+}
+async function clearNotifs(){ try{const url=userInfo?.isAdmin?'/api/admin/notifs/clear':'/api/notifications/clear'; await apiFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID})});}catch(e){} pollNotifs(); }
+
+async function fetchChats(){
+    try{
+        const r=await apiFetch(`/api/admin/chats/${USER_ID}`); const d=await r.json();
+        if(d.ok){ setHTML('chat-user-list',d.chats.map(c=>`<div id="chat-list-${escAttr(c.uid)}" class="list-item" style="cursor:pointer;" onclick="openChat('${escAttr(c.uid)}','${escAttr(c.name)}')"><div><b style="color:#fff; font-size:12px;">👤 ${esc(c.name)}</b> <br><span style="color:var(--text2); font-size:10px;">${esc((c.last?.text||'Chat').substring(0,30))}...</span></div></div>`).join('')); if(d.chats.length>0&&!activeChatUid) openChat(d.chats[0].uid,d.chats[0].name); }
+    } catch(e){}
+}
+function openChat(uid,name){
+    activeChatUid=uid; setTxt('chat-active-user',`${name} (${uid})`);
+    document.querySelectorAll('[id^="chat-list-"]').forEach(el=>el.classList.remove('active'));
+    const targetEl=document.getElementById(`chat-list-${uid}`); if(targetEl) targetEl.classList.add('active');
+    if(chatPoll) clearInterval(chatPoll); pollChatMsg(); chatPoll=setInterval(pollChatMsg,3000);
+}
+
+let lastMsgCount=0;
+async function pollChatMsg(){
+    if(!activeChatUid) return;
+    try{
+        const r=await apiFetch(`/api/admin/chat/${USER_ID}/${activeChatUid}`); const d=await r.json();
+        if(d.ok){ const box=document.getElementById('chat-box'); if(!box) return; box.innerHTML=d.history.map(m=>`<div class="chat-msg ${m.sender==='admin'?'msg-admin':'msg-user'}">${esc(m.text)} <div style="font-size:9px; opacity:0.6; margin-top:5px; text-align:right;">${esc(m.ts)}</div></div>`).join(''); if(d.history.length>lastMsgCount){box.scrollTo({top:box.scrollHeight,behavior:'smooth'}); lastMsgCount=d.history.length;} }
+    } catch(e){}
+}
+async function sendChat(){
+    const txt=getVal('chat-input'); if(!txt||!activeChatUid) return; setVal('chat-input','');
+    try{await apiFetch('/api/admin/chat/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,targetUid:activeChatUid,text:txt})});}catch(e){} pollChatMsg();
+}
+document.getElementById('chat-input')?.addEventListener("keypress",function(e){if(e.key==="Enter"){e.preventDefault();sendChat();}});
+
+/* ============================================================
+   ADMIN: DASHBOARD
+   ============================================================ */
+async function fetchSessions(){
+    if(!userInfo?.isAdmin) return;
+    try{
+        const r=await apiFetch(`/api/status?uid=${USER_ID}`); const d=await r.json();
+        if(d.ok&&d.sessions){ setHTML('admin-sess-list',d.sessions.length?d.sessions.map(s=>`<div class="list-item" style="padding:10px;"><div><b style="color:#fff;">📱 ${esc(String(s.id||'').substring(0,10))}...</b> <span style="font-size:9px; color:${s.status==='Connected'?'var(--accent)':'var(--accent3)'};">[${esc(s.status)}]</span><br><span style="color:var(--text2); font-size:10px;">Owner: ${esc(s.owner)} | Type: ${esc(String(s.type||'').toUpperCase())} | Proxy: ${esc(s.proxy||'none')}</span></div><button class="btn btn-danger btn-sm" onclick="delSess('${escAttr(s.id)}')">🗑️</button></div>`).join(''):"<div style='text-align:center; padding:10px;'>No active nodes.</div>"); }
+    } catch(e){}
+}
+async function delSess(sid){ try{await apiFetch('/api/admin/del_session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,sessionId:sid})});}catch(e){} toast('Session deleted','success'); fetchSessions(); fetchSysStatus(); }
+
+async function sendBroadcast(){
+    const t=getVal('broadcast-msg'); if(!t) return toast("Enter message!","error");
+    try{await apiFetch('/api/admin/broadcast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,text:t})});}catch(e){} toast('Delivered','success'); setVal('broadcast-msg','');
+}
+
+async function toggleMaint(){
+    const btn=document.getElementById('btn-maint'); if(!btn) return;
+    const isM=btn.innerText.includes("DISABLE");
+    try{await apiFetch('/api/admin/maintenance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,state:!isM})});}catch(e){} toast(`Maintenance ${!isM?'ON':'OFF'}`,'success'); fetchSysStatus();
+}
+
+async function setSystemMode(){
+    if(!userInfo?.isOwner) return toast('Owner only','error');
+    const mode=getVal('system-mode-select');
+    try{
+      const r=await apiFetch('/api/admin/system-mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode})});
+      const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed');
+      userInfo.systemMode=d.systemMode; userInfo.isFreeMode=d.systemMode==='free'; userInfo.isPro=userInfo.isFreeMode||userInfo.isPro;
+      toast(`System mode: ${d.systemMode.toUpperCase()}`,'success'); fetchAdminStats();
+    }catch(e){ toast('❌ '+e.message,'error'); }
+}
+
+async function warmupNodes(){
+    toast("Pinging Network...","info");
+    try{const r=await apiFetch('/api/admin/warmup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID})}); const d=await r.json(); toast(d.ok?`${d.sent} Pings Sent!`:`❌ ${d.msg}`,d.ok?'success':'error');}catch(e){toast("Network Error","error");}
+}
+
+async function genVoucher(){
+    const t=getVal('v-type'),d=getVal('v-days'),c=getVal('v-count');
+    try{const r=await apiFetch('/api/admin/voucher',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,type:t,days:Number(d||30),count:Number(c||1)})}); const data=await r.json(); if(data.ok){setTxt('v-result',data.code); toast("Code Generated","success");}}catch(e){}
+}
+
+async function fetchAdminStats(){
+    if(!userInfo?.isAdmin) return;
+    try{
+        const r=await apiFetch(`/api/admin/stats/${USER_ID}`); const d=await r.json();
+        if(d.ok){
+            setTxt('st-users',d.totalUsers); setTxt('st-pro',d.totalPro); setTxt('st-vip',d.totalVIP);
+            setTxt('st-sess',`${d.connectedSessions}/${d.sessions}`); setTxt('st-jobs',d.activeJobs);
+            setTxt('st-ban',d.totalBanned); setTxt('st-ram',d.memUsageMB); setTxt('st-mode',String(d.systemMode||'subscription').toUpperCase().startsWith('FREE')?'FREE':'SUB'); setTxt('current-mode',`Current: ${String(d.systemMode||'subscription').toUpperCase()}`); setVal('system-mode-select',d.systemMode||'subscription');
+            let up=d.uptime; setTxt('st-uptime',`${Math.floor(up/3600)}h ${Math.floor((up%3600)/60)}m ${Math.floor(up%60)}s`);
+            let h=""; const metrics=d.nodeMetrics||{};
+            for(let n in (Object.keys(metrics).length?metrics:d.nodeHealth)){ let m=metrics[n]||{}; let speed=m.avgLatency||d.nodeHealth[n]||0; let total=(m.success||0)+(m.fail||0); let rate=total?Math.round((m.success||0)*100/total):0; let color=speed<500?"var(--accent)":(speed<1500?"var(--accent-gold)":"var(--accent3)"); h+=`<div style="margin-bottom:8px;background:var(--bg3);padding:10px;border-radius:8px;border:1px solid var(--border);"><div style="display:flex;justify-content:space-between"><span>Node: ${esc(String(n).substring(0,12))}</span><b style="color:${color}">${esc(speed)}ms</b></div><div style="font-size:9px;color:var(--text2);margin-top:4px">Success: ${m.success||0} | Fail: ${m.fail||0} | Rate: ${rate}% | Last: ${esc(m.lastActive||'N/A')}</div></div>`; }
+            setHTML('node-health-list',h||"No data yet.");
+            if(d.graph){
+                if(myChart) myChart.destroy();
+                const ctx=document.getElementById('usageChart');
+                if(ctx){ const labels=Object.keys(d.graph).slice(-7); const dataTotal=labels.map(l=>d.graph[l].total); myChart=new Chart(ctx.getContext('2d'),{type:'line',data:{labels:labels,datasets:[{label:'Checks',data:dataTotal,borderColor:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#00ff88',backgroundColor:'rgba(0,255,136,0.1)',borderWidth:2,fill:true,tension:0.4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{display:false},y:{display:false}}}}); }
+            }
+        }
+    } catch(e){}
+}
+
+async function adminAct(act){
+    const t=getVal('target-uid'),days=getVal('pro-days'); if(!t) return toast("ID Required","error");
+    try{await apiFetch('/api/admin/action',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,action:act,targetUid:t,days:Number(days||30)})});}catch(e){} toast('Done!','success'); fetchAllUsers();
+}
+
+async function fetchAllUsers(){
+    try{
+        const r=await apiFetch(`/api/admin/users/${USER_ID}`); const d=await r.json(); if(!d.ok) return;
+        allUsersData=d.users; let h="";
+        Object.keys(d.users).forEach(id=>{ let u=d.users[id]; let b=d.admins.includes(Number(id))?"👑":(d.vips.includes(Number(id))?"🔥":(d.subs.includes(Number(id))?"💎":"")); h+=`<div class="list-item"><div><b style="color:#fff;">${esc(id)}</b> ${b}</div> <div style="color:var(--text2);">@${esc(u.username||'N/A')} - ${esc(u.name)}</div></div>`; });
+        setHTML('admin-users-list',h||"No users.");
+    } catch(e){}
+}
+
+function exportCSVAdmin(){
+    if(Object.keys(allUsersData).length===0) return toast("Empty DB","error");
+    let csv="ID,Name,Username,PRO_Expiry,VIP_Expiry,Banned\n";
+    Object.keys(allUsersData).forEach(id=>{let u=allUsersData[id]; csv+=`${id},"${u.name}","${u.username}","${u.proExpiry?new Date(u.proExpiry).toISOString():''}","${u.vipExpiry?new Date(u.vipExpiry).toISOString():''}","${u.banned}"\n`;});
+    let blob=new Blob(['\ufeff',csv],{type:'text/csv;charset=utf-8'}); let url=window.URL.createObjectURL(blob);
+    let a=document.createElement('a'); a.href=url; a.download=`BlazeDB_Full_${Date.now()}.csv`; a.click(); window.URL.revokeObjectURL(url);
+}
+
+
+let sharedNums=[];
+async function renderPublicShare(){
+  const id=location.pathname.split('/').pop();
+  try{
+    const r=await fetch(`/api/share/${encodeURIComponent(id)}`); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Not found');
+    const res=d.share.results||{}; sharedNums=[...(res.reg||[]).map(x=>x.num||x),...(res.unreg||[]),...(res.failed||[])];
+    setDisplay('auth-panel','block');
+    setHTML('auth-panel',`<div class="auth-title">Shared <span>Results</span></div><div class="auth-box" style="max-width:850px;margin:auto"><h3 style="color:var(--accent)">Summary</h3><p style="font-family:'Space Mono';color:var(--text2)">Registered: ${(res.reg||[]).length} | Unregistered: ${(res.unreg||[]).length} | Failed: ${(res.failed||[]).length}</p><button class="btn btn-primary" onclick="copyText(sharedNums.join('\n'),'Shared numbers copied')">Copy All</button><div class="result-list" style="height:420px;margin-top:15px">${sharedNums.slice(0,300).map((n,i)=>`<div class="list-item"><b>${i+1}</b><span>${esc(n)}</span></div>`).join('')}</div></div>`);
+  }catch(e){ setHTML('auth-panel',`<div class="auth-box">❌ Share not found or expired.</div>`); }
+}
+
+
+/* ============================================================
+   BOOTSTRAP
+   ============================================================ */
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{})); }
+window.onload=()=>{
+    if(location.pathname.startsWith('/share/')) { renderPublicShare(); return; }
+    // Load saved preferences
+    const savedTheme=localStorage.getItem('blaze_theme'); if(savedTheme) setTheme(savedTheme);
+    const savedLang=localStorage.getItem('blaze_lang'); if(savedLang) setLang(savedLang);
+    loadPrefs();
+    applyLang(currentLang);
+
+    // Start clock
+    setInterval(updateClock,1000); updateClock(); updateNumberPreview();
+
+    // Auto-resume via signed secure cookie.
+    if(localStorage.getItem('blaze_uid')) setVal('inp-uid',localStorage.getItem('blaze_uid'));
+    if(CSRF_TOKEN || localStorage.getItem('blaze_uid')) hydrateSession(); else showInitialPublicPage();
+};
+</script>
+</body>
+</html>

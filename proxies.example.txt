@@ -1,0 +1,5 @@
+# One proxy per line. Use sticky residential proxies.
+# HTTP/HTTPS:
+# http://username:password@gateway.provider.com:8000
+# SOCKS5:
+# socks5://username:password@gateway.provider.com:1080
