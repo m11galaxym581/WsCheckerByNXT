@@ -160,7 +160,7 @@ module.exports = (bot) => {
         if (data === "back_main") {
             state.clearUserStep(uid);
             let statusBadge = isOwner(uid) ? "⚡ GOD (OWNER)" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
-            return safeEdit(`╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  V4.0* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
+            return safeEdit(`╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  v5.0.59* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
         }
 
 
@@ -238,12 +238,12 @@ module.exports = (bot) => {
 "━━━━━━━━━━━━━━━━━━━\n" +
 "🔥 𝗪𝗛𝗬 𝗚𝗢 𝗣𝗥𝗘𝗠𝗜𝗨𝗠?\n" +
 "• ⚡ Ultra Fast Checking Speed\n" +
-"• 🔢 Up to 1000 Numbers per check\n" +
+"• 🔢 Up to Unlimited Numbers per check\n" +
 "• 🚀 Priority Server Access\n" +
 "• 💎 Premium Experience\n" +
 "━━━━━━━━━━━━━━━━━━━\n\n" +
 "📞 𝗖𝗢𝗡𝗧𝗔𝗖𝗧 𝗔𝗗𝗠𝗜𝗡 𝗙𝗢𝗥 𝗙𝗔𝗦𝗧 𝗔𝗣𝗣𝗥𝗢𝗩𝗔𝗟:\n" +
-"• @FORURSUPPORT\n\n" +
+"• @firstoget\n\n" +
 "© *Developed by:* @firstoget\n" +
 "⚡ Powered by 乂 𝐁𝐋𝐀𝐙𝐄 𝐍𝐗𝐓 乂", backBtn("back_main"));
             db.admins.forEach(aid => {
