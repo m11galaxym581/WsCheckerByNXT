@@ -9,7 +9,9 @@ const fs   = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const config = require("./config");
+const pgStore = require("./pg_store");
 
+const PG_ENABLED = pgStore.enabled;
 const DB_PATH = config.dataPath(config.DB_FILE);
 
 // ── Default Schema ──────────────────────────────────────────
@@ -33,68 +35,94 @@ function defaultDB() {
     };
 }
 
-// Init if not exists
-if (!fs.existsSync(DB_PATH)) {
-    fs.writeFileSync(DB_PATH, JSON.stringify(defaultDB(), null, 2), "utf-8");
+// ── Schema repair / migrations (shared by file + PG paths) ──
+// Returns { db, changed } — changed=true when a repair modified the document.
+function repairDB(db) {
+    let changed = false;
+    const now = Date.now();
+    if (!db.admins) { db.admins = [config.OWNER_ID]; changed = true; }
+    if (!db.subscribers) { db.subscribers = []; changed = true; }
+    if (!db.vips) { db.vips = []; changed = true; }
+    if (!db.users) { db.users = {}; changed = true; }
+    if (!db.sessionMeta) { db.sessionMeta = {}; changed = true; }
+    if (!db.history) { db.history = {}; changed = true; }
+    if (!db.banned) { db.banned = []; changed = true; }
+    if (!db.vouchers) { db.vouchers = {}; changed = true; }
+    if (!db.dailyStats) { db.dailyStats = {}; changed = true; }
+    if (!db.meta) { db.meta = {}; changed = true; }
+    if (db.meta.maintenance === undefined) { db.meta.maintenance = false; changed = true; }
+    if (!db.meta.version) { db.meta.version = 5; changed = true; }
+
+    // Auto-Expire PRO Users
+    const subsBefore = db.subscribers.length;
+    db.subscribers = db.subscribers.filter(uid => {
+        const u = db.users[uid];
+        return !(u && u.proExpiry && u.proExpiry < now);
+    });
+    if (db.subscribers.length !== subsBefore) changed = true;
+
+    // Auto-Expire VIP Users
+    const vipsBefore = db.vips.length;
+    db.vips = db.vips.filter(uid => {
+        const u = db.users[uid];
+        return !(u && u.vipExpiry && u.vipExpiry < now);
+    });
+    if (db.vips.length !== vipsBefore) changed = true;
+
+    return { db, changed };
 }
 
-// ── Rotating Auto-Backup System ─────────────────────────────
+// ── Rotating Auto-Backup System (file backend only) ─────────
 // Har 6 ghante me backup banega. Purane 3 backups save rahenge.
-setInterval(() => {
-    try {
-        if (fs.existsSync(DB_PATH + '.bak2')) fs.copyFileSync(DB_PATH + '.bak2', DB_PATH + '.bak3');
-        if (fs.existsSync(DB_PATH + '.bak1')) fs.copyFileSync(DB_PATH + '.bak1', DB_PATH + '.bak2');
-        fs.copyFileSync(DB_PATH, DB_PATH + '.bak1');
-        console.log("💾 [DB] Rotating Auto-Backup Completed.");
-    } catch(e) { console.error("❌ [DB] Backup Failed:", e.message); }
-}, 6 * 60 * 60 * 1000);
+// With Postgres the DB itself is the durable store, so file rotation is skipped.
+if (!PG_ENABLED) {
+    setInterval(() => {
+        try {
+            if (!fs.existsSync(DB_PATH)) return;
+            if (fs.existsSync(DB_PATH + '.bak2')) fs.copyFileSync(DB_PATH + '.bak2', DB_PATH + '.bak3');
+            if (fs.existsSync(DB_PATH + '.bak1')) fs.copyFileSync(DB_PATH + '.bak1', DB_PATH + '.bak2');
+            fs.copyFileSync(DB_PATH, DB_PATH + '.bak1');
+            console.log("💾 [DB] Rotating Auto-Backup Completed.");
+        } catch(e) { console.error("❌ [DB] Backup Failed:", e.message); }
+    }, 6 * 60 * 60 * 1000);
+}
 
 // ── Core Read/Write ─────────────────────────────────────────
 let _saveTimer = null, _pendingDB = null;
 
 function getDB() {
+    // PostgreSQL backend (active when DATABASE_URL is set AND connected)
+    if (PG_ENABLED && pgStore.ready) {
+        const live = pgStore.getMemory();
+        if (live && typeof live === "object") {
+            const { changed } = repairDB(live);
+            if (changed) pgStore.saveToPG(live); // persist expiry cleanup once
+            return live;
+        }
+    }
+    // File fallback: no DATABASE_URL, PG still connecting, or PG init failed.
     try {
+        if (!fs.existsSync(DB_PATH)) {
+            fs.writeFileSync(DB_PATH, JSON.stringify(defaultDB(), null, 2), "utf-8");
+        }
         const raw = fs.readFileSync(DB_PATH, "utf-8");
         const db = JSON.parse(raw);
-        
-        // Schema migrations / repair for old or partial DB files
-        if (!db.admins) db.admins = [config.OWNER_ID];
-        if (!db.subscribers) db.subscribers = [];
-        if (!db.vips) db.vips = [];
-        if (!db.users) db.users = {};
-        if (!db.sessionMeta) db.sessionMeta = {};
-        if (!db.history) db.history = {};
-        if (!db.banned) db.banned = [];
-        if (!db.vouchers) db.vouchers = {};
-        if (!db.dailyStats) db.dailyStats = {};
-        if (!db.meta) db.meta = {};
-        if (db.meta.maintenance === undefined) db.meta.maintenance = false;
-        if (!db.meta.version) db.meta.version = 5;
-        
-        const now = Date.now();
-        
-        // Auto-Expire PRO Users
-        db.subscribers = db.subscribers.filter(uid => {
-            const u = db.users[uid];
-            return !(u && u.proExpiry && u.proExpiry < now);
-        });
-
-        // Auto-Expire VIP Users
-        db.vips = db.vips.filter(uid => {
-            const u = db.users[uid];
-            return !(u && u.vipExpiry && u.vipExpiry < now);
-        });
-
+        repairDB(db);
         return db;
     } catch (err) {
         console.error("⚠️ Database read error, loading default.", err.message);
-        return defaultDB(); 
+        return defaultDB();
     }
 }
 
 function saveDB(db) {
     try {
+        if (!db.meta) db.meta = {};
         db.meta.updatedAt = new Date().toISOString();
+        if (PG_ENABLED && pgStore.ready) {
+            pgStore.saveToPG(db);
+            return;
+        }
         fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
     } catch (e) { console.error("❌ Save error:", e.message); }
 }
@@ -106,6 +134,41 @@ function saveDBDebounced(db) {
         if (_pendingDB) saveDB(_pendingDB);
         _pendingDB = null; _saveTimer = null;
     }, 50);
+}
+
+// ── Boot hook: connect Postgres (if configured) before the app starts ──
+async function initDB() {
+    if (!PG_ENABLED) return "file";
+    const ok = await pgStore.initPGStore({ migrateJsonPath: fs.existsSync(DB_PATH) ? DB_PATH : null });
+    if (ok) {
+        let live = pgStore.getMemory();
+        if (!live) { live = defaultDB(); pgStore.saveToPG(live); }
+        else {
+            const { changed } = repairDB(live);
+            if (changed) pgStore.saveToPG(live);
+        }
+        return "postgres";
+    }
+    return "file";
+}
+
+// Block until every queued DB write reached Postgres (graceful shutdown)
+async function syncDB() {
+    if (!PG_ENABLED) return true;
+    return pgStore.syncPG();
+}
+
+// Which backend is effectively serving reads/writes right now?
+function dbBackend() {
+    return (PG_ENABLED && pgStore.ready) ? "postgres" : "file";
+}
+
+// Restore a full DB document (admin backup-restore). Works on both backends.
+function restoreDatabase(obj) {
+    const db = (obj && typeof obj === "object") ? obj : defaultDB();
+    if (PG_ENABLED && pgStore.ready) { pgStore.saveToPG(db); return "postgres"; }
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
+    return "file";
 }
 
 // ── User Management ─────────────────────────────────────────
@@ -331,5 +394,6 @@ module.exports = {
     addAdmin, removeAdmin, addSubscriber, removeSubscriber, addVIP, removeVIP, 
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
-    setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats
+    setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
+    initDB, syncDB, dbBackend, restoreDatabase
 };

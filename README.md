@@ -77,6 +77,30 @@ The app automatically detects the Railway volume (`RAILWAY_VOLUME_MOUNT_PATH`)
 and stores everything there — no code or extra variables needed. To override on any
 host, set `DATA_DIR` to a writable directory.
 
+### PostgreSQL (optional, recommended)
+
+Instead of (or alongside) a volume, all app data can live in PostgreSQL:
+
+1. In the project canvas → **+ New** → **Database** → **Add PostgreSQL**.
+2. Railway automatically injects `DATABASE_URL` into the app service in the same
+   project — no variables to copy, no code to change.
+3. Redeploy the app once.
+
+On boot the app detects `DATABASE_URL` and switches the whole data layer to
+Postgres (single JSONB document store, table `app_state` — auto-created, no
+migrations to run):
+
+- Users, subscriptions, VIPs, vouchers, history, session metadata, stats and
+  maintenance state are stored in Postgres and survive redeploys with zero setup.
+- An existing `users.json` is **imported once** into Postgres on first boot, so
+  nothing is lost when switching.
+- Without `DATABASE_URL` the app falls back to the original `users.json` file —
+  fully backwards compatible for local runs.
+
+> WhatsApp login credentials (`session_*` folders) are encrypted files, not DB
+> rows, so still attach a `/data` volume if you want nodes to survive redeploys.
+> `job_state/` and `tmp_results/` also stay on the filesystem.
+
 > Only ever run **one** instance per Telegram bot token (long-polling bots conflict
 > with a second instance, Telegram error 409).
 
@@ -370,13 +394,21 @@ Captcha/human verification is removed as requested.
 
 ```txt
 .env                  private environment config
-users.json            JSON database
+users.json            JSON database (file backend; auto-imported into Postgres once)
+pg_store.js           PostgreSQL bridge (used when DATABASE_URL is set)
 proxies.txt           private proxy list, ignored by git
 proxies.example.txt   proxy format example
-dynamic_config.json   runtime config
-job_state/            resumable job state files
-tmp_results/          temporary result files
+dynamic_config.json   runtime config (stored under DATA_DIR)
+job_state/            resumable job state files (stored under DATA_DIR)
+tmp_results/          temporary result files (stored under DATA_DIR)
 ```
+
+Database backends (auto-selected at boot):
+
+| Backend | When | Where data lives |
+| --- | --- | --- |
+| `postgres` | `DATABASE_URL` set (Railway Postgres) | Postgres table `app_state` (JSONB), auto-created |
+| `file` | no `DATABASE_URL` | `users.json` in `DATA_DIR` / project folder |
 
 ---
 
@@ -388,6 +420,13 @@ Check the environment variable / `.env`:
 ```env
 TG_TOKEN=...
 ```
+
+### App still uses users.json instead of Postgres
+- Confirm `DATABASE_URL` is set on the app service (Railway: add a PostgreSQL
+  service to the project — the variable is injected automatically, check the
+  deployment log for `[DB] Storage backend: postgres`).
+- If Postgres is unreachable the app intentionally falls back to `users.json`
+  and logs `[PG] PostgreSQL init failed`.
 
 ### Dashboard login fails
 - Clear site cookies/localStorage
@@ -418,6 +457,9 @@ Clear site cookies and login again.
 node --check *.js
 node --check sw.js
 node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+
+# Storage layer tests (Postgres bridge + file fallback, in-memory driver)
+npm test
 ```
 
 ---
