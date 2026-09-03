@@ -4,7 +4,7 @@ const LANGS = {
   en: {
     start_checker: "🔍 START CHECKER", dashboard_login: "🅆 Dashboard Login", upgrade: "💎 Upgrade Tier", redeem: "🎁 Redeem Code",
     connect_node: "📱 Connect Private Node", history: "📜 Check History", api_webhooks: "⚙️ API & Webhooks", info: "ℹ️ System Info", support: "💬 Support",
-    language: "🌐 Language", admin: "👑 ADMIN CONSOLE", owner: "⚡ GOD MODE (OWNER)", back: "🔙 Back", lang_saved: "✅ Language updated.", choose_lang: "🌐 Choose your language:",
+    language: "🌐 Language", admin: "👑 ADMIN CONSOLE", owner: "⚡ OWNER", back: "🔙 Back", lang_saved: "✅ Language updated.", choose_lang: "🌐 Choose your language:",
     welcome: "Welcome", your_id: "Your ID", status: "Status", system_mode: "System Mode", nodes_active: "Nodes Active", web_dashboard: "Web Dashboard",
     send_numbers: "Send numbers — one per line.", your_limit: "Your Limit", no_nodes: "No Nodes Available. Please connect a Private Session using the menu.", scan_complete: "Scan Complete!"
   },

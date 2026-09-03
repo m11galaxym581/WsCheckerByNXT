@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V5.0 | pg_store.js
+//   WS CHECKER v6 | pg_store.js
 //   PostgreSQL document-store bridge (Railway Postgres / any PG)
 // ------------------------------------------------------------
 // The rest of the codebase talks to database.js purely through the

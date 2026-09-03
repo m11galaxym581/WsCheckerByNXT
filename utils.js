@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | utils.js
+//   WS CHECKER v6 | utils.js
 //   Advanced Utilities — Formatting, Sorters, Exporters
 // ============================================================
 
@@ -131,7 +131,7 @@ function buildResultText(reg, unreg, meta = {}) {
     const ts   = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const dur  = meta.duration ? `\n⏱  Duration   : ${fmtDuration(meta.duration)}` : "";
     
-    let txt = `${line}\n   ⚡ BLAZE NXT — V5.0 UPGRADED RESULTS\n${line}\n\n`;
+    let txt = `${line}\n   WS CHECKER v6 — RESULTS\n${line}\n\n`;
     txt += `📅 Date       : ${ts}\n📊 Total      : ${fmtNum(meta.total || reg.length + unreg.length + failed.length)}\n✅ Registered : ${fmtNum(reg.length)}\n❌ Unreg      : ${fmtNum(unreg.length)}\n⚠️ Failed     : ${fmtNum(failed.length)}${dur}\n\n${line}\n\n`;
 
     // Advanced Country Sorting

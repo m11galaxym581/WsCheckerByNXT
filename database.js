@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | database.js
+//   WS CHECKER v6 | database.js
 //   Advanced Database: VIP Tiers, Webhooks, Rotating Backups
 // ============================================================
 

@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE (MEGABEAST) | bot_callbacks.js
+//   WS CHECKER v6 | bot_callbacks.js
 //   Inline Button Callbacks — Auto-Edit, Deep Navigation & Roles
 // ============================================================
 
@@ -159,7 +159,7 @@ module.exports = (bot) => {
         if (data === "back_main") {
             state.clearUserStep(uid);
             let statusBadge = isOwner(uid) ? "⚡ GOD (OWNER)" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
-            return safeEdit(`╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  v5.0.59* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
+            return safeEdit(`╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
         }
 
 

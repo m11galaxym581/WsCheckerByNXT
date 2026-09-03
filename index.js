@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 ULTRA BEAST | index.js
+//   WS CHECKER v6 | index.js
 //   Main Entry Point — Indestructible Core & Memory Watchdog
 // ============================================================
 
@@ -27,7 +27,7 @@ console.log(`
 ██████╔╝███████╗██║  ██║███████╗███████╗    ██║ ╚████║██╔╝ ██╗   ██║   
 ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝   
                                             
-      🔥 V5.0 ULTRA BEAST MODE INITIALIZED 🔥
+      🔥 WS CHECKER v6.0.0 — READY
       Owner: @firstoget | Port: ${config.PORT}
 `);
 
@@ -143,7 +143,7 @@ async function main() {
 
     // ── 🛑 GRACEFUL SHUTDOWN SEQUENCE ─────────────────────────
     async function shutdown(signal) {
-        console.log(`\n🛑 [${signal}] Initiating Ultra Beast Shutdown Sequence...`);
+        console.log(`\n🛑 [${signal}] Initiating WS CHECKER shutdown sequence...`);
 
         // Failsafe: never block a restart/redeploy longer than 8s
         // (Telegram API may be unreachable while the process is being stopped).
@@ -184,7 +184,7 @@ async function main() {
     process.on("SIGINT",  () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-    console.log("✅ [Core] All modules online. Ultra Beast is ready to hunt!");
+    console.log("✅ [Core] All modules online. WS CHECKER v6 is ready.");
 }
 
 main().catch(err => {

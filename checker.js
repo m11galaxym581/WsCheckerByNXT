@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 MASTER BEAST | checker.js
+//   WS CHECKER v6 | checker.js
 //   Anti-Ban WhatsApp Scraper & Load-Balanced Engine
 // ============================================================
 
@@ -51,8 +51,8 @@ async function sendTelegramResultFiles(bot, uid, reg, unreg, failed, meta) {
     const dir = path.join(config.DATA_ROOT, "tmp_results");
     fs.mkdirSync(dir, { recursive: true });
     const stamp = Date.now();
-    const txtPath = path.join(dir, `BlazeNXT_${uid}_${stamp}.txt`);
-    const csvPath = path.join(dir, `BlazeNXT_${uid}_${stamp}.csv`);
+    const txtPath = path.join(dir, `WSCheck_${uid}_${stamp}.txt`);
+    const csvPath = path.join(dir, `WSCheck_${uid}_${stamp}.csv`);
     try {
         fs.writeFileSync(txtPath, buildResultText(reg, unreg, { ...meta, failed }), "utf8");
         fs.writeFileSync(csvPath, buildResultCSV(reg, unreg, failed), "utf8");

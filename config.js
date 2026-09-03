@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | config.js
+//   WS CHECKER v6 | config.js
 //   Advanced Dynamic Config Manager (Auto-Reloading)
 // ============================================================
 
@@ -100,8 +100,8 @@ const config = {
     PORT: (() => { const p = Number(env("PORT", "9812")); return Number.isFinite(p) && p > 0 ? p : 9812; })(),
     MAX_HISTORY: 50, // Increased history storage
     DB_FILE: env("DB_FILE", "users.json"),
-    BRAND_NAME: "⚡ BLAZE NXT",
-    BRAND_VER: "v5.01.49",
+    BRAND_NAME: "WS CHECKER",
+    BRAND_VER: "v6.0.0",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
 
     // ── Telegram Auto-Setup (zero-touch, runs on boot) ───────
@@ -110,7 +110,7 @@ const config = {
     // BotFather work (except the one-time domain whitelist which Telegram
     // does not expose via any API).
     AUTO_SETUP: env("AUTO_SETUP", "true") === "true",
-    BOT_NAME: env("BOT_NAME", "⚡ BLAZE NXT"),
+    BOT_NAME: env("BOT_NAME", "WS CHECKER"),
     BOT_DESCRIPTION: env("BOT_DESCRIPTION", "WhatsApp number checker with Telegram Mini App dashboard — checking, sessions, lists, jobs, API & webhooks."),
     BOT_SHORT_DESC: env("BOT_SHORT_DESC", "⚡ Number checker with Mini App dashboard"),
     BOT_COMMANDS: (() => {

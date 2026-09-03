@@ -1,8 +1,8 @@
-# WS CHECKER — BlazeNXT v5.01.49
+# WS CHECKER v6.0.0
 
 A Telegram bot + web dashboard for WhatsApp number checking, sessions/nodes management, result exports, saved lists, jobs/queue, API keys, webhooks, proxy pool, and admin tools.
 
-> Current package/version: **v5.01.49**
+> Current package/version: **v6.0.0**
 
 ---
 

@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | state.js
+//   WS CHECKER v6 | state.js
 //   Global In-Memory State — Live Metrics, Chat & Notifications
 // ============================================================
 
@@ -43,7 +43,7 @@ const state = {
     processingUsers: new Set(),
     lastResults: {},
     userState: {},
-    BOT_INFO: { first_name: "Blaze NXT", username: "BlazeNxtBot" },
+    BOT_INFO: { first_name: "WS CHECKER", username: "WS_CHECKER_BOT" },
 
     // 🔥 Live Node Health & Smart Load-Balancer Metrics 🔥
     nodeHealth: {},

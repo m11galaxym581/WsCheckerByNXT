@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE (MEGABEAST) | bot_commands.js
+//   WS CHECKER v6 | bot_commands.js
 //   Telegram Bot Commands — Role-Based Routing & Rich Menus
 // ============================================================
 
@@ -179,7 +179,7 @@ module.exports = (bot) => {
             : "";
 
         const welcomeText =
-            `╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  V4.0* ]━━━━━━╮\n` +
+            `╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n` +
             `┣ 👤 *Welcome,* ${msg.from.first_name}!\n` +
             `┣ 🆔 *Your ID:* \`${uid}\`\n` +
             `┣ 🎖️ *Status:* ${statusBadge}\n` +
@@ -518,7 +518,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addSubscriber(tid, days);
         bot.sendMessage(msg.chat.id, `✅ PRO activated for \`${tid}\` (${days} Days)`, { parse_mode: "Markdown" });
-        bot.sendMessage(tid, `✨ *Congratulations!* Your PRO subscription has been activated for ${days} days.\n⚡ BLAZE NXT`, { parse_mode: "Markdown" }).catch(() => {});
+        bot.sendMessage(tid, `✨ *Congratulations!* Your PRO subscription has been activated for ${days} days.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
     bot.onText(/\/rempro (\d+)/, async (msg, match) => {
@@ -531,7 +531,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addVIP(tid, days);
         bot.sendMessage(msg.chat.id, `🔥 VIP activated for \`${tid}\` (${days} Days)`, { parse_mode: "Markdown" });
-        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n⚡ BLAZE NXT`, { parse_mode: "Markdown" }).catch(() => {});
+        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
     bot.onText(/\/remvip (\d+)/, async (msg, match) => {
@@ -555,7 +555,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const text = match[1]; const db = getDB(); const suc = [], fail = [];
         bot.sendMessage(msg.chat.id, "⏳ Broadcasting...");
         for (const id of Object.keys(db.users)) {
-            try { await bot.sendMessage(id, `📢 *𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${text}\n\n⚡ _BLAZE NXT_`, { parse_mode: "Markdown" }); suc.push(id); } 
+            try { await bot.sendMessage(id, `📢 *𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${text}\n\n✅ _WS CHECKER v6_`, { parse_mode: "Markdown" }); suc.push(id); } 
             catch (_) { fail.push(id); }
         }
         await sendBroadcastReport(bot, config.OWNER_ID, suc, fail);

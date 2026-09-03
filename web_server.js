@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | web_server.js
+//   WS CHECKER v6 | web_server.js
 //   Express REST API — Dashboard Engine & Webhooks
 // ============================================================
 
@@ -239,7 +239,7 @@ function startServer(bot) {
         if (!db.meta.auditLogs) db.meta.auditLogs = [];
         if (!db.meta.plans) db.meta.plans = { Free:{limit:config.dynamic.FREE_LIMIT}, PRO:{limit:config.dynamic.PRO_LIMIT}, VIP:{limit:config.dynamic.VIP_LIMIT} };
         if (!db.meta.webhookLogs) db.meta.webhookLogs = {};
-        if (!db.meta.whiteLabel) db.meta.whiteLabel = { appName:"WS CHECKER", poweredBy:"Powered by BlazeNXT", support:"@FORURSUPPORT" };
+        if (!db.meta.whiteLabel) db.meta.whiteLabel = { appName:"WS CHECKER", poweredBy:"Powered by WS CHECKER", support:"@FORURSUPPORT" };
         if (!db.meta.security) db.meta.security = { sessionTtlDays: 7 };
         if (!db.meta.shares) db.meta.shares = {};
         return db;
@@ -595,7 +595,7 @@ function startServer(bot) {
 
     app.get("/api/sysinfo", (req, res) => {
         const cpFile = path.join(__dirname, "COPYRIGHT.txt");
-        const text = fs.existsSync(cpFile) ? fs.readFileSync(cpFile, "utf-8") : "© 2026 BLAZE NXT — V5.0 GOD MODE\nOwner: @firstoget";
+        const text = fs.existsSync(cpFile) ? fs.readFileSync(cpFile, "utf-8") : "© 2026 WS CHECKER v6\nOwner: @firstoget";
         res.json({ ok: true, text });
     });
 
@@ -880,7 +880,7 @@ function startServer(bot) {
         let sent = 0;
         for (const id of uids) { 
             try {
-                await bot.sendMessage(id, `📢 *𝗪𝗘𝗕 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${req.body.text}\n\n⚡ _BLAZE NXT_`, { parse_mode: "Markdown" }); 
+                await bot.sendMessage(id, `📢 *𝗪𝗘𝗕 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${req.body.text}\n\n✅ _WS CHECKER v6_`, { parse_mode: "Markdown" }); 
                 sent++;
             } catch(e){}
         }
@@ -934,7 +934,7 @@ function startServer(bot) {
         res.status(500).json({ ok: false, error: "Internal Server Error" });
     });
 
-    app.listen(PORT, "0.0.0.0", () => console.log(`\n⚡ BLAZE NXT B3AST V4.0 — GOD MODE API Live on Port ${PORT}!`));
+    app.listen(PORT, "0.0.0.0", () => console.log(`\nWS CHECKER v6 API live on port ${PORT}!`));
 }
 
 module.exports = { startServer };

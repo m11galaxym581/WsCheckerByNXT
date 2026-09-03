@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | bot_messages.js
+//   WS CHECKER v6 | bot_messages.js
 //   Message Handler: Multi-Step Prompts, Checker, Support Chat
 // ============================================================
 

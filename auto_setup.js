@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V5.0 | auto_setup.js
+//   WS CHECKER v6 | auto_setup.js
 //   Zero-touch Telegram setup engine (server-side)
 // ------------------------------------------------------------
 // On boot (or on demand via /autosetup or POST /api/admin/auto-setup)

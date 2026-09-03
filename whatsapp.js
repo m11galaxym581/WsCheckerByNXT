@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | whatsapp.js
+//   WS CHECKER v6 | whatsapp.js
 //   WhatsApp Session Manager: Auto-Responder & Warmup Engine
 // ============================================================
 
