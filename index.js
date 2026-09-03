@@ -12,7 +12,6 @@ const fs          = require("fs");
 
 const config      = require("./config");
 const { initDB, syncDB } = require("./database");
-const { colorInlineKeyboard } = require("./utils");
 const { loadSavedSessions } = require("./whatsapp");
 const { startServer }       = require("./web_server");
 const state                 = require("./state");
@@ -120,12 +119,7 @@ async function main() {
     }
 
     // ── 🔄 LIVE PROGRESS HOOK (Sync Telegram Edits to Web) ────
-    function colorizeOptions(opts) {
-        if (opts && typeof opts === "object" && opts.reply_markup && opts.reply_markup.inline_keyboard) {
-            opts = { ...opts, reply_markup: { ...opts.reply_markup, inline_keyboard: colorInlineKeyboard(opts.reply_markup.inline_keyboard) } };
-        }
-        return opts;
-    }
+    const { colorizeOptions } = require("./tg_colors");
     const _origEdit = bot.editMessageText.bind(bot);
     bot.editMessageText = async function (text, options) {
         options = colorizeOptions(options);
@@ -145,13 +139,7 @@ async function main() {
     };
 
     // ── 🎨 BOT API 9.4 — COLORED BUTTONS ON EVERY KEYBOARD ────
-    // Inline keyboards get the `style` field ("primary"/"success"/"danger")
-    // injected before every send, so all menus show colored buttons.
-    // Clients running older Bot API/lib versions simply ignore unknown JSON.
-    const _origSend = bot.sendMessage.bind(bot);
-    bot.sendMessage = async function (text, options) {
-        return _origSend.call(bot, text, colorizeOptions(options));
-    };
+    require("./tg_colors").installSendMessageColors(bot);
 
     // ── 🛑 GRACEFUL SHUTDOWN SEQUENCE ─────────────────────────
     async function shutdown(signal) {
