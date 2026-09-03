@@ -631,6 +631,97 @@ body.high-contrast { --border: #7c8a99; --text: #ffffff; --text2: #dde4ec; --bg:
     #app-container div[style*="display:flex"] > select { flex: 1 1 150px; }
     #sys-info-text { overflow-x: auto; }
 }
+
+/* ============================================================
+   WS CHECKER v6 — Hamburger drawer navigation (web + app)
+   Replaces the permanent sidebar / mobile tab strip: the nav now
+   slides in from the left behind the ☰ button on every screen.
+   ============================================================ */
+.btn-menu-btn { font-size: 18px; line-height: 1; }
+.logo { margin-left: 6px; }
+#main-nav.nav-bar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: min(306px, 88vw);
+    margin: 0;
+    z-index: 700;
+    flex-direction: column; align-items: stretch; gap: 2px;
+    padding: 14px 10px 26px;
+    background: var(--bg2);
+    border: 1px solid var(--border); border-left: none;
+    border-radius: 0 18px 18px 0;
+    box-shadow: none;
+    transform: translateX(-106%);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: transform .28s ease, box-shadow .28s ease, opacity .2s ease, visibility 0s linear .24s;
+    overflow-y: auto; overflow-x: hidden;
+}
+#main-nav.nav-bar.open {
+    transform: translateX(0);
+    opacity: 1; visibility: visible; pointer-events: auto;
+    box-shadow: var(--shadow-lg);
+    transition: transform .28s ease, box-shadow .28s ease, opacity .2s ease;
+}
+#nav-backdrop {
+    position: fixed; inset: 0; z-index: 650;
+    background: rgba(3, 7, 11, 0.55);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transition: opacity .2s ease, visibility 0s linear .24s;
+}
+#nav-backdrop.show { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s ease; }
+body.nav-open { overflow: hidden; }
+
+.nav-drawer-brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 8px 14px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+.nav-drawer-brand .logo-icon { width: 34px; height: 34px; font-size: 15px; border-radius: 10px; }
+.nav-drawer-title { flex: 1; min-width: 0; font-weight: 800; font-size: 14px; line-height: 1.2; }
+.nav-drawer-title span { color: var(--accent); }
+.nav-drawer-title small { display: block; font-size: 9px; letter-spacing: 1.6px; color: var(--text2); font-weight: 600; margin-top: 2px; }
+.nav-drawer-brand .btn-icon { width: 32px; height: 32px; font-size: 12px; }
+
+#main-nav .nav-head { display: block; padding: 14px 12px 5px; }
+#main-nav .nav-item {
+    text-align: left; width: 100%;
+    padding: 11px 13px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13.5px; font-weight: 500;
+    border-radius: 9px;
+    white-space: nowrap;
+    border: none; background: transparent; flex: none;
+}
+#main-nav .nav-item:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+#main-nav .nav-item.active:hover { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+#main-nav .nav-item.active {
+    background: color-mix(in srgb, var(--accent) 13%, transparent);
+    color: var(--accent); font-weight: 600;
+    box-shadow: none;
+}
+
+/* No persistent sidebar on wide screens either — content spans the shell */
+@media (min-width: 1025px) {
+    .shell { padding-left: 20px; }
+    header { padding-left: 22px; padding-right: 22px; }
+}
+@media (max-width: 1024px) {
+    header { position: sticky; top: 0; }
+}
+@media (max-width: 700px) {
+    .logo-icon { width: 34px; height: 34px; }
+    .btn-menu-btn { width: 40px; height: 40px; }
+}
+/* RTL: drawer slides in from the right */
+[dir="rtl"] #main-nav.nav-bar {
+    left: auto; right: 0;
+    border-left: 1px solid var(--border); border-right: none;
+    border-radius: 18px 0 0 18px;
+    transform: translateX(106%);
+}
+[dir="rtl"] #main-nav.nav-bar.open { transform: translateX(0); }
+[dir="rtl"] .shell { padding-left: 20px; padding-right: 20px; }
 </style>
 </head>
 <body>
@@ -728,6 +819,7 @@ body.high-contrast { --border: #7c8a99; --text: #ffffff; --text2: #dde4ec; --bg:
 
   <!-- TOP BAR -->
   <header>
+    <button class="btn-icon btn-menu-btn" id="btn-menu" style="display:none;" onclick="toggleNav()" title="Menu (Ctrl+M)" aria-label="Open menu">☰</button>
     <div class="logo">
       <div class="logo-icon">W</div>
       <div>
@@ -804,8 +896,14 @@ body.high-contrast { --border: #7c8a99; --text: #ffffff; --text2: #dde4ec; --bg:
     </div>
   </div>
 
-  <!-- NAVIGATION -->
+  <!-- NAVIGATION (hamburger drawer) -->
+  <div id="nav-backdrop" onclick="closeNav()"></div>
   <div class="nav-bar" id="main-nav" style="display:none;">
+    <div class="nav-drawer-brand">
+      <div class="logo-icon">W</div>
+      <div class="nav-drawer-title">WS <span>CHECKER</span><small>V6 · MENU</small></div>
+      <button class="btn-icon" onclick="closeNav()" title="Close menu" aria-label="Close menu">✕</button>
+    </div>
     <div class="nav-head">Main</div>
     <button class="nav-item active" onclick="switchTab('tab-dashboard', this)">Dashboard</button>
     <button class="nav-item" onclick="switchTab('tab-check', this)" data-i18n="nav_checker">Checker</button>
@@ -1591,7 +1689,22 @@ function toast(msg,type='info'){
   if(prefs.desknot && Notification.permission==='granted') { try { new Notification('WS CHECKER v6',{body:msg}); } catch(ex){} }
 }
 
+function closeNav(){
+  const nav=document.getElementById('main-nav'); if(nav) nav.classList.remove('open');
+  const bd=document.getElementById('nav-backdrop'); if(bd) bd.classList.remove('show');
+  document.body.classList.remove('nav-open');
+}
+function toggleNav(){
+  const nav=document.getElementById('main-nav'); if(!nav) return;
+  const willOpen=!nav.classList.contains('open');
+  nav.classList.toggle('open', willOpen);
+  const bd=document.getElementById('nav-backdrop'); if(bd) bd.classList.toggle('show', willOpen);
+  document.body.classList.toggle('nav-open', willOpen);
+}
+window.addEventListener('keydown',(e)=>{ if(e.key==='Escape') closeNav(); });
+
 function switchTab(t, el, push=true){
+  closeNav();
     document.querySelectorAll('.tab-section, .nav-item').forEach(e=>e.classList.remove('active'));
     const target=document.getElementById(t); if(target) target.classList.add('active');
     if(el) el.classList.add('active');
@@ -1666,7 +1779,7 @@ function applyAuthSuccess(d, uid){
   setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
   if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
   setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
-  hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
+  hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('btn-menu','block'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
   switchTab(safeInitialTab(), null, false);
   fetchSysStatus();
   if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
@@ -1727,7 +1840,7 @@ async function hydrateSession(){
     setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
     if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
     setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
-    hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
+    hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('btn-menu','block'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
     switchTab(safeInitialTab(), null, false); fetchSysStatus(); if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
     welcomeVoice(); return true;
   } catch(e){ localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); localStorage.removeItem('blaze_uid'); AUTH_TOKEN=''; CSRF_TOKEN='';
