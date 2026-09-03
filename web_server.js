@@ -903,6 +903,39 @@ function startServer(bot) {
     
     app.get("/api/public-status", (req,res)=>{ const db=getDB(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime()}); });
 
+    // ── ⚙️ AUTO-SETUP STATUS (public, no secrets) ──────────────
+    // Shows what the server configured automatically and whether the
+    // one-time @BotFather domain whitelist is still pending.
+    app.get("/api/setup-status", (req, res) => {
+        const s = state.autoSetup || {};
+        res.json({
+            ok: true,
+            autoSetupEnabled: config.AUTO_SETUP,
+            botUsername: state.BOT_INFO?.username || null,
+            appUrl: s.appUrl || config.MENU_BUTTON_URL || config.DASHBOARD_URL,
+            appLink: s.appLink || null,
+            miniAppLink: state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : null,
+            lastRunAt: s.at || null,
+            menuButtonActive: !!s.menuButtonActive,
+            whitelistPending: !!s.whitelistPending,
+            summary: s.summary || "Auto-setup has not run yet.",
+            backend: (typeof require("./database").dbBackend === "function") ? require("./database").dbBackend() : "file",
+            platform: config.isRailway ? "railway" : "other",
+        });
+    });
+
+    // ── ⚙️ RE-RUN AUTO-SETUP (owner only) ─────────────────────
+    // Use after whitelisting the domain in @BotFather — no redeploy needed.
+    app.post("/api/admin/auto-setup", requireOwner, async (req, res) => {
+        try {
+            const r = await require("./auto_setup").runAutoSetup(bot);
+            audit(req.user.uid, 'auto_setup', 'bot', { menuButtonActive: !!r.menuButtonActive, whitelistPending: !!r.whitelistPending });
+            res.json({ ok: true, ...r });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message });
+        }
+    });
+
     // ── Safety Fallbacks ──
     app.use((req, res) => res.status(404).json({ ok: false, error: "Route not found." }));
     app.use((err, req, res, next) => {

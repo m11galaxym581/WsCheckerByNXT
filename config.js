@@ -104,9 +104,34 @@ const config = {
     BRAND_VER: "v5.01.49",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
 
+    // ── Telegram Auto-Setup (zero-touch, runs on boot) ───────
+    // Everything below is applied automatically via the Bot API token:
+    // bot name/description, command list, Mini App menu button. No manual
+    // BotFather work (except the one-time domain whitelist which Telegram
+    // does not expose via any API).
+    AUTO_SETUP: env("AUTO_SETUP", "true") === "true",
+    BOT_NAME: env("BOT_NAME", "⚡ BLAZE NXT"),
+    BOT_DESCRIPTION: env("BOT_DESCRIPTION", "WhatsApp number checker with Telegram Mini App dashboard — checking, sessions, lists, jobs, API & webhooks."),
+    BOT_SHORT_DESC: env("BOT_SHORT_DESC", "⚡ Number checker with Mini App dashboard"),
+    BOT_COMMANDS: (() => {
+        try { const v = JSON.parse(env("BOT_COMMANDS", "")); if (Array.isArray(v) && v.length) return v; } catch (_) {}
+        return [
+            { command: "start", description: "Open main menu" },
+            { command: "app", description: "🚀 Open the Web App (auto login)" },
+            { command: "mystats", description: "My usage stats" },
+            { command: "queue", description: "My queued jobs" },
+            { command: "redeem", description: "Redeem a voucher code" },
+            { command: "reset", description: "Clear my active jobs" },
+            { command: "setwebhook", description: "Set webhook URL" },
+            { command: "language", description: "Change language" },
+            { command: "help", description: "Help & commands" },
+        ];
+    })(),
+
     // ── Telegram Mini App (WebApp menu button) ────────────────
-    // DASHBOARD_URL must be HTTPS. In Telegram the domain also has to be
-    // whitelisted via @BotFather → /mybots → Bot Settings → Domain.
+    // DASHBOARD_URL must be HTTPS. Telegram requires the domain to be
+    // allow-listed once via @BotFather → /mybots → Bot Settings → Domain
+    // (no Bot API method exists for that step — it is per-bot, universal).
     MENU_BUTTON_TEXT: env("MENU_BUTTON_TEXT", "🚀 Open App"),
     MENU_BUTTON_URL: env("MENU_BUTTON_URL", ""), // falls back to DASHBOARD_URL
 

@@ -118,6 +118,28 @@ module.exports = (bot) => {
     // 👤 GLOBAL USER COMMANDS (Accessible to everyone)
     // ============================================================
 
+    // ── Safe web_app button sender ─────────────────────────────
+    // Telegram rejects web_app buttons at send-time while the domain is not
+    // allow-listed in @BotFather. Instead of failing the whole message we
+    // auto-fallback: the same menu with web_app buttons replaced by normal
+    // URL buttons pointing at t.me/<bot>/app (always works).
+    const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
+    const appDeepLink = () => state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : (config.MENU_BUTTON_URL || config.DASHBOARD_URL);
+    const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: b.text, url: appDeepLink() } : b));
+
+    async function sendWithWebApp(uid, text, opts, rows) {
+        const kb = rows || [[{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }]];
+        try {
+            return await bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: kb } });
+        } catch (e) {
+            if (isWhitelistBlock(e)) {
+                console.warn("⚠️ [Bot] web_app button blocked (domain whitelist pending) — fell back to t.me link.");
+                return bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: withoutWebApp(kb) } });
+            }
+            throw e;
+        }
+    }
+
     // ── /start ────────────────────────────────────────────────
     bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from.id;
@@ -153,7 +175,7 @@ module.exports = (bot) => {
             ? `┣ 🛜 *Mini App:* t.me/${state.BOT_INFO.username}/app\n`
             : "";
 
-        return bot.sendMessage(uid,
+        const welcomeText =
             `╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  V4.0* ]━━━━━━╮\n` +
             `┣ 👤 *Welcome,* ${msg.from.first_name}!\n` +
             `┣ 🆔 *Your ID:* \`${uid}\`\n` +
@@ -165,9 +187,40 @@ module.exports = (bot) => {
             `┣ 🛡️ *Security:* Proxied Anti-Ban\n` +
             miniAppLine +
              `┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL} \n` +
-            `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`,
-            { parse_mode: "Markdown", ...mainMenu(uid) }
+            `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
+
+        return sendWithWebApp(uid, welcomeText, { parse_mode: "Markdown" }, mainMenu(uid).reply_markup.inline_keyboard);
+    });
+
+    // ── /app — Open the Mini App / Web App ────────────────────
+    bot.onText(/\/app/, async (msg) => {
+        const uid = msg.from.id;
+        const url = config.MENU_BUTTON_URL || config.DASHBOARD_URL;
+        const link = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : url;
+        return sendWithWebApp(uid,
+            `🛜 *Open the Web App*\n\n` +
+            `Tap below to open the full dashboard inside Telegram — ` +
+            `you are logged in *automatically* (no password needed).\n\n` +
+            `🔗 Share link: ${link}`,
+            { parse_mode: "Markdown" },
+            [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
+    });
+
+    // ── /autosetup — Re-run server-side auto-setup (owner) ────
+    bot.onText(/\/autosetup/, async (msg) => {
+        const uid = msg.from.id;
+        if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
+        const s = await bot.sendMessage(uid, "⚙️ Running auto-setup…").catch(() => {});
+        try {
+            const r = await require("./auto_setup").runAutoSetup(bot);
+            const status = r.whitelistPending
+                ? "🟡 *Menu button pending:* whitelist your domain in @BotFather (`/mybots` → Bot Settings → Domain), then send /autosetup again."
+                : (r.menuButtonActive ? "🟢 *All settings applied automatically.*" : "🟠 Done, with warnings (see log).");
+            if (s) bot.editMessageText(`⚙️ *AUTO-SETUP COMPLETE*\n\n${status}\n\n🛜 App: ${r.appLink || ""}`, { chat_id: uid, message_id: s.message_id, parse_mode: "Markdown" }).catch(() => {});
+        } catch (e) {
+            if (s) bot.editMessageText(`❌ Auto-setup failed: ${e.message}`, { chat_id: uid, message_id: s.message_id }).catch(() => {});
+        }
     });
 
     // ── /help ─────────────────────────────────────────────────
@@ -176,6 +229,7 @@ module.exports = (bot) => {
         const text = `
 ╭━━━[ 🛠️ *𝗛𝗘𝗟𝗣 & 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ]━━━╮
 ┣ /start - Open Main Menu
+┣ /app - Open Web App (auto login)
 ┣ /reset - Clear active jobs & web state
 ┣ /redeem \`<code>\` - Claim Promo Voucher
 ┣ /setwebhook \`<url>\` - Set API Webhook

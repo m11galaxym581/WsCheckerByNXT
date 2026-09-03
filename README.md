@@ -149,6 +149,33 @@ NODE_ENV=development
 
 ---
 
+## 4b. Zero-touch server-side setup (automatic)
+
+Everything that can be configured via the Bot API is applied **automatically by
+the server at boot** — no manual BotFather steps:
+
+| Setting | How | Manual work |
+| --- | --- | --- |
+| Bot identity / profile | `getMe` | none |
+| Bot name | `setMyName` (env `BOT_NAME`) | none |
+| Description / short description | `setMyDescription`, `setMyShortDescription` | none |
+| Slash-command menu | `setMyCommands` | none |
+| Mini App "Open App" menu button | `setChatMenuButton` + `getChatMenuButton` verify | none |
+| Owner setup report (incl. app link) | private message to `OWNER_ID` | owner must have pressed /start once |
+| Web App domain allow-list | — | **only step Telegram has no API for**: @BotFather → Bot Settings → Domain (30s, once) |
+
+After whitelisting the domain there is no redeploy needed — re-run the setup
+with `/autosetup` (owner) or **Admin → ⚙️ AUTO-SETUP → RUN SETUP**, or hit
+`POST /api/admin/auto-setup` (owner). Boot, bot messages and web UI all keep
+working even before the whitelist: web_app buttons auto-fall-back to
+`t.me/<bot>/app` links.
+
+Check live status anytime at `GET /api/setup-status` (public) — it reports the
+bot username, Mini App link, menu-button state, whitelist status and which
+storage backend is active.
+
+---
+
 ## 5. Login flow
 
 ### 🛜 Telegram Mini App — web URL synced + auto account login
@@ -169,12 +196,16 @@ reads `Telegram.WebApp.initData` (signed by Telegram) and POSTs it to
 (> 24h), registers the Telegram user if new, and issues the same secure auth +
 CSRF cookies used by the normal login. The user lands directly on the dashboard.
 
-One-time setup (2 minutes, required so Telegram accepts your web URL):
+The only one-time setup Telegram allows manually (30 seconds, no API exists
+for it — applies to every Mini App bot, Study_Ratna included):
 
 1. Open **@BotFather** → `/mybots` → select your bot → **Bot Settings** →
    **Domain** → send your dashboard domain (e.g. `your-app.up.railway.app`).
-2. Optional: **Bot Settings → Menu Button** → set it to your `https://` URL
-   (the app also sets it automatically at boot once the domain is whitelisted).
+
+The **menu button, commands, name and description are all applied by the
+server automatically** (see section 4b) — nothing else to configure. Before the
+whitelist is done the bot still works: web_app buttons automatically fall back
+to `t.me/<bot>/app` links.
 
 ### Password login (browser fallback)
 

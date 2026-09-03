@@ -703,6 +703,10 @@ Proxy help: create proxies.txt and enable from /proxies.</div></div></div>
                   <div><b style="color:var(--accent2); font-size:13px;" data-i18n="warmup">🛡️ ANTI-BAN WARMUP</b></div>
                   <button class="btn btn-primary btn-sm" style="background:var(--accent2); color:#000;" onclick="warmupNodes()" data-i18n="ping_nodes">PING NODES</button>
               </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:180px;"><b style="color:var(--accent); font-size:13px;">⚙️ AUTO-SETUP (server-side)</b><br><span id="autosetup-status" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">menu button + commands + name — automatic</span></div>
+                  <button class="btn btn-gold btn-sm" onclick="autoSetupRun()">RUN SETUP</button>
+              </div>
               <div id="owner-mode-card" style="display:none; border-top:1px solid var(--border); padding-top:12px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
                       <div><b style="color:var(--accent-gold); font-size:13px;">🌐 SYSTEM MODE</b><br><span id="current-mode" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">Loading...</span></div>
@@ -1682,6 +1686,17 @@ async function setSystemMode(){
     }catch(e){ toast('❌ '+e.message,'error'); }
 }
 
+async function autoSetupRun(){
+  try{
+    const r=await apiFetch('/api/admin/auto-setup',{method:'POST'});
+    const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed');
+    const s=document.getElementById('autosetup-status');
+    if(s){ s.textContent = d.whitelistPending
+      ? '🟡 Domain not allow-listed yet: add it in @BotFather → Bot Settings → Domain, then RUN SETUP again'
+      : '🟢 Applied automatically. Mini App: ' + (d.appLink||''); }
+    toast(d.whitelistPending?'Auto-setup ran — whitelist domain needed':'Auto-setup complete','success');
+  }catch(e){ toast('❌ '+e.message,'error'); }
+}
 async function warmupNodes(){
     toast("Pinging Network...","info");
     try{const r=await apiFetch('/api/admin/warmup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID})}); const d=await r.json(); toast(d.ok?`${d.sent} Pings Sent!`:`❌ ${d.msg}`,d.ok?'success':'error');}catch(e){toast("Network Error","error");}

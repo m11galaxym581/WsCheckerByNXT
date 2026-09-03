@@ -94,21 +94,6 @@ async function main() {
     });
     bot.on("error", (err) => { console.error("❌ [Telegram] General error:", err.message); });
 
-    // ── 🛜 TELEGRAM MINI APP MENU BUTTON ──────────────────────
-    // Puts a permanent "Open App" button on the chat input bar that launches
-    // the dashboard as a fullscreen Telegram Mini App (also enables the
-    // https://t.me/<bot>/app deep link).
-    const miniAppUrl = config.MENU_BUTTON_URL || config.DASHBOARD_URL;
-    bot.setChatMenuButton({
-        menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url: miniAppUrl },
-    })
-        .then(() => console.log(`✅ [Telegram] Mini App menu button set → ${miniAppUrl}`))
-        .catch(err => {
-            let hint = "";
-            try { hint = ` (whitelist ${new URL(miniAppUrl).host} in @BotFather → Bot Settings → Domain)`; } catch (_) {}
-            console.error(`❌ [Telegram] Mini App menu button failed${hint}:`, err.message);
-        });
-
     // ── 🌐 START WEB SERVER ───────────────────────────────────
     startServer(bot);
 
@@ -124,6 +109,14 @@ async function main() {
     require("./bot_commands")(bot);
     require("./bot_callbacks")(bot);
     require("./bot_messages")(bot);
+
+    // ── ⚙️ AUTO-SETUP (zero-touch server-side configuration) ──
+    // Bot name, description, command menu and the Mini App button are all
+    // applied automatically from the Bot API token. Re-runnable anytime via
+    // /autosetup (owner) or POST /api/admin/auto-setup.
+    if (config.AUTO_SETUP) {
+        try { await require("./auto_setup").runAutoSetup(bot); } catch (err) { console.error("❌ [AutoSetup] Failed:", err.message); }
+    }
 
     // ── 🔄 LIVE PROGRESS HOOK (Sync Telegram Edits to Web) ────
     const _origEdit = bot.editMessageText.bind(bot);
