@@ -28,7 +28,7 @@ async function main() {
     // ── Scenario 1: keyboard survives AND gets colored ────────
     const bot = makeFakeBot();
     installSendMessageColors(bot);
-    const kb = [[{ text: "🚫 Delete", callback_data: "del" }], [{ text: "🚀 Open Web App", web_app: { url: "https://x.test" } }]];
+    const kb = [[{ text: "🚫 Delete", callback_data: "del" }], [{ text: "🚀 Open Web App", web_app: { url: "https://x.test" } }], [{ text: "📜 History", callback_data: "hist" }], [{ text: "🎟️ Redeem", callback_data: "r" }]];
     const res = await bot.sendMessage(8708907310, "Hello", { parse_mode: "Markdown", reply_markup: { inline_keyboard: kb } });
     assert.ok(res && res.message_id === 1, "message was sent");
     assert.strictEqual(bot.calls.length, 1, "exactly one underlying call");
@@ -38,11 +38,13 @@ async function main() {
     assert.ok(c.form && c.form.reply_markup, "reply_markup keyboard survived in THIRD arg (form)");
     assert.ok(c.form.reply_markup.inline_keyboard, "inline_keyboard survived");
     const btns = c.form.reply_markup.inline_keyboard.flat();
-    assert.ok(btns.length === 2, "both buttons present");
+    assert.ok(btns.length === 4, "all four buttons present");
     assert.strictEqual(btns[0].style, "danger", "Delete → danger");
     assert.strictEqual(btns[1].style, "primary", "Open Web App → primary");
+    assert.strictEqual(btns[2].style, "primary", "History (no match) → default primary — every button colored");
+    assert.strictEqual(btns[3].style, "success", "Redeem → success");
     assert.strictEqual(c.form.parse_mode, "Markdown", "other options untouched");
-    console.log("✅ Scenario 1 (keyboard survives with style, 3-arg mapping) PASSED");
+    console.log("✅ Scenario 1 (keyboard survives with style, 3-arg mapping, every button colored) PASSED");
 
     // ── Scenario 2: no options → still works (default form) ───
     const bot2 = makeFakeBot();

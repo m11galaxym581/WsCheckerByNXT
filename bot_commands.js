@@ -20,22 +20,21 @@ const { tr, langKeyboard }    = require("./i18n");
 
 module.exports = (bot) => {
 
-    async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            try { const m = await bot.getChatMember(chatId, uid); if (["left", "kicked"].includes(m.status)) missing.push(ch); }
-            catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
-    }
+    const { checkForceJoin, missingReasonLine, matchJoinRequestChannel } = require("./force_join");
+
     function forceJoinMarkup(missing) {
-        const kb = missing.map(ch => [{ text: `Join ${ch.title || ch.chatId || 'Channel'}`, url: ch.url || `https://t.me/${String(ch.chatId||'').replace('@','')}` }]);
+        const kb = missing.map(m => {
+            const ch = m.channel || m;
+            const uname = (ch.username || (ch.chatId && String(ch.chatId).startsWith("@") ? ch.chatId : "") || "").replace(/^@/, "");
+            const link = ch.url || (uname ? `https://t.me/${uname}` : null);
+            return [{ text: `Join ${m.title || "Channel"}`, ...(link ? { url: link } : { callback_data: "verify_join" }) }];
+        });
         kb.push([{ text: "✅ Verify Join", callback_data: "verify_join" }]);
         return { reply_markup: { inline_keyboard: kb } };
+    }
+    function forceJoinNote(missing) {
+        if (!missing || !missing.length) return "";
+        return "\n\n" + missing.map(m => missingReasonLine(m)).join("\n") + "\n\nThen press ✅ Verify Join.";
     }
 
     // ============================================================
@@ -148,8 +147,8 @@ module.exports = (bot) => {
     bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from.id;
         registerUser(msg.from);
-        const fj = await checkForceJoin(uid);
-        if (!fj.ok) return bot.sendMessage(uid, "🔒 Please join required channels to use this bot.", { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
+        const fj = await checkForceJoin(uid, bot);
+        if (!fj.ok) return bot.sendMessage(uid, `🔒 Please join required channels to use this bot.${forceJoinNote(fj.missing)}`, { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
         
         if (isBanned(uid) && !isOwner(uid)) {
             return bot.sendMessage(uid, `🚫 *𝗔𝗖𝗖𝗘𝗦𝗦 𝗗𝗘𝗡𝗜𝗘𝗗*\nYou are permanently banned from this engine.`, { parse_mode: "Markdown" });
@@ -176,7 +175,7 @@ module.exports = (bot) => {
 
         // Mini App deep link (t.me/<bot>/app) — auto-login inside Telegram.
         const miniAppLine = state.BOT_INFO?.username
-            ? `┣ 🛜 *Mini App:* t.me/${state.BOT_INFO.username}/app\n`
+            ? `┣ 🛜 *Mini App:* https://t.me/${state.BOT_INFO.username}/app\n`
             : "";
 
         const welcomeText =
@@ -200,13 +199,15 @@ module.exports = (bot) => {
     bot.onText(/\/app/, async (msg) => {
         const uid = msg.from.id;
         const url = dashboardUrl();
-        const link = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : url;
+        let uname = state.BOT_INFO?.username;
+        if (!uname) { try { uname = (await bot.getMe()).username; state.BOT_INFO = state.BOT_INFO || {}; state.BOT_INFO.username = uname; } catch (_) {} }
+        const link = uname ? `https://t.me/${uname}/app` : url;
         const ready = !!(state.autoSetup && state.autoSetup.webAppReady !== false && state.autoSetup.menuButtonActive);
         const body = ready
-            ? `Tap below to open the full dashboard inside Telegram — you are logged in *automatically* (no password needed).`
-            : `The Mini App works *inside the Telegram app*. If the button does not launch yet, the domain must be allow-listed once:\n\n@BotFather → /mybots → Bot Settings → Domain → \`${new URL(url).host}\`\n\nThen send /autosetup. Meanwhile the button opens the dashboard (use 🔐 Web Login → ID + password).`;
+            ? `Tap *Open Web App* below or open the Mini App link inside Telegram — you are logged in *automatically* (no password needed).`
+            : "The Mini App only launches *inside the Telegram app* — and the link opens the Mini App only after this bot's domain is allow-listed:\n\n@BotFather → /mybots → select this bot → Bot Settings → *Domain* → add `" + new URL(url).host + "`\n\nThen send /autosetup. Until then, use the button below (falls back to 🔐 Web Login → ID + password).";
         return sendWithWebApp(uid,
-            `🛜 *Open the Web App*\n\n${body}\n\n🔗 App link (open inside the Telegram app): ${link}`,
+            `🛜 *Open the Web App*\n\n${body}\n\n🔗 Mini App link (https, open inside the Telegram app): ${link}`,
             { parse_mode: "Markdown" },
             [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
@@ -275,6 +276,7 @@ module.exports = (bot) => {
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
         L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app` : "username unknown"}`);
+        L.push(`6️⃣ *Link opens the chat instead of the Mini App?* Use the *https://* link (not http://) and open it inside Telegram. If it still opens the chat, fully close and reopen Telegram, then tap the link again. The Mini App works only when the menu button (step 3 ✅) is set for *this* bot.`);
         L.push(`\n💡 Mini Apps only open inside the *Telegram app* — not in a browser/web.`);
         const finalText = L.join("\n");
         if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));
@@ -569,22 +571,80 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
     bot.onText(/\/forcejoin_add (.+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
-        const [title, chatId, url] = match[1].split('|').map(x=>x.trim());
+        const parts = match[1].split('|').map(x=>x.trim());
+        const title = parts[0];
+        const chatId = parts[1] || (parts[0] && !parts[0].startsWith("https") ? parts[0] : undefined);
+        const url = parts[2] || (parts[0] && parts[0].startsWith("https") ? parts[0] : undefined);
         const dyn = config.dynamic; const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        channels.push({ title: title || chatId, chatId, url });
+        if (!chatId && !url) return bot.sendMessage(msg.chat.id, "❌ Usage:\n/forcejoin_add Title|@channel\n/forcejoin_add Title|-100123456789\n/forcejoin_add Title|@channel|https://t.me/joinchat/xxxx\nPublic channels: username or t.me link works.\nPrivate channels: numeric chat id needed and the bot must be an admin of the channel.");
+        channels.push({ title, chatId, url });
         config.setDynamicConfig({ FORCE_JOIN_CHANNELS: channels });
-        bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId}`);
+        bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}\n\n📌 Make this bot an *admin* of the channel (private: enable *Invite users* too), then run /forcejoin_test.`, { parse_mode: 'Markdown' }).catch(() => bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}`));
     });
     bot.onText(/\/forcejoin_list/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
-        bot.sendMessage(msg.chat.id, `🔒 *Force Join* ${dyn.FORCE_JOIN_ENABLED?'ON':'OFF'}
-
-${channels.map((c,i)=>`${i+1}. ${c.title||c.chatId} | ${c.chatId}`).join('\n') || 'No channels'}`, { parse_mode:'Markdown' });
+        const auto = dyn.FORCE_JOIN_AUTO_APPROVE ? "ON (auto-approve join requests)" : "OFF";
+        const lines = channels.map((c,i)=>`${i+1}. ${c.title||c.chatId}\n   id: ${c.chatId || "-"} | user: ${c.username || "-"} | url: ${c.url || "-"}`);
+        bot.sendMessage(msg.chat.id, `🔒 *Force Join:* ${dyn.FORCE_JOIN_ENABLED?'ON':'OFF'} | Auto-approve: ${auto}\n\n${lines.join('\n') || 'No channels'}\n\n📌 The bot must be an *admin* of every channel (for private channels also give it *Invite users*), otherwise membership can never be verified.\n\n/forcejoin_test - check the channels from the bot side`, { parse_mode:'Markdown' });
     });
 
     // ============================================================
-    // ⚡ OWNER COMMANDS (Only Owner Can Use)
+    // Auto-approve join requests for force-join channels (needs bot admin with Invite users right).
+    bot.onText(/\/forcejoin_auto (on|off)/i, async (msg, match) => {
+        if (!isAdmin(msg.from.id)) return;
+        const enabled = match[1].toLowerCase() === 'on';
+        config.setDynamicConfig({ FORCE_JOIN_AUTO_APPROVE: enabled });
+        bot.sendMessage(msg.chat.id, `🔓 Force-join auto-approve: *${enabled ? 'ON' : 'OFF'}*`, { parse_mode:'Markdown' });
+    });
+    // Live diagnostic: resolves every channel and reports bot-side verification state.
+    bot.onText(/\/forcejoin_test/, async (msg) => {
+        if (!isAdmin(msg.from.id)) return;
+        const { probeChannel, channelLabel } = require("./force_join");
+        const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
+        if (!channels.length) return bot.sendMessage(msg.chat.id, "No force-join channels configured yet. Use /forcejoin_add.");
+        const out = [`🔍 *Force-join channel test* (as @${(state.BOT_INFO||{}).username || "bot"})\n`];
+        for (const ch of channels) {
+            const p = await probeChannel(bot, ch, msg.from.id).catch(() => null);
+            if (!p) { out.push(`❌ ${channelLabel(ch)} — probe crashed`); continue; }
+            if (p.joined) out.push(`✅ ${p.label} — bot CAN verify members (you are ${p.status || "a member"})`);
+            else if (p.reason === "not_joined") out.push(`✅ ${p.label} — bot CAN verify (you are not joined yet; probe succeeded)`);
+            else if (p.reason === "unverifiable") out.push(`⚠️ ${p.label} — invite link only: impossible to verify. Make the bot an admin and store the numeric chat id.`);
+            else out.push(`❌ ${p.label} — ${p.reason === "bot_setup" ? "bot is not an admin of this channel" : (p.detail || "unknown error")}`);
+        }
+        out.push(`\nTip: add the bot as channel admin, then run this again.`);
+        bot.sendMessage(msg.chat.id, out.join("\n"), { parse_mode:'Markdown' }).catch(() => bot.sendMessage(msg.chat.id, out.join("\n")));
+    });
+
+    // ── 🔔 Chat join request (private force-join channels) ────
+    // Fires when a user asks to join a channel and this bot is an admin with
+    // the "Invite users" right there. Without this event the bot can never
+    // "see" join requests — getChatMember only reflects approved members.
+    bot.on("chat_join_request", async (req) => {
+        try {
+            const dyn = config.dynamic;
+            const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
+            if (!dyn.FORCE_JOIN_ENABLED || !channels.length) return;
+            const match = matchJoinRequestChannel(req, channels);
+            if (!match) return;
+            const uid = Number(req.from && req.from.id);
+            if (!uid) return;
+            const title = match.channel.title || req.chat.title || (req.chat.username ? "@" + req.chat.username : "channel");
+            if (dyn.FORCE_JOIN_AUTO_APPROVE) {
+                try {
+                    await bot.approveChatJoinRequest(req.chat.id, uid);
+                    return bot.sendMessage(uid, `✅ Auto-approved! You are now a member of ${title}. Open the bot and press /start to continue.`).catch(() => {});
+                } catch (e) {
+                    console.warn("⚠️ [ForceJoin] Auto-approve failed:", e.description || e.message);
+                }
+            }
+            bot.sendMessage(uid, `✅ Your request to join ${title} was received. Once an admin approves it, open the bot again and press ✅ Verify Join (or send /start).`).catch(() => {});
+        } catch (e) {
+            console.error("❌ [ForceJoin] chat_join_request handler error:", e.message);
+        }
+    });
+
+    // 👑 OWNER COMMANDS (Only Owner Can Use)
     // ============================================================
 
     // ── /owner ────────────────────────────────────────────────

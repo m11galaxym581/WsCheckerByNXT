@@ -261,20 +261,11 @@ function startServer(bot) {
         if (!u.apiKeys) u.apiKeys = [];
         return { db, u, id };
     }
+    // Shared force-join engine (same logic as the bot commands/callbacks):
+    // resolves usernames/ids/invite links, reports bot-permission problems
+    // honestly and never silently bypasses private invite-link channels.
     async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            if (!chatId) continue;
-            try {
-                const m = await bot.getChatMember(chatId, uid);
-                if (["left", "kicked"].includes(m.status)) missing.push(ch);
-            } catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
+        return require("./force_join").checkForceJoin(uid, bot);
     }
 
     if (!state.jobQueue) state.jobQueue = [];

@@ -19,22 +19,21 @@ const path   = require("path");
 
 module.exports = (bot) => {
 
-    async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            try { const m = await bot.getChatMember(chatId, uid); if (["left", "kicked"].includes(m.status)) missing.push(ch); }
-            catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
-    }
+    const { checkForceJoin, missingReasonLine } = require("./force_join");
+
     function forceJoinMarkup(missing) {
-        const kb = missing.map(ch => [{ text: `Join ${ch.title || ch.chatId || 'Channel'}`, url: ch.url || `https://t.me/${String(ch.chatId||'').replace('@','')}` }]);
+        const kb = missing.map(m => {
+            const ch = m.channel || m;
+            const uname = (ch.username || (ch.chatId && String(ch.chatId).startsWith("@") ? ch.chatId : "") || "").replace(/^@/, "");
+            const link = ch.url || (uname ? `https://t.me/${uname}` : null);
+            return [{ text: `Join ${m.title || "Channel"}`, ...(link ? { url: link } : { callback_data: "verify_join" }) }];
+        });
         kb.push([{ text: "✅ Verify Join", callback_data: "verify_join" }]);
         return { inline_keyboard: kb };
+    }
+    function forceJoinNote(missing) {
+        if (!missing || !missing.length) return "";
+        return "\n\n" + missing.map(m => missingReasonLine(m)).join("\n") + "\n\nThen press ✅ Verify Join.";
     }
 
     // ============================================================
@@ -149,8 +148,8 @@ module.exports = (bot) => {
 
 
         if (data === "verify_join") {
-            const fj = await checkForceJoin(uid);
-            if (!fj.ok) return safeEdit("🔒 Please join all required channels first.", forceJoinMarkup(fj.missing));
+            const fj = await checkForceJoin(uid, bot);
+            if (!fj.ok) return safeEdit(`🔒 Please join all required channels first.${forceJoinNote(fj.missing)}`, forceJoinMarkup(fj.missing));
             return safeEdit("✅ Verified successfully!", mainMenu(uid));
         }
 

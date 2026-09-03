@@ -165,9 +165,10 @@ async function runAutoSetup(bot) {
     else if (whitelistPending) lines.push("❌ Mini App menu button — domain not allow-listed yet");
     else lines.push("⚠️ Mini App menu button — not confirmed yet (offline / retry with /autosetup)");
 
+    const botTag = results.getMe.ok && results.getMe.res?.username ? `@${results.getMe.res.username}` : "your bot";
     let summary = lines.join("\n");
     if (whitelistPending) {
-        summary += `\n⚠️ ACTION NEEDED (30 sec, once): @BotFather → /mybots → Bot Settings → Domain → add: ${url.split("/")[2]}\nThen send /autosetup or redeploy — everything else is automatic.`;
+        summary += `\n⚠️ ACTION NEEDED (30 sec, once): @BotFather → /mybots → select ${botTag} → Bot Settings → *Domain* → add: ${url.split("/")[2]}\nThen send /autosetup or redeploy — everything else is automatic.`;
     }
 
     state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive };
@@ -181,10 +182,11 @@ async function runAutoSetup(bot) {
             const me = results.getMe.ok ? results.getMe.res : null;
             await bot.sendMessage(config.OWNER_ID,
                 `╭━━━[ ⚙️ *𝗔𝗨𝗧𝗢-𝗦𝗘𝗧𝗨𝗣 𝗥𝗘𝗣𝗢𝗥𝗧* ]━━━╮\n` +
-                `┣ 🛜 *Mini App:* ${me ? `t.me/${me.username}/app` : url}\n` +
+                `┣ 🤖 *Bot:* ${botTag}\n` +
+                `┣ 🛜 *Mini App:* ${me ? `https://t.me/${me.username}/app` : url}\n` +
                 `┣ 🌐 *Domain:* ${url.split("/")[2] || url}\n` +
                 `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `┣ ${results.menuButtonActive ? "🟢 All bot settings applied automatically." : "🟡 Menu button pending — whitelist domain in @BotFather, then send /autosetup"}\n` +
+                `┣ ${results.menuButtonActive ? "🟢 All bot settings applied automatically." : "🟡 Menu button pending — whitelist the domain in @BotFather for THIS bot, then send /autosetup"}\n` +
                 `┣ 🧩 Commands/name/description: auto ✓\n` +
                 `╰━━━━━━━━━━━━━━━━━━━━━━╯`,
                 { parse_mode: "Markdown" }).catch(() => {});

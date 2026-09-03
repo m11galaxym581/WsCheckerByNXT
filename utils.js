@@ -191,23 +191,21 @@ function buildResultCSV(reg, unreg, failed = []) {
 // ── Telegram Bot API 9.4 button colors (inline keyboards) ────
 // Bot API 9.4 (Feb 2026) added the field `style` to InlineKeyboardButton /
 // KeyboardButton: "primary" (blue), "success" (green), "danger" (red).
-// This helper colors every button that has no explicit style yet, using the
-// button text/emoji to pick a sensible color. Buttons already carrying a
-// style are left untouched.
-const _STYLE_DANGER = /🚫|❌|🗑|➖|🛑|✖|remove|ban |delete|disable|logout|revoke|clear|reset|cancel|deny|kick/i;
-const _STYLE_SUCCESS = /✅|🟢|💎|🎁|redeem|upgrade|premium|activate|approve|unban|success|paid|payment/i;
-const _STYLE_PRIMARY = /🚀|🔐|📱|🛜|⚙️|🔑|🔗|generate|webhook|api|new check|web login|add node|admin console|owner panel|run|start|send|create|save|enable|check|session|node|warmup|broadcast|language|support|force|backup|ping|docs|menu|open web app/i;
+// Every button without an explicit style gets a color: destructive labels
+// turn red, positive/payment labels turn green, everything else is blue
+// (primary). Buttons already carrying a style are left untouched.
+const _STYLE_DANGER = /🚫|❌|🗑|➖|🛑|✖|remove|ban |delete|disable|logout|revoke|clear|reset|cancel|deny|kick|decline/i;
+const _STYLE_SUCCESS = /✅|🟢|💎|🎁|redeem|upgrade|premium|activate|approve|unban|success|paid|payment|verified/i;
 
 function colorInlineKeyboard(kb) {
     if (!Array.isArray(kb)) return kb;
     return kb.map(row => (Array.isArray(row) ? row : []).map(btn => {
         if (!btn || typeof btn !== "object" || btn.style) return btn;
         const t = String(btn.text || "");
-        let style = null;
+        let style = "primary";
         if (_STYLE_DANGER.test(t)) style = "danger";
         else if (_STYLE_SUCCESS.test(t)) style = "success";
-        else if (_STYLE_PRIMARY.test(t)) style = "primary";
-        return style ? { ...btn, style } : btn;
+        return { ...btn, style };
     }));
 }
 

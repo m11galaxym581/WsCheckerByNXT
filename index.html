@@ -1789,11 +1789,14 @@ window.onload=()=>{
     // Auto-resume via signed secure cookie.
     if(localStorage.getItem('blaze_uid')) setVal('inp-uid',localStorage.getItem('blaze_uid'));
     const inTelegram = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
-    if(CSRF_TOKEN || localStorage.getItem('blaze_uid')){
-      hydrateSession();
-    } else if(inTelegram){
-      // 🛜 Opened as a Telegram Mini App → auto login (no password needed).
+    if(inTelegram){
+      // 🛜 Mini App: the web session must ALWAYS belong to the CURRENT Telegram
+      // account. Re-authenticate with this launch's signed initData so that
+      // switching to a second Telegram account never inherits the previous
+      // account's cookie/localStorage session (account isolation).
       tgAutoLogin();
+    } else if(CSRF_TOKEN || localStorage.getItem('blaze_uid')){
+      hydrateSession();
     } else {
       showInitialPublicPage();
     }
