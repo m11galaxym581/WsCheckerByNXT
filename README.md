@@ -8,7 +8,7 @@ A Telegram bot + web dashboard for WhatsApp number checking, sessions/nodes mana
 
 ## 1. Requirements
 
-- Node.js **18+**
+- Node.js **20+** (Node 22 recommended)
 - A Telegram bot token from **@BotFather**
 - Your numeric Telegram user ID from **@userinfobot**
 - Public domain/URL recommended for production
@@ -31,9 +31,63 @@ npm start
 
 ---
 
-## 3. `.env` setup
+## 3. Deploy on Railway (one-click)
 
-Create `.env` in the project root:
+This repo is Railway-ready (`nixpacks.toml` + portable config included). Railway
+detects the Node.js app automatically, runs `npm ci`, and starts it with `npm start`.
+
+### Option A — From GitHub
+
+1. Push this repo to GitHub.
+2. On [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo** → pick this repo.
+3. Go to **Variables** and add the secrets below.
+4. Deploy. Railway provisions the app and generates a public `*.up.railway.app` URL.
+
+### Option B — From CLI
+
+```bash
+npm i -g @railway/cli
+railway login
+railway init
+railway up
+```
+
+### Required variables (Railway → Variables)
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `TG_TOKEN` | ✅ | Telegram bot token from @BotFather |
+| `OWNER_ID` | ✅ | Your numeric Telegram user ID (owner/admin) |
+| `DASHBOARD_URL` | ⬜ | Public panel URL, e.g. `https://your-app.up.railway.app`. When unset it is auto-detected from `RAILWAY_PUBLIC_DOMAIN` |
+| `WEB_SECRET` | ⬜ | Long random secret; defaults to `TG_TOKEN` |
+| `NODE_ENV` | ⬜ | Set `production` for Secure cookies (panel is HTTPS on Railway) |
+
+`PORT` is injected by Railway automatically — the server binds `0.0.0.0:$PORT`.
+
+### Persistent storage (recommended — WhatsApp nodes & users)
+
+Railway's filesystem is **ephemeral**: files written next to the code are wiped on
+every redeploy. To keep your database (`users.json`), WhatsApp sessions, job state
+and backups across redeploys:
+
+1. In the service → **Volumes** → **Add Volume**, mount it at `/data`.
+2. Redeploy once.
+
+The app automatically detects the Railway volume (`RAILWAY_VOLUME_MOUNT_PATH`)
+and stores everything there — no code or extra variables needed. To override on any
+host, set `DATA_DIR` to a writable directory.
+
+> Only ever run **one** instance per Telegram bot token (long-polling bots conflict
+> with a second instance, Telegram error 409).
+
+---
+
+## 4. `.env` setup
+
+> Local development only. On Railway/Hosted deploys set these as environment
+> variables (Railway → Variables) — there is no `.env` file on the server.
+
+Create `.env` in the project root (see `.env.example`):
 
 ```env
 # Telegram Bot
@@ -69,7 +123,7 @@ NODE_ENV=development
 
 ---
 
-## 4. Login flow
+## 5. Login flow
 
 Captcha/human verification has been removed.
 
@@ -96,7 +150,7 @@ If login does not work after an update:
 
 ---
 
-## 5. Main web routes
+## 6. Main web routes
 
 ```txt
 /dashboard
@@ -120,7 +174,7 @@ If login does not work after an update:
 
 ---
 
-## 6. Telegram bot commands
+## 7. Telegram bot commands
 
 Common:
 
@@ -163,7 +217,7 @@ Owner:
 
 ---
 
-## 7. System modes
+## 8. System modes
 
 Owner can set:
 
@@ -187,7 +241,7 @@ Web:
 
 ---
 
-## 8. Proxy pool setup
+## 9. Proxy pool setup
 
 For residential proxies, create:
 
@@ -226,7 +280,7 @@ Recommended:
 
 ---
 
-## 9. API examples
+## 10. API examples
 
 Single check:
 
@@ -244,7 +298,7 @@ curl -X POST "https://your-domain.com/api/v1/batch-check" \
 
 ---
 
-## 10. Webhook
+## 11. Webhook
 
 Set webhook from dashboard or bot:
 
@@ -266,7 +320,7 @@ Webhook logs:
 
 ---
 
-## 11. Result exports
+## 12. Result exports
 
 Results support:
 
@@ -284,7 +338,7 @@ Telegram bot also sends TXT + CSV after bot-based scan completion.
 
 ---
 
-## 12. Admin pages
+## 13. Admin pages
 
 ```txt
 /admin       Main admin console
@@ -296,7 +350,7 @@ Telegram bot also sends TXT + CSV after bot-based scan completion.
 
 ---
 
-## 13. Security notes
+## 14. Security notes
 
 Implemented:
 
@@ -312,7 +366,7 @@ Captcha/human verification is removed as requested.
 
 ---
 
-## 14. Important files
+## 15. Important files
 
 ```txt
 .env                  private environment config
@@ -326,10 +380,10 @@ tmp_results/          temporary result files
 
 ---
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 
 ### Bot says Telegram token missing
-Check `.env`:
+Check the environment variable / `.env`:
 
 ```env
 TG_TOKEN=...
@@ -358,7 +412,7 @@ Clear site cookies and login again.
 
 ---
 
-## 16. Validation commands
+## 17. Validation commands
 
 ```bash
 node --check *.js
@@ -368,7 +422,7 @@ node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
 
 ---
 
-## 17. New advanced upgrade modules
+## 18. New advanced upgrade modules
 
 ### White-label branding
 Route:
@@ -518,7 +572,7 @@ GET /api/public-status
 
 ---
 
-## 18. Force Join + Multi-language Bot/Web
+## 19. Force Join + Multi-language Bot/Web
 
 ### Force Join System
 
@@ -571,7 +625,7 @@ POST /api/user/language
 
 ---
 
-## 19. UI / Navigation Upgrade
+## 20. UI / Navigation Upgrade
 
 Latest UI includes:
 
@@ -595,7 +649,7 @@ Routes:
 
 ---
 
-## 20. UI Cleanup v20
+## 21. UI Cleanup v20
 
 Changes:
 

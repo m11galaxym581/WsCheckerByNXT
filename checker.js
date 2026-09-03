@@ -40,7 +40,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function saveJobState(uid, data) {
     try {
-        const dir = path.join(__dirname, "job_state");
+        const dir = path.join(config.DATA_ROOT, "job_state");
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, `${uid}.json`), JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
     } catch (_) {}
@@ -48,7 +48,7 @@ function saveJobState(uid, data) {
 
 // ── Telegram Result Delivery Helper ───────────────────────────
 async function sendTelegramResultFiles(bot, uid, reg, unreg, failed, meta) {
-    const dir = path.join(__dirname, "tmp_results");
+    const dir = path.join(config.DATA_ROOT, "tmp_results");
     fs.mkdirSync(dir, { recursive: true });
     const stamp = Date.now();
     const txtPath = path.join(dir, `BlazeNXT_${uid}_${stamp}.txt`);

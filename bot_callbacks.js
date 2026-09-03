@@ -420,7 +420,7 @@ ${mode === 'free' ? 'All users can use premium system features.' : 'Subscription
         }
 
         if (data === "force_backup") {
-            const dbPath = path.resolve(__dirname, config.DB_FILE);
+            const dbPath = config.dataPath(config.DB_FILE);
             try { fs.copyFileSync(dbPath, dbPath + '.bak_manual'); return safeEdit("💾 *Manual Backup Created Successfully!*", backBtn("open_owner_panel")); }
             catch(e) { return safeEdit("❌ Backup Failed.", backBtn("open_owner_panel")); }
         }

@@ -125,13 +125,18 @@ bot.editMessageText = async function (text, options) {
 // ── 🛑 GRACEFUL SHUTDOWN SEQUENCE ─────────────────────────────
 async function shutdown(signal) {
     console.log(`\n🛑 [${signal}] Initiating Ultra Beast Shutdown Sequence...`);
+
+    // Failsafe: never block a restart/redeploy longer than 8s
+    // (Telegram API may be unreachable while the process is being stopped).
+    setTimeout(() => { console.log("⚡ [Shutdown] Failsafe — forcing exit."); process.exit(0); }, 8000).unref();
+
     try {
         // 1. Stop Telegram Polling
-        bot.stopPolling();
+        await bot.stopPolling().catch(() => {});
         console.log("✅ [Shutdown] Telegram connection terminated.");
 
         // 2. Force a final database backup
-        const dbPath = path.resolve(__dirname, config.DB_FILE);
+        const dbPath = config.dataPath(config.DB_FILE);
         if (fs.existsSync(dbPath)) {
             fs.copyFileSync(dbPath, dbPath + '.bak_shutdown');
             console.log("✅ [Shutdown] Final DB Backup created (.bak_shutdown).");

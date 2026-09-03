@@ -27,6 +27,9 @@ const proxyManager = require("./proxy_manager");
 
 function startServer(bot) {
     const app = express(); 
+    // Behind a reverse proxy (Railway, nginx, Cloudflare) trust the first hop so
+    // req.ip / rate-limits / login-lockouts see real client IPs, not the proxy's.
+    if (process.env.TRUST_PROXY === "true" || config.isRailway) app.set("trust proxy", 1);
     app.use(cors()); 
     app.use(express.json({ limit: "15mb" })); // Increased limit for massive DB exports
     app.get('/manifest.json', (req,res)=>res.sendFile(path.join(__dirname,'manifest.json')));
@@ -595,7 +598,7 @@ function startServer(bot) {
 
     app.get("/api/resume-info/:uid", requireAuth, (req, res) => {
         if (!assertSelfOrAdmin(req, res, req.params.uid)) return;
-        const file = path.join(__dirname, "job_state", `${Number(req.params.uid)}.json`);
+        const file = path.join(config.DATA_ROOT, "job_state", `${Number(req.params.uid)}.json`);
         if (!fs.existsSync(file)) return res.json({ ok:true, job:null });
         try { res.json({ ok:true, job: JSON.parse(fs.readFileSync(file, "utf8")) }); }
         catch (_) { res.json({ ok:true, job:null }); }
@@ -604,7 +607,7 @@ function startServer(bot) {
     app.post("/api/resume-job", requireAuth, (req, res) => {
         const uid = Number(req.body.uid || req.user.uid);
         if (!assertSelfOrAdmin(req, res, uid)) return;
-        const file = path.join(__dirname, "job_state", `${uid}.json`);
+        const file = path.join(config.DATA_ROOT, "job_state", `${uid}.json`);
         if (!fs.existsSync(file)) return res.status(404).json({ ok:false, error:"No resumable job" });
         let job; try { job = JSON.parse(fs.readFileSync(file, "utf8")); } catch (_) {}
         const numbers = (job?.remaining || []).map(n => String(n).replace(/[^0-9]/g, "")).filter(n => n.length >= 7 && n.length <= 15);
@@ -617,7 +620,7 @@ function startServer(bot) {
 
     // ── Feature Pack: Jobs, Lists, Templates, Audit, Plans, Webhooks, Shares ──
     app.get("/api/jobs", requireAuth, (req, res) => {
-        const dir = path.join(__dirname, "job_state");
+        const dir = path.join(config.DATA_ROOT, "job_state");
         const jobs = [];
         try { if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir)) {
             if (!f.endsWith('.json')) continue; const uid = Number(f.replace('.json',''));
@@ -706,9 +709,9 @@ function startServer(bot) {
     app.get("/api/admin/abuse", requireAdmin, (req,res)=>{ const db=getDB(); const suspects=Object.values(db.users||{}).filter(u=>u.banned||u.count>100000).map(u=>({id:u.id,name:u.name,banned:u.banned,count:u.count||0})); res.json({ok:true,suspects}); });
     app.get("/api/admin/feature-flags", requireAdmin, (req,res)=>{ const db=ensureFeatureDB(getDB()); if(!db.meta.featureFlags) db.meta.featureFlags={api:true,batchApi:true,webhooks:true,publicShare:true,proxyPool:true,pwa:true}; res.json({ok:true,features:db.meta.featureFlags}); });
     app.post("/api/admin/feature-flags", requireOwner, (req,res)=>{ const db=ensureFeatureDB(getDB()); db.meta.featureFlags={...(db.meta.featureFlags||{}),...(req.body.features||{})}; saveDB(db); audit(req.user.uid,'feature_flags','system',db.meta.featureFlags); res.json({ok:true,features:db.meta.featureFlags}); });
-    app.post("/api/admin/backup-encrypted", requireOwner, (req,res)=>{ try{ const raw=fs.readFileSync(path.join(__dirname, config.DB_FILE)); const iv=crypto.randomBytes(12); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const cipher=crypto.createCipheriv('aes-256-gcm',key,iv); const enc=Buffer.concat([cipher.update(raw),cipher.final()]); const tag=cipher.getAuthTag(); const out=Buffer.concat([iv,tag,enc]); const file=path.join(__dirname,`backup_${Date.now()}.enc`); fs.writeFileSync(file,out); audit(req.user.uid,'encrypted_backup','db',{file:path.basename(file)}); res.json({ok:true,file:path.basename(file)}); }catch(e){res.status(500).json({ok:false,error:e.message});} });
+    app.post("/api/admin/backup-encrypted", requireOwner, (req,res)=>{ try{ const raw=fs.readFileSync(config.dataPath(config.DB_FILE)); const iv=crypto.randomBytes(12); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const cipher=crypto.createCipheriv('aes-256-gcm',key,iv); const enc=Buffer.concat([cipher.update(raw),cipher.final()]); const tag=cipher.getAuthTag(); const out=Buffer.concat([iv,tag,enc]); const file=path.join(config.DATA_ROOT,`backup_${Date.now()}.enc`); fs.writeFileSync(file,out); audit(req.user.uid,'encrypted_backup','db',{file:path.basename(file)}); res.json({ok:true,file:path.basename(file)}); }catch(e){res.status(500).json({ok:false,error:e.message});} });
     app.post("/api/admin/backup-schedule", requireOwner, (req,res)=>{ const db=ensureFeatureDB(getDB()); db.meta.backupSchedule={enabled:!!req.body.enabled, intervalHours:Number(req.body.intervalHours||6), keep:Number(req.body.keep||10)}; saveDB(db); audit(req.user.uid,'backup_schedule','db',db.meta.backupSchedule); res.json({ok:true,schedule:db.meta.backupSchedule}); });
-    app.post("/api/admin/backup-restore", requireOwner, (req,res)=>{ try{ const buf=Buffer.from(String(req.body.data||''),'base64'); const iv=buf.subarray(0,12), tag=buf.subarray(12,28), enc=buf.subarray(28); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const dec=crypto.createDecipheriv('aes-256-gcm',key,iv); dec.setAuthTag(tag); const raw=Buffer.concat([dec.update(enc),dec.final()]); JSON.parse(raw.toString('utf8')); fs.writeFileSync(path.join(__dirname, config.DB_FILE), raw); audit(req.user.uid,'backup_restore','db'); res.json({ok:true}); }catch(e){res.status(400).json({ok:false,error:e.message});} });
+    app.post("/api/admin/backup-restore", requireOwner, (req,res)=>{ try{ const buf=Buffer.from(String(req.body.data||''),'base64'); const iv=buf.subarray(0,12), tag=buf.subarray(12,28), enc=buf.subarray(28); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const dec=crypto.createDecipheriv('aes-256-gcm',key,iv); dec.setAuthTag(tag); const raw=Buffer.concat([dec.update(enc),dec.final()]); JSON.parse(raw.toString('utf8')); fs.writeFileSync(config.dataPath(config.DB_FILE), raw); audit(req.user.uid,'backup_restore','db'); res.json({ok:true}); }catch(e){res.status(400).json({ok:false,error:e.message});} });
 
     // ── Proxy Pool Management ──
     app.get("/api/admin/proxies", requireAdmin, (req, res) => {

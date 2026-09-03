@@ -25,7 +25,9 @@ const proxyManager = require("./proxy_manager");
 const silentLogger = pino({ level: "silent" });
 
 // ── Session directory generator ───────────────────────────────
-const SESSION_DIR = (id) => path.join(__dirname, `session_${id}`);
+// Sessions hold WhatsApp credentials and MUST live on persistent storage
+// (Railway volume / DATA_DIR) so nodes survive redeploys.
+const SESSION_DIR = (id) => path.join(config.DATA_ROOT, `session_${id}`);
 
 // ── Reconnect Timers & Proxy Logic ────────────────────────────
 const _reconnectTimers = {};
@@ -205,9 +207,10 @@ function _cleanupSession(sessionId) {
 // ── Restore sessions ──────────────────────────────────────────
 async function loadSavedSessions(bot) {
     const db = getDB();
-    const entries = fs.readdirSync(__dirname);
+    let entries = [];
+    try { entries = fs.readdirSync(config.DATA_ROOT); } catch (e) { console.error(`⚠️ [WA] Cannot read data dir: ${e.message}`); }
     for (const entry of entries) {
-        if (!entry.startsWith("session_") || !fs.lstatSync(path.join(__dirname, entry)).isDirectory()) continue;
+        if (!entry.startsWith("session_") || !fs.lstatSync(path.join(config.DATA_ROOT, entry)).isDirectory()) continue;
         const sid = entry.replace("session_", "");
         const meta = db.sessionMeta[sid] || { owner: config.OWNER_ID, type: "public" };
         

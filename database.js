@@ -10,7 +10,7 @@ const path = require("path");
 const crypto = require("crypto");
 const config = require("./config");
 
-const DB_PATH = path.resolve(__dirname, config.DB_FILE);
+const DB_PATH = config.dataPath(config.DB_FILE);
 
 // ── Default Schema ──────────────────────────────────────────
 function defaultDB() {

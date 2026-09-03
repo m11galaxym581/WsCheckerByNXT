@@ -9,7 +9,45 @@ const fs = require("fs");
 const path = require("path");
 
 const ENV_PATH = path.join(__dirname, ".env");
-const DYN_CONFIG_PATH = path.join(__dirname, "dynamic_config.json");
+
+// ── Railway / Cloud Detection ────────────────────────────────
+// Railway (railway.app) auto-injects RAILWAY_* variables. When we detect them we
+// automatically switch to cloud-friendly defaults (persistent data dir + public URL).
+const RAILWAY_VARS = [
+    "RAILWAY_PUBLIC_DOMAIN", "RAILWAY_PRIVATE_DOMAIN", "RAILWAY_SERVICE_NAME",
+    "RAILWAY_SERVICE_ID", "RAILWAY_PROJECT_NAME", "RAILWAY_DEPLOYMENT_ID",
+    "RAILWAY_ENVIRONMENT", "RAILWAY_ENVIRONMENT_NAME", "RAILWAY_VOLUME_MOUNT_PATH",
+];
+const isRailway = RAILWAY_VARS.some(k => process.env[k]);
+
+// ── Persistent Data Root ─────────────────────────────────────
+// Railway filesystem is ephemeral: every redeploy wipes files written next to the
+// code. All persistent state (users.json, WhatsApp sessions, job_state, backups,
+// dynamic_config.json) is therefore rooted at DATA_ROOT:
+//   1. DATA_DIR env var          -> explicit override (any host)
+//   2. RAILWAY_VOLUME_MOUNT_PATH -> Railway volume mount (auto when a volume is attached)
+//   3. "/data" on Railway        -> default Railway volume mount point (created if absent)
+//   4. project folder            -> legacy local-dev behaviour (unchanged)
+function resolveDataRoot() {
+    const explicit = String(process.env.DATA_DIR || "").trim();
+    if (explicit) return path.resolve(explicit);
+    if (process.env.RAILWAY_VOLUME_MOUNT_PATH) return process.env.RAILWAY_VOLUME_MOUNT_PATH;
+    if (isRailway) return "/data";
+    return __dirname;
+}
+
+let DATA_ROOT = resolveDataRoot();
+try {
+    fs.mkdirSync(DATA_ROOT, { recursive: true });
+} catch (err) {
+    // Read-only root (unexpected) — fall back to the project folder.
+    DATA_ROOT = __dirname;
+    console.warn(`⚠️ [Config] Could not use data dir "${resolveDataRoot()}", falling back to project folder. (${err.message})`);
+}
+
+const dataPath = (rel) => path.isAbsolute(rel) ? rel : path.join(DATA_ROOT, rel);
+
+const DYN_CONFIG_PATH = dataPath("dynamic_config.json");
 
 // ── Read Static .env Fallbacks ──────────────────────────────
 function readEnvFile() {
@@ -57,14 +95,19 @@ const config = {
     // Hardcoded System Constants (Requires Restart to change)
     TG_TOKEN: env("TG_TOKEN", ""),
     WEB_SECRET: env("WEB_SECRET", env("TG_TOKEN", "change-me-web-secret")),
-    DASHBOARD_URL: env("DASHBOARD_URL", `http://localhost:${env("PORT", "9812")}`),
+    DASHBOARD_URL: env("DASHBOARD_URL", process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${env("PORT", "9812")}`),
     OWNER_ID: Number(env("OWNER_ID", "8708907310")),
-    PORT: Number(env("PORT", "9812")),
+    PORT: (() => { const p = Number(env("PORT", "9812")); return Number.isFinite(p) && p > 0 ? p : 9812; })(),
     MAX_HISTORY: 50, // Increased history storage
-    DB_FILE: "users.json",
+    DB_FILE: env("DB_FILE", "users.json"),
     BRAND_NAME: "⚡ BLAZE NXT",
     BRAND_VER: "v5.01.49",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
+
+    // ── Platform / Storage Helpers ────────────────────────────
+    DATA_ROOT,          // where all persistent state lives
+    dataPath,           // resolve a filename inside DATA_ROOT
+    isRailway,          // true when running on Railway
 
     // Dynamic Getters (Fetches live from JSON without restart)
     get dynamic() {
@@ -92,9 +135,13 @@ const config = {
 // Validation at boot
 if (!config.TG_TOKEN || config.TG_TOKEN.length < 20) {
     console.error("❌ [Config] Telegram Token Missing!");
+    console.error("   Set TG_TOKEN in your environment (Railway → Variables, or a local .env file).");
+    console.error("   Get a token from @BotFather and your numeric ID from @userinfobot.");
     process.exit(1);
 }
 
 console.log(`✅ [Config] Loaded — ${config.BRAND_NAME} ${config.BRAND_VER}`);
+console.log(`💾 [Config] Data directory: ${DATA_ROOT}`);
+if (isRailway) console.log(`🚂 [Config] Railway detected — persistent storage: ${DATA_ROOT} (attach a volume to keep it)`);
 
 module.exports = config;
