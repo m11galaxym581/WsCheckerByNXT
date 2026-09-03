@@ -105,11 +105,32 @@ async function runAutoSetup(bot) {
 
     // ── 5. Verify what Telegram actually stored ───────────────
     // getChatMenuButton returns the MenuButton object directly:
-    //   { type: 'web_app', text, web_app: { url } } | { type: 'default' }
-    results.verifyMenuButton = await attempt("getChatMenuButton", () => bot.getChatMenuButton());
+    //   { type: 'web_app', text, web_app: { url } } | { type: 'commands' } | { type: 'default' }
+    // Telegram applies menu-button changes asynchronously, so an immediate
+    // read-back right after a successful set can still return the OLD value
+    // ("commands"). Poll a few times before declaring the state pending.
+    if (results.setMenuButton.ok) {
+        for (let i = 0; i < 5; i++) {
+            results.verifyMenuButton = await attempt("getChatMenuButton", () => bot.getChatMenuButton());
+            if (results.verifyMenuButton.ok) {
+                const sb = results.verifyMenuButton.res?.menu_button || results.verifyMenuButton.res;
+                if ((sb?.type || null) === "web_app") break;
+            }
+            if (i < 4) await sleep(1500);
+        }
+    } else {
+        results.verifyMenuButton = await attempt("getChatMenuButton", () => bot.getChatMenuButton());
+    }
     const storedButton = results.verifyMenuButton.ok ? (results.verifyMenuButton.res?.menu_button || results.verifyMenuButton.res) : null;
     const storedType = storedButton?.type || null;
     results.menuButtonActive = results.verifyMenuButton.ok && storedType === "web_app";
+    if (results.setMenuButton.ok) {
+        if (results.menuButtonActive) {
+            console.log(`✅ [AutoSetup] Verified menu button: web_app → ${url}`);
+        } else {
+            console.warn(`⚠️ [AutoSetup] Menu button set OK but read-back still shows "${storedType || "none"}" — Telegram may be caching; re-verify with /appcheck in a few seconds.`);
+        }
+    }
 
     // ── 6. Domain whitelist probe ─────────────────────────────
     // Telegram rejects web_app buttons at send-time until the domain is

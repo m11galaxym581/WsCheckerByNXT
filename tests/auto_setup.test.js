@@ -72,6 +72,42 @@ async function main() {
     const ownerMsg2 = ownerMessages.find(m => m.chatId === 8708907310);
     assert.ok(ownerMsg2 && ownerMsg2.text.includes("whitelist"), "owner report mentions whitelist");
     console.log("✅ Scenario 2 (whitelist pending) PASSED");
+
+    // ── Scenario 3: read-back happens AFTER apply (ordering) ──
+    // Regression guard for the real-deployment bug where verification read
+    // the menu button state BEFORE it was applied, so bots that had a
+    // "commands" button kept being reported as broken even after a
+    // successful setChatMenuButton. Also simulates Telegram's async
+    // propagation: the first read-backs still return the OLD "commands"
+    // state and only later reads return "web_app".
+    ownerMessages = [];
+    let menuApplied = false;
+    let getCalls = 0;
+    let setCalls = 0;
+    let firstGetBeforeSet = false;
+    const eventualBot = makeBot({
+        async setChatMenuButton() {
+            setCalls++;
+            menuApplied = true;
+            return true;
+        },
+        async getChatMenuButton() {
+            if (!menuApplied) firstGetBeforeSet = true;
+            getCalls++;
+            if (menuApplied && getCalls >= 3) {
+                return { type: "web_app", text: "Open App", web_app: { url: "https://x.test" } };
+            }
+            return { type: "commands" }; // stale until Telegram propagates
+        },
+    });
+    const r3 = await runAutoSetup(eventualBot);
+    assert.strictEqual(firstGetBeforeSet, false, "getChatMenuButton must never be called before setChatMenuButton");
+    assert.strictEqual(setCalls, 1, "setChatMenuButton called exactly once");
+    assert.ok(getCalls >= 3, `verify should poll stale reads (got ${getCalls} reads)`);
+    assert.strictEqual(r3.menuButtonActive, true, "menu button verified web_app after polling");
+    assert.strictEqual(r3.whitelistPending, false);
+    assert.ok(r3.results.verifyMenuButton.ok);
+    console.log("✅ Scenario 3 (read-after-apply ordering + async propagation) PASSED");
     console.log("🎉 AUTO-SETUP TESTS PASSED");
     process.exit(0);
 }

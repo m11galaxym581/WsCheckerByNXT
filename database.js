@@ -73,7 +73,7 @@ function repairDB(db) {
 }
 
 // ── Rotating Auto-Backup System (file backend only) ─────────
-// Har 6 ghante me backup banega. Purane 3 backups save rahenge.
+// Creates a backup every 6 hours. The 3 most recent backups are kept.
 // With Postgres the DB itself is the durable store, so file rotation is skipped.
 if (!PG_ENABLED) {
     setInterval(() => {

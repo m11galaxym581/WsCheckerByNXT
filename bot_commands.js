@@ -206,7 +206,7 @@ module.exports = (bot) => {
             ? `Tap below to open the full dashboard inside Telegram — you are logged in *automatically* (no password needed).`
             : `The Mini App works *inside the Telegram app*. If the button does not launch yet, the domain must be allow-listed once:\n\n@BotFather → /mybots → Bot Settings → Domain → \`${new URL(url).host}\`\n\nThen send /autosetup. Meanwhile the button opens the dashboard (use 🔐 Web Login → ID + password).`;
         return sendWithWebApp(uid,
-            `🛜 *Open the Web App*\n\n${body}\n\n🔗 App link (Telegram app me kholo): ${link}`,
+            `🛜 *Open the Web App*\n\n${body}\n\n🔗 App link (open inside the Telegram app): ${link}`,
             { parse_mode: "Markdown" },
             [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
@@ -221,32 +221,45 @@ module.exports = (bot) => {
         try { domain = new URL(url).host; } catch (_) {}
         const send = (txt) => bot.sendMessage(uid, txt, { parse_mode: "Markdown" }).catch(() => {});
         const L = [];
-        L.push(`🌐 *Mini App Diagnostics*\n`);
+        L.push(`🌐 *Mini App Diagnostics*`);
         L.push(`1️⃣ *Configured URL:* \`${url}\``);
         L.push(`   Domain to whitelist: \`${domain}\``);
 
-        // Current menu button state
-        try {
-            const mb = await bot.getChatMenuButton();
-            const btn = (mb && (mb.menu_button || mb)) || {};
-            L.push(btn.type === "web_app"
-                ? `2️⃣ *Menu button:* ✅ web_app → ${(btn.web_app && (btn.web_app.url || btn.url)) || "?"}`
-                : `2️⃣ *Menu button:* ❌ type = "${btn.type || "none"}" — /autosetup se set karo`);
-        } catch (e) { L.push(`2️⃣ *Menu button:* read failed — ${e.description || e.message}`); }
-
-        // Try applying it live
+        // 2️⃣ Try applying the menu button live
         try {
             await bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } });
-            L.push(`3️⃣ *Apply menu button:* ✅ done`);
+            L.push(`2️⃣ *Apply menu button:* ✅ done`);
         } catch (e) {
             const err = String(e.description || e.message || "");
-            L.push(`3️⃣ *Apply menu button:* ❌ ${err.slice(0, 180)}`);
+            L.push(`2️⃣ *Apply menu button:* ❌ ${err.slice(0, 180)}`);
             if (/whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(err)) {
-                L.push(`   👉 YAHI PROBLEM HAI — @BotFather → /mybots → Bot Settings → *Domain* → \`${domain}\` daalo, phir /autosetup`);
+                L.push(`   👉 THIS IS THE PROBLEM — @BotFather → /mybots → Bot Settings → *Domain* → add \`${domain}\`, then run /autosetup`);
             }
         }
 
-        // Is the dashboard itself reachable over HTTPS?
+        // 3️⃣ Read back and verify what Telegram actually stored
+        // (Telegram can apply the change asynchronously, so retry briefly)
+        try {
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            let btn = null, readErr = null;
+            for (let i = 0; i < 4; i++) {
+                try {
+                    const mb = await bot.getChatMenuButton();
+                    btn = (mb && (mb.menu_button || mb)) || null;
+                    if (btn && btn.type === "web_app") break;
+                } catch (e) { readErr = e; }
+                if (i < 3) await sleep(1500);
+            }
+            if (btn && btn.type === "web_app") {
+                L.push(`3️⃣ *Verify:* ✅ web_app stored → ${(btn.web_app && (btn.web_app.url || btn.url)) || "?"}`);
+            } else {
+                L.push(readErr
+                    ? `3️⃣ *Verify:* read failed — ${readErr.description || readErr.message}`
+                    : `3️⃣ *Verify:* ❌ still type = "${(btn && btn.type) || "none"}" — Telegram did not keep web_app. Usually the domain is not allow-listed yet or the button was changed manually — add \`${domain}\` in @BotFather → /mybots → Bot Settings → *Domain*, then run /autosetup again`);
+            }
+        } catch (e) { L.push(`3️⃣ *Verify:* read failed — ${e.description || e.message}`); }
+
+        // 4️⃣ Is the dashboard itself reachable over HTTPS?
         L.push(`4️⃣ *Site reachable:* checking…`);
         const statusMsg = await send(L.join("\n"));
         try {
@@ -256,13 +269,13 @@ module.exports = (bot) => {
         } catch (e) {
             const why = (e && (e.name === "TimeoutError" || e.name === "AbortError")) ? "timeout (12s)" : (e.cause && e.cause.message) || e.message || String(e);
             L.push(`4️⃣ *Site reachable:* ❌ ${why}`);
-            L.push(`   👉 Railway URL up hai? Custom domain hai toh DNS/SSL check karo.`);
+            L.push(`   👉 Railway URL is up? If you use a custom domain, check DNS/SSL settings.`);
         }
 
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
         L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app` : "username unknown"}`);
-        L.push(`\n💡 Mini Apps sirf *Telegram app ke andar* khulte hain — browser/web me nahi.`);
+        L.push(`\n💡 Mini Apps only open inside the *Telegram app* — not in a browser/web.`);
         const finalText = L.join("\n");
         if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));
     });
