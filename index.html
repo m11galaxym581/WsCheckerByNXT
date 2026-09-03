@@ -6,11 +6,14 @@
 <title>WS CHECKER v6 — Professional Checker Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
 <link rel="manifest" href="/manifest.json"/>
+<link rel="icon" type="image/png" href="/assets/favicon-64.png"/>
+<link rel="apple-touch-icon" href="/assets/icon-180.png"/>
+<meta name="theme-color" content="#21c56a"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 /* ============================================================
    WS CHECKER v6 — Professional UI
-   Clean design system: tokens → base → layout → components.
+   Clean design system: tokens, base, layout, components.
    All legacy classes/ids are restyled here; JS is untouched.
    ============================================================ */
 
@@ -635,7 +638,7 @@ body.high-contrast { --border: #7c8a99; --text: #ffffff; --text2: #dde4ec; --bg:
 /* ============================================================
    WS CHECKER v6 — Hamburger drawer navigation (web + app)
    Replaces the permanent sidebar / mobile tab strip: the nav now
-   slides in from the left behind the ☰ button on every screen.
+   slides in from the left behind the menu button on every screen.
    ============================================================ */
 .btn-menu-btn { font-size: 18px; line-height: 1; }
 .logo { margin-left: 6px; }
@@ -722,13 +725,46 @@ body.nav-open { overflow: hidden; }
 }
 [dir="rtl"] #main-nav.nav-bar.open { transform: translateX(0); }
 [dir="rtl"] .shell { padding-left: 20px; padding-right: 20px; }
+
+/* ---- WS CHECKER v6 — icon system & app logo ---- */
+.ic{ width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:-0.13em; }
+.btn .ic{ width:15px;height:15px; }
+.btn-sm .ic,.btn.btn-sm .ic{ width:13px;height:13px; }
+.btn-icon .ic{ width:16px;height:16px; }
+.btn-icon.btn-sm .ic,.copy-mini .ic{ width:13px;height:13px; }
+.card-title .ic{ width:15px;height:15px; }
+.stat-label{ display:flex; align-items:center; gap:6px; }
+.stat-label .ic{ width:13px;height:13px; }
+.filter-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.filter-btn .ic{ width:13px;height:13px; }
+.lang-btn{ display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+.lang-code{ font-size:9px; font-weight:800; letter-spacing:.6px; padding:2px 5px; border-radius:5px; background:color-mix(in srgb,var(--text) 10%,transparent); border:1px solid var(--border); color:var(--text2); font-family:'JetBrains Mono',monospace; line-height:1.5; }
+.user-avatar .ic{ width:22px;height:22px; }
+#maintenance-screen .maint-icon .ic{ width:52px;height:52px; }
+.maint-icon{ line-height:0; }
+.toast{ display:flex; align-items:center; gap:9px; }
+.toast .ic{ width:15px;height:15px; }
+.toast.success .ic{ color:var(--accent); }
+.toast.error .ic{ color:var(--accent3); }
+.nav-item .ic{ width:16px;height:16px; }
+h3 .ic{ vertical-align:-0.16em; }
+.logo-icon.logo-img{ background:transparent; box-shadow:none; color:transparent; font-size:0; }
+.auth-logo{ width:62px; height:62px; border-radius:17px; display:block; margin:0 auto 16px; box-shadow:0 10px 28px rgba(0,0,0,.28); }
+#btn-notif{ position:relative; }
+#notif-badge{ position:absolute; top:-5px; right:-5px; min-width:15px; height:15px; padding:0 3px; border-radius:8px; background:var(--accent3); color:#fff; font-size:9px; font-weight:800; line-height:15px; text-align:center; }
+
+.list-item .ic{ width:13px;height:13px; }
+.copy-mini .ic{ margin:0; }
+.auth-box{ text-align:center; }
 </style>
 </head>
 <body>
 
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="display:none" aria-hidden="true"><symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></g></symbol><symbol id="i-x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></g></symbol><symbol id="i-chevl" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></g></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></g></symbol><symbol id="i-reload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></g></symbol><symbol id="i-trash" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></g></symbol><symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g></symbol><symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></g></symbol><symbol id="i-upload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></g></symbol><symbol id="i-folder" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></g></symbol><symbol id="i-file" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></g></symbol><symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></g></symbol><symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g></symbol><symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></g></symbol><symbol id="i-users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g></symbol><symbol id="i-user" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></g></symbol><symbol id="i-info" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></g></symbol><symbol id="i-chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g></symbol><symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></g></symbol><symbol id="i-chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></g></symbol><symbol id="i-activity" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></g></symbol><symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></g></symbol><symbol id="i-zap" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></g></symbol><symbol id="i-clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></g></symbol><symbol id="i-history" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></g></symbol><symbol id="i-server" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01"/><path d="M6 18h.01"/></g></symbol><symbol id="i-wifi" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></g></symbol><symbol id="i-plug" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8z"/></g></symbol><symbol id="i-list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></g></symbol><symbol id="i-book" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></g></symbol><symbol id="i-bookopen" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></g></symbol><symbol id="i-grid" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></g></symbol><symbol id="i-tag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><path d="M7 7h.01"/></g></symbol><symbol id="i-gift" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></g></symbol><symbol id="i-db" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></g></symbol><symbol id="i-card" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></g></symbol><symbol id="i-ban" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></g></symbol><symbol id="i-minus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></g></symbol><symbol id="i-flame" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></g></symbol><symbol id="i-gem" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></g></symbol><symbol id="i-crown" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l3.5 3.5L12 5l4.5 5.5L20 7l-1.6 9.2a2 2 0 0 1-2 1.8H7.6a2 2 0 0 1-2-1.8z"/></g></symbol><symbol id="i-check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g></symbol><symbol id="i-checkc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.3 2.4 2.4 4.9-5.2"/></g></symbol><symbol id="i-xc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></g></symbol><symbol id="i-alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></g></symbol><symbol id="i-bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></g></symbol><symbol id="i-image" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></g></symbol><symbol id="i-briefcase" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></g></symbol><symbol id="i-layers" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></g></symbol><symbol id="i-receipt" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></g></symbol><symbol id="i-help" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></g></symbol><symbol id="i-mega" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-7v16L3 13z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></g></symbol><symbol id="i-max" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></g></symbol><symbol id="i-cpu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 1v3"/><path d="M15 1v3"/><path d="M9 20v3"/><path d="M15 20v3"/><path d="M1 9h3"/><path d="M1 15h3"/><path d="M20 9h3"/><path d="M20 15h3"/></g></symbol><symbol id="i-save" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></g></symbol><symbol id="i-sparkle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.3 6.7L21 12l-6.7 2.3L12 21l-2.3-6.7L3 12l6.7-2.3z"/></g></symbol><symbol id="i-edit" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></g></symbol><symbol id="i-cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></g></symbol><symbol id="i-phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></g></symbol><symbol id="i-palette" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a10 10 0 1 1 10-10c0 2.2-1.8 4-4 4h-2.6a1.4 1.4 0 0 0-1 2.4c.6.6.5 1.6-.4 1.6z"/><path d="M7 12h.01"/><path d="M11 8h.01"/><path d="M15 8h.01"/></g></symbol><symbol id="i-volume" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></g></symbol><symbol id="i-keyboard" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></g></symbol><symbol id="i-gear" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></g></symbol><symbol id="i-tool" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></g></symbol><symbol id="i-home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></g></symbol><symbol id="i-dot" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="12" cy="12" r="6"/></g></symbol><symbol id="i-ring" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/></g></symbol><symbol id="i-key" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></g></symbol></svg>
+
 <!-- MAINTENANCE LOCK SCREEN -->
 <div id="maintenance-screen">
-    <div class="maint-icon">🚧</div>
+    <div class="maint-icon"><svg class="ic" aria-hidden="true"><use href="#i-tool" xlink:href="#i-tool"></use></svg> </div>
     <h1 data-i18n="maint_title">SYSTEM OFFLINE</h1>
     <p data-i18n="maint_desc">The engine is being upgraded.<br />Please hold tight.</p>
 </div>
@@ -748,12 +784,12 @@ body.nav-open { overflow: hidden; }
 <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()">
   <div class="modal">
     <div class="modal-title-row">
-      <h2 data-i18n="settings">Settings</h2>
-      <button class="btn-icon" onclick="closeSettings()" aria-label="Close">✕</button>
+      <h2 data-i18n="settings" data-ic="gear">Settings</h2>
+      <button class="btn-icon" onclick="closeSettings()" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x" xlink:href="#i-x"></use></svg> </button>
     </div>
 
     <div class="modal-section">
-      <h3 data-i18n="theme">Theme</h3>
+      <h3 data-i18n="theme" data-ic="palette">Theme</h3>
       <div class="theme-grid">
         <div class="theme-swatch active" style="background:linear-gradient(135deg,#0b0f14,#21c56a);color:#0b0f14;" onclick="setTheme('cyber')" data-theme-btn="cyber">DARK</div>
         <div class="theme-swatch" style="background:linear-gradient(135deg,#071019,#2aa8e8);color:#071019;" onclick="setTheme('ocean')" data-theme-btn="ocean">OCEAN</div>
@@ -764,33 +800,33 @@ body.nav-open { overflow: hidden; }
     </div>
 
     <div class="modal-section">
-      <h3 data-i18n="language">Language</h3>
+      <h3 data-i18n="language" data-ic="globe">Language</h3>
       <div class="lang-grid">
-        <div class="lang-btn active" onclick="setLang('en')" data-lang-btn="en">🇬🇧 English</div>
-        <div class="lang-btn" onclick="setLang('hi')" data-lang-btn="hi">🇮🇳 हिंदी</div>
-        <div class="lang-btn" onclick="setLang('ar')" data-lang-btn="ar">🇸🇦 العربية</div>
-        <div class="lang-btn" onclick="setLang('es')" data-lang-btn="es">🇪🇸 Español</div>
-        <div class="lang-btn" onclick="setLang('pt')" data-lang-btn="pt">🇧🇷 Português</div>
-        <div class="lang-btn" onclick="setLang('id')" data-lang-btn="id">🇮🇩 Indonesia</div>
+        <div class="lang-btn active" onclick="setLang('en')" data-lang-btn="en"><span class="lang-code">EN</span> English/div>
+        <div class="lang-btn" onclick="setLang('hi')" data-lang-btn="hi"><span class="lang-code">HI</span> हिंदी/div>
+        <div class="lang-btn" onclick="setLang('ar')" data-lang-btn="ar"><span class="lang-code">AR</span> العربية/div>
+        <div class="lang-btn" onclick="setLang('es')" data-lang-btn="es"><span class="lang-code">ES</span> Español/div>
+        <div class="lang-btn" onclick="setLang('pt')" data-lang-btn="pt"><span class="lang-code">PT</span> Português/div>
+        <div class="lang-btn" onclick="setLang('id')" data-lang-btn="id"><span class="lang-code">ID</span> Indonesia/div>
       </div>
     </div>
 
     <div class="modal-section">
-      <h3 data-i18n="preferences">Preferences</h3>
+      <h3 data-i18n="preferences" data-ic="zap">Preferences</h3>
       <div class="toggle-row">
-        <span class="toggle-label" data-i18n="sound_effects">Sound Effects</span>
+        <span class="toggle-label" data-i18n="sound_effects" data-ic="volume">Sound Effects</span>
         <div class="toggle-switch on" id="toggle-sound" onclick="togglePref('sound')"></div>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label" data-i18n="auto_refresh">Auto-Refresh Status</span>
+        <span class="toggle-label" data-i18n="auto_refresh" data-ic="refresh">Auto-Refresh Status</span>
         <div class="toggle-switch on" id="toggle-refresh" onclick="togglePref('refresh')"></div>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label" data-i18n="auto_sort">Auto-Sort by Country</span>
+        <span class="toggle-label" data-i18n="auto_sort" data-ic="chart">Auto-Sort by Country</span>
         <div class="toggle-switch on" id="toggle-sort" onclick="togglePref('sort')"></div>
       </div>
       <div class="toggle-row">
-        <span class="toggle-label" data-i18n="notifications_pref">Desktop Notifications</span>
+        <span class="toggle-label" data-i18n="notifications_pref" data-ic="bell">Desktop Notifications</span>
         <div class="toggle-switch" id="toggle-desknot" onclick="togglePref('desknot')"></div>
       </div>
       <div class="toggle-row"><span class="toggle-label">Completion Sound</span><div class="toggle-switch on" id="toggle-completeSound" onclick="togglePref('completeSound')"></div></div>
@@ -801,7 +837,7 @@ body.nav-open { overflow: hidden; }
     </div>
 
     <div class="modal-section">
-      <h3 data-i18n="keyboard_shortcuts">Keyboard Shortcuts</h3>
+      <h3 data-i18n="keyboard_shortcuts" data-ic="keyboard">Keyboard Shortcuts</h3>
       <ul class="shortcut-list">
         <li><span data-i18n="sc_settings">Open Settings</span> <span><span class="kbd">Ctrl</span> + <span class="kbd">,</span></span></li>
         <li><span data-i18n="sc_checker">Checker Tab</span> <span><span class="kbd">Alt</span> + <span class="kbd">1</span></span></li>
@@ -819,9 +855,9 @@ body.nav-open { overflow: hidden; }
 
   <!-- TOP BAR -->
   <header>
-    <button class="btn-icon btn-menu-btn" id="btn-menu" style="display:none;" onclick="toggleNav()" title="Menu (Ctrl+M)" aria-label="Open menu">☰</button>
+    <button class="btn-icon btn-menu-btn" id="btn-menu" style="display:none;" onclick="toggleNav()" title="Menu (Ctrl+M)" aria-label="Open menu"><svg class="ic" aria-hidden="true"><use href="#i-menu" xlink:href="#i-menu"></use></svg> </button>
     <div class="logo">
-      <div class="logo-icon">W</div>
+      <img class="logo-icon logo-img" src="/assets/logo.png" alt="WS CHECKER v6" width="40" height="40">
       <div>
         <div class="logo-text">WS <span>CHECKER</span></div>
         <div class="logo-sub">Checker Suite · V6</div>
@@ -831,10 +867,10 @@ body.nav-open { overflow: hidden; }
         <div id="live-clock" style="display:none;"></div>
         <div id="global-status" style="display:none;">Nodes: 0 | Jobs: 0</div>
         <button class="btn-icon" id="btn-notif" style="display:none;" onclick="toggleNotifs()" title="Notifications">
-            🔔 <span id="notif-badge" style="display:none;">0</span>
+            <svg class="ic" aria-hidden="true"><use href="#i-bell" xlink:href="#i-bell"></use></svg> <span id="notif-badge" style="display:none;">0</span>
         </button>
-        <button class="btn-icon" id="btn-settings" onclick="openSettings()" title="Settings (Ctrl+,)">⚙️</button>
-        <button class="btn-icon" id="btn-fullscreen" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+        <button class="btn-icon" id="btn-settings" onclick="openSettings()" title="Settings (Ctrl+,)"><svg class="ic" aria-hidden="true"><use href="#i-gear" xlink:href="#i-gear"></use></svg> </button>
+        <button class="btn-icon" id="btn-fullscreen" onclick="toggleFullscreen()" title="Fullscreen"><svg class="ic" aria-hidden="true"><use href="#i-max" xlink:href="#i-max"></use></svg> </button>
         <button class="btn btn-danger btn-sm" id="logout-btn" style="display:none;" onclick="logout()" data-i18n="logout">LOGOUT</button>
     </div>
   </header>
@@ -842,7 +878,7 @@ body.nav-open { overflow: hidden; }
   <!-- NOTIFICATION PANEL -->
   <div id="notif-dropdown">
       <div>
-          <b data-i18n="system_alerts">🔔 SYSTEM ALERTS</b>
+          <b data-i18n="system_alerts" data-ic="bell"> SYSTEM ALERTS</b>
           <span onclick="clearNotifs()" data-i18n="clear_all">Clear All</span>
       </div>
       <div id="notif-list" data-i18n="no_alerts">No new alerts.</div>
@@ -875,10 +911,11 @@ body.nav-open { overflow: hidden; }
   <div id="auth-panel" class="login-shell">
     <div class="auth-title" data-i18n="login_title">System <span>Login</span></div>
     <div class="auth-box">
+      <img class="auth-logo" src="/assets/logo.png" alt="WS CHECKER v6">
       <input type="number" id="inp-uid" data-i18n-placeholder="ph_uid" placeholder="Telegram User ID" />
       <input type="password" id="inp-pass" data-i18n-placeholder="ph_pass" placeholder="Web Password" />
-      <button class="btn btn-primary" onclick="login()" data-i18n="login_btn">Login</button>
-      <button class="btn btn-ghost" onclick="showLandingPage()">← Back</button>
+      <button class="btn btn-primary" onclick="login()" data-i18n="login_btn" data-ic="zap">Login</button>
+      <button class="btn btn-ghost" onclick="showLandingPage()"><svg class="ic" aria-hidden="true"><use href="#i-chevl" xlink:href="#i-chevl"></use></svg> Back</button>
     </div>
   </div>
 
@@ -892,7 +929,7 @@ body.nav-open { overflow: hidden; }
       <div class="feature-card"><b>Step 3</b>Return here and login with your Telegram ID + password.</div>
       <div class="feature-card" style="border-color:var(--accent);"><b>Opened from Telegram?</b> Just tap <b style="color:var(--text)">Open Web App</b> in the bot — you are logged in automatically. No password needed inside Telegram.</div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="showLoginPage()">I Have Password — Login</button>
-      <button class="btn btn-ghost" onclick="showLandingPage()">← Back</button>
+      <button class="btn btn-ghost" onclick="showLandingPage()"><svg class="ic" aria-hidden="true"><use href="#i-chevl" xlink:href="#i-chevl"></use></svg> Back</button>
     </div>
   </div>
 
@@ -900,17 +937,17 @@ body.nav-open { overflow: hidden; }
   <div id="nav-backdrop" onclick="closeNav()"></div>
   <div class="nav-bar" id="main-nav" style="display:none;">
     <div class="nav-drawer-brand">
-      <div class="logo-icon">W</div>
+      <img class="logo-icon logo-img" src="/assets/logo.png" alt="WS CHECKER v6" width="40" height="40">
       <div class="nav-drawer-title">WS <span>CHECKER</span><small>V6 · MENU</small></div>
-      <button class="btn-icon" onclick="closeNav()" title="Close menu" aria-label="Close menu">✕</button>
+      <button class="btn-icon" onclick="closeNav()" title="Close menu" aria-label="Close menu"><svg class="ic" aria-hidden="true"><use href="#i-x" xlink:href="#i-x"></use></svg> </button>
     </div>
     <div class="nav-head">Main</div>
     <button class="nav-item active" onclick="switchTab('tab-dashboard', this)">Dashboard</button>
-    <button class="nav-item" onclick="switchTab('tab-check', this)" data-i18n="nav_checker">Checker</button>
-    <button class="nav-item" onclick="switchTab('tab-history', this)" data-i18n="nav_history">History</button>
+    <button class="nav-item" onclick="switchTab('tab-check', this)" data-i18n="nav_checker" data-ic="search">Checker</button>
+    <button class="nav-item" onclick="switchTab('tab-history', this)" data-i18n="nav_history" data-ic="history">History</button>
     <button class="nav-item" onclick="switchTab('tab-jobs', this)">Jobs &amp; Queue</button>
     <div class="nav-head">Workspace</div>
-    <button class="nav-item" onclick="switchTab('tab-session', this)" data-i18n="nav_node">Sessions</button>
+    <button class="nav-item" onclick="switchTab('tab-session', this)" data-i18n="nav_node" data-ic="wifi">Sessions</button>
     <button class="nav-item" onclick="switchTab('tab-lists', this)">Saved Lists</button>
     <button class="nav-item" onclick="switchTab('tab-templates', this)">Templates</button>
     <button class="nav-item" onclick="switchTab('tab-files', this)">Files &amp; Share</button>
@@ -923,8 +960,8 @@ body.nav-open { overflow: hidden; }
     <button class="nav-item" onclick="switchTab('tab-status', this)">Status</button>
     <button class="nav-item" onclick="switchTab('tab-changelog', this)">Changelog</button>
     <div class="nav-head" id="nav-admin-head" style="display:none;">Admin</div>
-    <button class="nav-item" id="nav-support" style="display:none;" onclick="switchTab('tab-support', this)" data-i18n="nav_inbox">Inbox</button>
-    <button class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('tab-admin', this)" data-i18n="nav_admin">Console</button>
+    <button class="nav-item" id="nav-support" style="display:none;" onclick="switchTab('tab-support', this)" data-i18n="nav_inbox" data-ic="chat">Inbox</button>
+    <button class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('tab-admin', this)" data-i18n="nav_admin" data-ic="crown">Console</button>
     <button class="nav-item" id="nav-audit" style="display:none;" onclick="switchTab('tab-audit', this)">Audit Logs</button>
     <button class="nav-item" id="nav-vouchers" style="display:none;" onclick="switchTab('tab-vouchers', this)">Vouchers</button>
     <button class="nav-item" id="nav-proxies" style="display:none;" onclick="switchTab('tab-proxies', this)">Proxies</button>
@@ -939,7 +976,7 @@ body.nav-open { overflow: hidden; }
 
     <div id="tab-dashboard" class="tab-section active">
       <div class="card">
-        <div class="card-title"><span>Dashboard Home</span><button class="btn btn-ghost btn-sm" onclick="refreshDashboardHome()">↻ Refresh</button></div>
+        <div class="card-title"><span>Dashboard Home</span><button class="btn btn-ghost btn-sm" onclick="refreshDashboardHome()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg> Refresh</button></div>
         <div class="dash-card-grid">
           <div class="stat-box"><div class="stat-val" id="home-total">0</div><div class="stat-label">Total Checks</div></div>
           <div class="stat-box"><div class="stat-val" id="home-nodes">0</div><div class="stat-label">Active Nodes</div></div>
@@ -960,69 +997,69 @@ body.nav-open { overflow: hidden; }
       <div class="grid-2">
         <div>
            <div class="card">
-              <div class="card-title"><span data-i18n="terminal">TERMINAL CONSOLE</span> <button class="btn btn-ghost btn-sm" onclick="clearTerminal()" data-i18n="clear">🗑️ CLEAR</button></div>
-              <div id="bot-console" class="bot-console">╭━━━[ 🚀 𝗘𝗡𝗚𝗜𝗡𝗘 𝗜𝗗𝗟𝗘 ]━━━╮
-┣ 💡 Ready for targets.
-┣ 🛡️ Mode: Advanced Anti-Ban
-╰━━━━━━━━━━━━━━━━━━━━━━╯</div>
+              <div class="card-title"><span data-i18n="terminal">TERMINAL CONSOLE</span> <button class="btn btn-ghost btn-sm" onclick="clearTerminal()" data-i18n="clear" data-ic="trash"> CLEAR</button></div>
+              <div id="bot-console" class="bot-console">╭━━━[ ENGINE IDLE ]━━━╮
+┣ Ready for targets.
+┣ Mode: Advanced Anti-Ban
+╰━━━━━━━━━━━━━━━━━━━━━╯</div>
               <div class="ring-wrap">
                 <div class="ring-box"><svg class="progress-ring" viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="50"/><circle class="ring-fg" id="ring-fg" cx="60" cy="60" r="50"/></svg><div class="ring-text" id="ring-pct">0%</div></div>
-                <div style="font-family:'Space Mono';font-size:12px;color:var(--text2);line-height:1.9;"><div>⚡ Speed: <b id="speed-meter" style="color:var(--accent)">0/sec</b></div><div>⏱️ ETA: <b id="eta-meter" style="color:var(--accent2)">--</b></div><div>🔌 Nodes: <b id="node-meter" style="color:var(--accent-gold)">0</b></div><div>⚠️ Failed: <b id="failed-meter" style="color:var(--accent3)">0</b></div></div>
+                <div style="font-family:'Space Mono';font-size:12px;color:var(--text2);line-height:1.9;"><div><svg class="ic" aria-hidden="true"><use href="#i-zap" xlink:href="#i-zap"></use></svg> Speed: <b id="speed-meter" style="color:var(--accent)">0/sec</b></div><div><svg class="ic" aria-hidden="true"><use href="#i-clock" xlink:href="#i-clock"></use></svg> ETA: <b id="eta-meter" style="color:var(--accent2)">--</b></div><div><svg class="ic" aria-hidden="true"><use href="#i-plug" xlink:href="#i-plug"></use></svg> Nodes: <b id="node-meter" style="color:var(--accent-gold)">0</b></div><div><svg class="ic" aria-hidden="true"><use href="#i-alert" xlink:href="#i-alert"></use></svg> Failed: <b id="failed-meter" style="color:var(--accent3)">0</b></div></div>
               </div>
               <div style="display:flex; gap:10px; margin-top:15px;">
-                  <button class="btn btn-primary" id="btn-dl-csv" style="display:none; flex:1; background:var(--accent-gold); color:#000;" onclick="downloadRes('csv')">📊 CSV</button>
-                  <button class="btn btn-primary" id="btn-dl-txt" style="display:none; flex:1; background:var(--accent2); color:#000;" onclick="downloadRes('txt')">📥 TXT</button>
-                  <button class="btn btn-ghost" id="btn-copy-res" style="display:none; flex:0.5; border-color:var(--text);" onclick="copyResults()">📋</button>
+                  <button class="btn btn-primary" id="btn-dl-csv" style="display:none; flex:1; background:var(--accent-gold); color:#000;" onclick="downloadRes('csv')"><svg class="ic" aria-hidden="true"><use href="#i-chart" xlink:href="#i-chart"></use></svg> CSV</button>
+                  <button class="btn btn-primary" id="btn-dl-txt" style="display:none; flex:1; background:var(--accent2); color:#000;" onclick="downloadRes('txt')"><svg class="ic" aria-hidden="true"><use href="#i-download" xlink:href="#i-download"></use></svg> TXT</button>
+                  <button class="btn btn-ghost" id="btn-copy-res" style="display:none; flex:0.5; border-color:var(--text);" onclick="copyResults()"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> </button>
               </div>
            </div>
         </div>
         <div>
           <div class="card">
-            <div class="card-title"><span data-i18n="targets">📝 DRAG & DROP TARGETS</span> <span id="check-stats" style="color:var(--accent); font-weight:bold; font-size:14px;">0 / 0</span></div>
+            <div class="card-title"><span data-i18n="targets" data-ic="edit"> DRAG & DROP TARGETS</span> <span id="check-stats" style="color:var(--accent); font-weight:bold; font-size:14px;">0 / 0</span></div>
             <div style="margin-bottom:10px;">
                 <input type="file" id="file-uploader" style="display:none;" onchange="handleFile(this.files[0])" accept=".txt,.csv">
-                <button class="btn btn-ghost" style="width:100%; border-style:dashed;" onclick="document.getElementById('file-uploader').click()" data-i18n="upload_file">📁 UPLOAD .TXT / .CSV FILE</button>
+                <button class="btn btn-ghost" style="width:100%; border-style:dashed;" onclick="document.getElementById('file-uploader').click()" data-i18n="upload_file" data-ic="folder"> UPLOAD .TXT / .CSV FILE</button>
             </div>
             <div class="mini-toolbar">
-                <button class="btn btn-ghost btn-sm" onclick="cleanNumbersInput()">🧹 CLEAN DUPES</button>
-                <button class="btn btn-ghost btn-sm" onclick="copyInputNumbers()">📋 COPY INPUT</button>
+                <button class="btn btn-ghost btn-sm" onclick="cleanNumbersInput()"><svg class="ic" aria-hidden="true"><use href="#i-sparkle" xlink:href="#i-sparkle"></use></svg> CLEAN DUPES</button>
+                <button class="btn btn-ghost btn-sm" onclick="copyInputNumbers()"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> COPY INPUT</button>
                 <span id="num-preview" style="font-family:'Space Mono'; font-size:10px; color:var(--text2); margin-left:auto;">0 valid / 0 duplicate</span>
             </div>
             <textarea id="numbers-input" oninput="updateNumberPreview()" data-i18n-placeholder="ph_numbers" placeholder="Paste numbers here OR Drag & Drop a file inside this box..."></textarea>
             <div class="checker-actions">
-              <button class="btn btn-primary" id="check-btn" onclick="startCheck()" style="font-size:14px; letter-spacing:1px;" data-i18n="fire_engine">⚡ FIRE ENGINE</button>
-              <button class="btn btn-danger" onclick="cancelCheck()" data-i18n="abort">✕ ABORT</button>
+              <button class="btn btn-primary" id="check-btn" onclick="startCheck()" style="font-size:14px; letter-spacing:1px;" data-i18n="fire_engine" data-ic="zap"> FIRE ENGINE</button>
+              <button class="btn btn-danger" onclick="cancelCheck()" data-i18n="abort" data-ic="x"> ABORT</button>
             </div>
             <div class="mini-toolbar" style="margin-top:10px;">
               <select id="scan-speed" class="mini-input"><option value="safe">Safe</option><option value="balanced" selected>Balanced</option><option value="fast">Fast</option><option value="beast">Max</option></select>
               <label style="font-family:'Space Mono';font-size:11px;color:var(--text2);"><input type="checkbox" id="deep-scan" checked> Deep Scan</label>
-              <button class="btn btn-ghost btn-sm" onclick="retryFailedNumbers()">🔁 RETRY FAILED</button>
-              <button class="btn btn-ghost btn-sm" onclick="saveCurrentList()">💾 SAVE LIST</button>
+              <button class="btn btn-ghost btn-sm" onclick="retryFailedNumbers()"><svg class="ic" aria-hidden="true"><use href="#i-reload" xlink:href="#i-reload"></use></svg> RETRY FAILED</button>
+              <button class="btn btn-ghost btn-sm" onclick="saveCurrentList()"><svg class="ic" aria-hidden="true"><use href="#i-save" xlink:href="#i-save"></use></svg> SAVE LIST</button>
             </div>
             <div style="margin-top:25px;">
                 <div class="result-tabs">
                     <div class="result-tab-item">
-                        <button class="btn btn-ghost" onclick="showRes('reg')" style="border-color:var(--accent); color:var(--accent); font-size:13px;">✅ <span data-i18n="found">Found</span> (<span id="c-reg">0</span>)</button>
-                        <button class="btn-icon copy-mini" title="Copy found numbers" onclick="copySection('reg')">📋</button>
+                        <button class="btn btn-ghost" onclick="showRes('reg')" style="border-color:var(--accent); color:var(--accent); font-size:13px;"><svg class="ic" aria-hidden="true"><use href="#i-checkc" xlink:href="#i-checkc"></use></svg> <span data-i18n="found">Found</span> (<span id="c-reg">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy found numbers" onclick="copySection('reg')"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> </button>
                     </div>
                     <div class="result-tab-item">
-                        <button class="btn btn-ghost" onclick="showRes('unreg')" style="border-color:var(--accent3); color:var(--accent3); font-size:13px;">❌ <span data-i18n="unreg">Unreg</span> (<span id="c-unreg">0</span>)</button>
-                        <button class="btn-icon copy-mini" title="Copy unregistered numbers" onclick="copySection('unreg')">📋</button>
+                        <button class="btn btn-ghost" onclick="showRes('unreg')" style="border-color:var(--accent3); color:var(--accent3); font-size:13px;"><svg class="ic" aria-hidden="true"><use href="#i-xc" xlink:href="#i-xc"></use></svg> <span data-i18n="unreg">Unreg</span> (<span id="c-unreg">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy unregistered numbers" onclick="copySection('unreg')"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> </button>
                     </div>
                     <div class="result-tab-item">
-                        <button class="btn btn-ghost" onclick="showRes('failed')" style="border-color:var(--accent-gold); color:var(--accent-gold); font-size:13px;">⚠️ Failed (<span id="c-failed">0</span>)</button>
-                        <button class="btn-icon copy-mini" title="Copy failed/unknown numbers" onclick="copySection('failed')">📋</button>
+                        <button class="btn btn-ghost" onclick="showRes('failed')" style="border-color:var(--accent-gold); color:var(--accent-gold); font-size:13px;"><svg class="ic" aria-hidden="true"><use href="#i-alert" xlink:href="#i-alert"></use></svg> Failed (<span id="c-failed">0</span>)</button>
+                        <button class="btn-icon copy-mini" title="Copy failed/unknown numbers" onclick="copySection('failed')"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> </button>
                     </div>
                 </div>
                 <div class="mini-toolbar">
                     <input id="result-search" class="mini-input" placeholder="Search result number/bio..." oninput="showRes(currentResType)">
-                    <button class="btn btn-ghost btn-sm" onclick="copyResults()">📋 COPY CURRENT</button>
-                    <button class="btn btn-ghost btn-sm" onclick="copyAllResults()">📦 COPY ALL</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copyResults()"><svg class="ic" aria-hidden="true"><use href="#i-copy" xlink:href="#i-copy"></use></svg> COPY CURRENT</button>
+                    <button class="btn btn-ghost btn-sm" onclick="copyAllResults()"><svg class="ic" aria-hidden="true"><use href="#i-layers" xlink:href="#i-layers"></use></svg> COPY ALL</button>
                 </div>
                 <div style="display:flex; gap:8px; margin-bottom:10px;" id="filter-box">
                     <button class="filter-btn active" onclick="applyFilter('ALL', this)">ALL</button>
-                    <button class="filter-btn" onclick="applyFilter('BIZ', this)" data-i18n="biz_only">💼 BIZ ONLY</button>
-                    <button class="filter-btn" onclick="applyFilter('DP', this)" data-i18n="has_dp">🖼️ HAS DP</button>
+                    <button class="filter-btn" onclick="applyFilter('BIZ', this)" data-i18n="biz_only" data-ic="briefcase"> BIZ ONLY</button>
+                    <button class="filter-btn" onclick="applyFilter('DP', this)" data-i18n="has_dp" data-ic="image"> HAS DP</button>
                 </div>
                 <div class="result-list" id="result-list"><div style="text-align:center; color:var(--text2); margin-top:80px; opacity:0.5;" data-i18n="awaiting">Awaiting Targets...</div></div>
                 <div id="render-limit-msg" style="text-align:center; font-size:9px; color:var(--accent-gold); font-family:'Space Mono'; margin-top:5px; display:none;" data-i18n="render_limit">Display limited to Top 100. Download to view all.</div>
@@ -1035,7 +1072,7 @@ body.nav-open { overflow: hidden; }
     <!-- 2. HISTORY -->
     <div id="tab-history" class="tab-section">
       <div class="card" style="max-width:750px; margin:20px auto;">
-        <div class="card-title"><span data-i18n="recent_checks">📜 RECENT CHECKS</span> <button class="btn btn-ghost btn-sm" onclick="fetchHistory()">🔄</button></div>
+        <div class="card-title"><span data-i18n="recent_checks" data-ic="history"> RECENT CHECKS</span> <button class="btn btn-ghost btn-sm" onclick="fetchHistory()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div>
         <div id="history-list" style="margin-top:10px; max-height:500px; overflow-y:auto; color:var(--text2);"></div>
       </div>
     </div>
@@ -1043,10 +1080,10 @@ body.nav-open { overflow: hidden; }
     <!-- 3. SESSION / NODE PAIRING -->
     <div id="tab-session" class="tab-section">
       <div class="card" style="max-width:550px; margin:40px auto; text-align:center; padding:40px;">
-        <div class="card-title" style="justify-content:center; font-size:14px; margin-bottom:10px;"><span data-i18n="connect_node">📡 CONNECT PRIVATE NODE</span></div>
+        <div class="card-title" style="justify-content:center; font-size:14px; margin-bottom:10px;"><span data-i18n="connect_node" data-ic="wifi"> CONNECT PRIVATE NODE</span></div>
         <p style="font-size:12px; color:var(--text2); margin-bottom:30px; line-height:1.6; font-family:'Space Mono';" data-i18n="node_desc">Add your private WhatsApp node for Ultra-Fast load balancing.<br>Format: Digits only (e.g. 919876543210)</p>
         <input type="number" id="pair-phone" class="input-txt" data-i18n-placeholder="ph_phone" placeholder="Phone Number" style="text-align:center; font-size: 18px; letter-spacing:2px; height:55px;">
-        <button class="btn btn-primary" id="btn-pair" onclick="reqPairing()" style="height:50px; font-size:14px; letter-spacing:1px;" data-i18n="gen_pairing">📡 GENERATE PAIRING CODE</button>
+        <button class="btn btn-primary" id="btn-pair" onclick="reqPairing()" style="height:50px; font-size:14px; letter-spacing:1px;" data-i18n="gen_pairing" data-ic="wifi"> GENERATE PAIRING CODE</button>
         <div id="pair-result" style="display:none; margin-top:30px; font-size:40px; color:var(--accent-gold); font-family:'Space Mono'; font-weight:800; letter-spacing:8px; border:2px dashed var(--accent-gold); padding:25px; border-radius:15px; background:rgba(255, 215, 0, 0.05); text-shadow: 0 0 10px rgba(255,215,0,0.5);">XXXX-XXXX</div>
       </div>
     </div>
@@ -1054,9 +1091,9 @@ body.nav-open { overflow: hidden; }
     <!-- 4. PROFILE & API -->
     <div id="tab-profile" class="tab-section">
       <div class="card" style="max-width:650px; margin:20px auto;">
-        <div class="card-title"><span data-i18n="profile_title">👤 PROFILE & INTEGRATIONS</span></div>
+        <div class="card-title"><span data-i18n="profile_title" data-ic="user"> PROFILE & INTEGRATIONS</span></div>
         <div class="user-info">
-          <div class="user-avatar">⚡</div>
+          <div class="user-avatar"><svg class="ic" aria-hidden="true"><use href="#i-user" xlink:href="#i-user"></use></svg> </div>
           <div><div style="font-size: 20px; font-weight: 800;" id="prof-name">User</div><div style="font-family:'Space Mono'; font-size: 11px; color: var(--text2);" id="prof-id">ID: ---</div></div>
           <div style="margin-left:auto; text-align:right;">
              <span class="badge-pro" id="prof-badge">FREE TIER</span>
@@ -1064,18 +1101,18 @@ body.nav-open { overflow: hidden; }
           </div>
         </div>
         <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
-            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="buyPrem()" data-i18n="upgrade_tier">💎 UPGRADE TIER</button>
-            <button class="btn btn-danger" style="flex:1; min-width:140px;" onclick="cmdReset()" data-i18n="reset_engine">🔄 RESET ENGINE</button>
+            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="buyPrem()" data-i18n="upgrade_tier" data-ic="gem"> UPGRADE TIER</button>
+            <button class="btn btn-danger" style="flex:1; min-width:140px;" onclick="cmdReset()" data-i18n="reset_engine" data-ic="reload"> RESET ENGINE</button>
         </div>
         <div style="border-top:1px solid var(--border); padding-top:25px;">
-            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="api_key_title">🔌 REST API KEY (PRO/VIP)</b>
+            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="api_key_title" data-ic="plug"> REST API KEY (PRO/VIP)</b>
             <p style="font-size:11px; color:var(--text2); margin:8px 0; font-family:'Space Mono';" data-i18n="api_key_desc">Embed the WS CHECKER engine into your own software.</p>
             <div id="api-key-box" style="font-family:'Space Mono'; font-size:14px; color:var(--accent-gold); background:#000; padding:15px; border-radius:8px; margin:15px 0; border:1px solid var(--border); text-align:center; letter-spacing:1px; word-break:break-all;">Hidden.</div>
-            <select id="api-expiry" class="mini-input" style="margin-bottom:10px"><option value="never">Never expires</option><option value="7">Expires in 7 days</option><option value="30">Expires in 30 days</option></select><button class="btn btn-ghost btn-sm" style="width:100%; border-color:var(--border);" onclick="generateAPI()" data-i18n="gen_api_key">🔄 GENERATE NEW API KEY</button>
+            <select id="api-expiry" class="mini-input" style="margin-bottom:10px"><option value="never">Never expires</option><option value="7">Expires in 7 days</option><option value="30">Expires in 30 days</option></select><button class="btn btn-ghost btn-sm" style="width:100%; border-color:var(--border);" onclick="generateAPI()" data-i18n="gen_api_key" data-ic="reload"> GENERATE NEW API KEY</button>
             <div id="api-usage-box" style="font-family:'Space Mono';font-size:11px;color:var(--text2);margin-top:14px;line-height:1.7;">API usage loading...</div>
         </div>
         <div style="border-top:1px solid var(--border); padding-top:25px; margin-top:25px;">
-            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="webhook_title">🔗 WEBHOOK URL (PRO/VIP)</b>
+            <b style="font-family:'Space Mono'; font-size:13px; color:var(--accent2);" data-i18n="webhook_title" data-ic="link"> WEBHOOK URL (PRO/VIP)</b>
             <p style="font-size:11px; color:var(--text2); margin:8px 0 15px; font-family:'Space Mono';" data-i18n="webhook_desc">Get JSON payload on your server when a scan finishes.</p>
             <div style="display:flex; gap:10px;">
                 <input type="text" id="webhook-input" class="input-txt" placeholder="https://your-domain.com/api/receive" style="margin:0;">
@@ -1088,37 +1125,37 @@ body.nav-open { overflow: hidden; }
     <!-- 5. SYS INFO -->
     <div id="tab-sysinfo" class="tab-section">
       <div class="card" style="max-width:700px; margin:20px auto;">
-        <div class="card-title"><span data-i18n="sysinfo_title">ℹ️ SYSTEM INFORMATION</span></div>
+        <div class="card-title"><span data-i18n="sysinfo_title" data-ic="info"> SYSTEM INFORMATION</span></div>
         <div id="sys-info-text" style="font-family: 'Space Mono', monospace; font-size:13px; line-height:1.8; color:var(--accent2); background:#000; padding:25px; border-radius:12px; white-space: pre-wrap; border:1px solid var(--border); box-shadow:inset 0 0 20px rgba(0,204,255,0.05);" data-i18n="fetching">Fetching...</div>
       </div>
     </div>
 
 
     <div id="tab-jobs" class="tab-section">
-      <div class="card"><div class="card-title">🧾 JOBS / QUEUE CENTER <button class="btn btn-ghost btn-sm" onclick="fetchJobs()">🔄</button></div><div id="jobs-list" class="pro-list">Loading...</div></div>
+      <div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-receipt" xlink:href="#i-receipt"></use></svg> JOBS / QUEUE CENTER <button class="btn btn-ghost btn-sm" onclick="fetchJobs()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="jobs-list" class="pro-list">Loading...</div></div>
     </div>
 
     <div id="tab-lists" class="tab-section">
-      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent);font-family:'Syne'">📚 Create Number List</h3><input id="list-name" class="mini-input" placeholder="List name"><textarea id="list-desc" placeholder="Description / notes" style="min-height:80px"></textarea><button class="btn btn-primary" onclick="saveCurrentList()">💾 SAVE CURRENT CHECKER INPUT</button><button class="btn btn-ghost" style="margin-top:10px" onclick="cleanNumbersInput();switchTab('tab-check')">🧹 Clean Input First</button></div><div class="card"><div class="card-title">Saved Lists <button class="btn btn-ghost btn-sm" onclick="fetchLists()">🔄</button></div><div id="lists-box" class="pro-list"></div></div></div>
+      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent);font-family:'Syne'"><svg class="ic" aria-hidden="true"><use href="#i-book" xlink:href="#i-book"></use></svg> Create Number List</h3><input id="list-name" class="mini-input" placeholder="List name"><textarea id="list-desc" placeholder="Description / notes" style="min-height:80px"></textarea><button class="btn btn-primary" onclick="saveCurrentList()"><svg class="ic" aria-hidden="true"><use href="#i-save" xlink:href="#i-save"></use></svg> SAVE CURRENT CHECKER INPUT</button><button class="btn btn-ghost" style="margin-top:10px" onclick="cleanNumbersInput();switchTab('tab-check')"> Clean Input First</button></div><div class="card"><div class="card-title">Saved Lists <button class="btn btn-ghost btn-sm" onclick="fetchLists()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="lists-box" class="pro-list"></div></div></div>
     </div>
 
     <div id="tab-templates" class="tab-section">
-      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent2);font-family:'Syne'">🧩 New Scan Template</h3><input id="tpl-name" class="mini-input" placeholder="Template name"><select id="tpl-speed" class="mini-input"><option value="safe">Safe</option><option value="balanced" selected>Balanced</option><option value="fast">Fast</option><option value="beast">Max</option></select><label style="font-family:'Space Mono';font-size:12px"><input type="checkbox" id="tpl-deep" checked> Deep scan</label><button class="btn btn-primary" style="margin-top:12px" onclick="saveTemplate()">SAVE TEMPLATE</button></div><div class="card"><div class="card-title">Templates <button class="btn btn-ghost btn-sm" onclick="fetchTemplates()">🔄</button></div><div id="templates-box" class="pro-list"></div></div></div>
+      <div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent2);font-family:'Syne'"><svg class="ic" aria-hidden="true"><use href="#i-grid" xlink:href="#i-grid"></use></svg> New Scan Template</h3><input id="tpl-name" class="mini-input" placeholder="Template name"><select id="tpl-speed" class="mini-input"><option value="safe">Safe</option><option value="balanced" selected>Balanced</option><option value="fast">Fast</option><option value="beast">Max</option></select><label style="font-family:'Space Mono';font-size:12px"><input type="checkbox" id="tpl-deep" checked> Deep scan</label><button class="btn btn-primary" style="margin-top:12px" onclick="saveTemplate()">SAVE TEMPLATE</button></div><div class="card"><div class="card-title">Templates <button class="btn btn-ghost btn-sm" onclick="fetchTemplates()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="templates-box" class="pro-list"></div></div></div>
     </div>
 
-    <div id="tab-files" class="tab-section"><div class="card"><div class="card-title">📁 FILE MANAGER / SHARE</div><p style="color:var(--text2);font-family:'Space Mono'">Create temporary result share links and view saved file records.</p><button class="btn btn-primary btn-sm" onclick="shareCurrentResults()">🔗 SHARE CURRENT RESULTS</button><div id="share-box" style="margin-top:12px;font-family:'Space Mono';color:var(--accent2)"></div><div id="files-box" class="pro-list" style="margin-top:18px"></div></div></div>
+    <div id="tab-files" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-folder" xlink:href="#i-folder"></use></svg> FILE MANAGER / SHARE</div><p style="color:var(--text2);font-family:'Space Mono'">Create temporary result share links and view saved file records.</p><button class="btn btn-primary btn-sm" onclick="shareCurrentResults()"><svg class="ic" aria-hidden="true"><use href="#i-link" xlink:href="#i-link"></use></svg> SHARE CURRENT RESULTS</button><div id="share-box" style="margin-top:12px;font-family:'Space Mono';color:var(--accent2)"></div><div id="files-box" class="pro-list" style="margin-top:18px"></div></div></div>
 
-    <div id="tab-forcejoin" class="tab-section"><div class="card"><div class="card-title">🔒 FORCE JOIN SETTINGS</div><div class="mini-toolbar"><select id="fj-enabled" class="mini-input"><option value="false">Disabled</option><option value="true">Enabled</option></select><button class="btn btn-primary btn-sm" onclick="saveForceJoinSettings()">SAVE</button></div><textarea id="fj-channels" placeholder='One per line: title|@channel|https://t.me/channel' style="min-height:150px"></textarea><div id="forcejoin-box" class="pro-list"></div></div></div>
+    <div id="tab-forcejoin" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-lock" xlink:href="#i-lock"></use></svg> FORCE JOIN SETTINGS</div><div class="mini-toolbar"><select id="fj-enabled" class="mini-input"><option value="false">Disabled</option><option value="true">Enabled</option></select><button class="btn btn-primary btn-sm" onclick="saveForceJoinSettings()">SAVE</button></div><textarea id="fj-channels" placeholder='One per line: title|@channel|https://t.me/channel' style="min-height:150px"></textarea><div id="forcejoin-box" class="pro-list"></div></div></div>
 
-    <div id="tab-proxies" class="tab-section"><div class="card"><div class="card-title">🛡️ RESIDENTIAL PROXY POOL <button class="btn btn-ghost btn-sm" onclick="fetchProxies()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="toggleProxyPool(true)">ENABLE</button><button class="btn btn-danger btn-sm" onclick="toggleProxyPool(false)">DISABLE</button><button class="btn btn-ghost btn-sm" onclick="reloadProxies()">RELOAD</button></div><div id="proxy-summary" style="font-family:'Space Mono';font-size:12px;color:var(--accent2);margin-bottom:12px"></div><div id="proxy-list" class="pro-list">Loading proxies...</div></div></div>
+    <div id="tab-proxies" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-shield" xlink:href="#i-shield"></use></svg> RESIDENTIAL PROXY POOL <button class="btn btn-ghost btn-sm" onclick="fetchProxies()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="toggleProxyPool(true)">ENABLE</button><button class="btn btn-danger btn-sm" onclick="toggleProxyPool(false)">DISABLE</button><button class="btn btn-ghost btn-sm" onclick="reloadProxies()">RELOAD</button></div><div id="proxy-summary" style="font-family:'Space Mono';font-size:12px;color:var(--accent2);margin-bottom:12px"></div><div id="proxy-list" class="pro-list">Loading proxies...</div></div></div>
 
-    <div id="tab-webhook-logs" class="tab-section"><div class="card"><div class="card-title">🔗 WEBHOOK LOGS <button class="btn btn-ghost btn-sm" onclick="fetchWebhookLogs()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="testWebhook()">SEND TEST WEBHOOK</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-profile')">Webhook Settings</button></div><div id="webhook-logs-box" class="pro-list">No logs yet.</div></div></div>
+    <div id="tab-webhook-logs" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-link" xlink:href="#i-link"></use></svg> WEBHOOK LOGS <button class="btn btn-ghost btn-sm" onclick="fetchWebhookLogs()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="testWebhook()">SEND TEST WEBHOOK</button><button class="btn btn-ghost btn-sm" onclick="switchTab('tab-profile')">Webhook Settings</button></div><div id="webhook-logs-box" class="pro-list">No logs yet.</div></div></div>
 
-    <div id="tab-audit" class="tab-section"><div class="card"><div class="card-title">🛡️ ADMIN AUDIT LOGS <button class="btn btn-ghost btn-sm" onclick="fetchAuditLogsFull()">🔄</button></div><input id="audit-search" class="mini-input" placeholder="Search audit logs..." oninput="renderAuditLogs()"><div id="audit-full-box" class="pro-list"></div></div></div>
-    <div id="tab-vouchers" class="tab-section"><div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent-gold);font-family:'Syne'">🎁 Generate Voucher</h3><select id="vm-type" class="mini-input"><option value="PRO">PRO</option><option value="VIP">VIP</option></select><input id="vm-days" class="mini-input" type="number" value="30" placeholder="Days"><input id="vm-count" class="mini-input" type="number" value="1" placeholder="Uses"><input id="vm-bulk" class="mini-input" type="number" value="1" placeholder="Bulk count"><input id="vm-expiry" class="mini-input" type="date" placeholder="Expiry"><button class="btn btn-gold" onclick="genVoucherManager()">GENERATE</button><button class="btn btn-ghost btn-sm" onclick="exportVouchersCSV()">EXPORT CSV</button><div id="vm-result" style="margin-top:12px;color:var(--accent-gold);font-family:'Space Mono'"></div></div><div class="card"><div class="card-title">Voucher Manager <button class="btn btn-ghost btn-sm" onclick="fetchVoucherManager()">🔄</button></div><div id="voucher-manager-box" class="pro-list"></div></div></div></div>
-    <div id="tab-branding" class="tab-section"><div class="card"><div class="card-title">🏷️ OWNER WHITE-LABEL BRANDING</div><div class="mini-toolbar"><input id="brand-app" class="mini-input" placeholder="App name"><input id="brand-powered" class="mini-input" placeholder="Powered by"><input id="brand-support" class="mini-input" placeholder="Support username"><input id="brand-domain" class="mini-input" placeholder="Custom domain"><input id="brand-footer" class="mini-input" placeholder="Footer text"><input id="brand-primary" class="mini-input" placeholder="Primary color #00ff88"><input id="brand-logo-file" type="file" accept="image/*" onchange="loadBrandLogo(this.files[0])"><button class="btn btn-primary btn-sm" onclick="saveBranding()">SAVE BRANDING</button></div><div id="brand-logo-preview" style="margin:10px 0"></div><div id="branding-box" class="pro-list"></div></div></div>
+    <div id="tab-audit" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-shield" xlink:href="#i-shield"></use></svg> ADMIN AUDIT LOGS <button class="btn btn-ghost btn-sm" onclick="fetchAuditLogsFull()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><input id="audit-search" class="mini-input" placeholder="Search audit logs..." oninput="renderAuditLogs()"><div id="audit-full-box" class="pro-list"></div></div></div>
+    <div id="tab-vouchers" class="tab-section"><div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent-gold);font-family:'Syne'"><svg class="ic" aria-hidden="true"><use href="#i-gift" xlink:href="#i-gift"></use></svg> Generate Voucher</h3><select id="vm-type" class="mini-input"><option value="PRO">PRO</option><option value="VIP">VIP</option></select><input id="vm-days" class="mini-input" type="number" value="30" placeholder="Days"><input id="vm-count" class="mini-input" type="number" value="1" placeholder="Uses"><input id="vm-bulk" class="mini-input" type="number" value="1" placeholder="Bulk count"><input id="vm-expiry" class="mini-input" type="date" placeholder="Expiry"><button class="btn btn-gold" onclick="genVoucherManager()">GENERATE</button><button class="btn btn-ghost btn-sm" onclick="exportVouchersCSV()">EXPORT CSV</button><div id="vm-result" style="margin-top:12px;color:var(--accent-gold);font-family:'Space Mono'"></div></div><div class="card"><div class="card-title">Voucher Manager <button class="btn btn-ghost btn-sm" onclick="fetchVoucherManager()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="voucher-manager-box" class="pro-list"></div></div></div></div>
+    <div id="tab-branding" class="tab-section"><div class="card"><div class="card-title"> OWNER WHITE-LABEL BRANDING</div><div class="mini-toolbar"><input id="brand-app" class="mini-input" placeholder="App name"><input id="brand-powered" class="mini-input" placeholder="Powered by"><input id="brand-support" class="mini-input" placeholder="Support username"><input id="brand-domain" class="mini-input" placeholder="Custom domain"><input id="brand-footer" class="mini-input" placeholder="Footer text"><input id="brand-primary" class="mini-input" placeholder="Primary color #00ff88"><input id="brand-logo-file" type="file" accept="image/*" onchange="loadBrandLogo(this.files[0])"><button class="btn btn-primary btn-sm" onclick="saveBranding()">SAVE BRANDING</button></div><div id="brand-logo-preview" style="margin:10px 0"></div><div id="branding-box" class="pro-list"></div></div></div>
 
-    <div id="tab-docs" class="tab-section"><div class="card"><div class="card-title">📘 INTERACTIVE API DOCS</div><div class="mini-toolbar"><input id="docs-api-key" class="mini-input" placeholder="API Key"><input id="docs-number" class="mini-input" placeholder="Number e.g. 919999999999"><button class="btn btn-primary btn-sm" onclick="tryApiDocs()">TRY REQUEST</button></div><div class="grid-2"><pre class="bot-console" id="docs-code">curl "${location.origin}/api/v1/check?key=API_KEY&number=919999999999"
+    <div id="tab-docs" class="tab-section"><div class="card"><div class="card-title"> INTERACTIVE API DOCS</div><div class="mini-toolbar"><input id="docs-api-key" class="mini-input" placeholder="API Key"><input id="docs-number" class="mini-input" placeholder="Number e.g. 919999999999"><button class="btn btn-primary btn-sm" onclick="tryApiDocs()">TRY REQUEST</button></div><div class="grid-2"><pre class="bot-console" id="docs-code">curl "${location.origin}/api/v1/check?key=API_KEY&number=919999999999"
 
 Node.js:
 fetch('/api/v1/check?key=API_KEY&number=919999999999')
@@ -1130,20 +1167,20 @@ PHP:
 file_get_contents('/api/v1/check?key=API_KEY&number=919999999999')</pre><pre class="bot-console" id="docs-response">Response will appear here...</pre></div><h3 style="font-family:'Space Mono';color:var(--accent2)">Batch API</h3><pre class="bot-console">POST /api/v1/batch-check
 { "key":"API_KEY", "numbers":["919999999999"] }</pre></div></div>
 
-    <div id="tab-settings" class="tab-section"><div class="card"><div class="card-title">⚙️ SETTINGS</div><p style="color:var(--text2);font-family:'Space Mono'">Open the full settings modal for theme, compact/mobile mode, sounds and notifications.</p><button class="btn btn-primary" onclick="openSettings()">OPEN SETTINGS</button><div id="device-list" style="margin-top:20px;font-family:'Space Mono';font-size:11px;color:var(--text2)"></div><button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="logoutAllDevices()">Logout All Devices</button></div></div>
+    <div id="tab-settings" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-gear" xlink:href="#i-gear"></use></svg> SETTINGS</div><p style="color:var(--text2);font-family:'Space Mono'">Open the full settings modal for theme, compact/mobile mode, sounds and notifications.</p><button class="btn btn-primary" onclick="openSettings()">OPEN SETTINGS</button><div id="device-list" style="margin-top:20px;font-family:'Space Mono';font-size:11px;color:var(--text2)"></div><button class="btn btn-danger btn-sm" style="margin-top:10px" onclick="logoutAllDevices()">Logout All Devices</button></div></div>
 
-    <div id="tab-security" class="tab-section"><div class="card"><div class="card-title">🔐 SECURITY CENTER <button class="btn btn-ghost btn-sm" onclick="fetchSecurityCenter()">🔄</button></div><div class="mini-toolbar"><button class="btn btn-gold btn-sm" onclick="encryptedBackup()">Encrypted Backup</button><button class="btn btn-ghost btn-sm" onclick="saveFeatureFlags()">Save Feature Flags</button></div><div id="security-box" class="pro-list"></div></div></div>
-    <div id="tab-help" class="tab-section"><div class="card"><div class="card-title">❓ HELP CENTER</div><div class="bot-console">1. Generate web password from bot.
+    <div id="tab-security" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-lock" xlink:href="#i-lock"></use></svg> SECURITY CENTER <button class="btn btn-ghost btn-sm" onclick="fetchSecurityCenter()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div class="mini-toolbar"><button class="btn btn-gold btn-sm" onclick="encryptedBackup()">Encrypted Backup</button><button class="btn btn-ghost btn-sm" onclick="saveFeatureFlags()">Save Feature Flags</button></div><div id="security-box" class="pro-list"></div></div></div>
+    <div id="tab-help" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-help" xlink:href="#i-help"></use></svg> HELP CENTER</div><div class="bot-console">1. Generate web password from bot.
 2. Add WhatsApp node in Sessions.
 3. Paste numbers in Checker.
 4. Choose speed/deep scan.
 5. Download CSV/TXT results.
 
 Proxy help: create proxies.txt and enable from /proxies.</div></div></div>
-    <div id="tab-status" class="tab-section"><div class="card"><div class="card-title">📡 PUBLIC STATUS <button class="btn btn-ghost btn-sm" onclick="fetchPublicStatus()">🔄</button></div><div id="status-box" class="pro-list"></div></div></div>
-    <div id="tab-changelog" class="tab-section"><div class="card"><div class="card-title">📝 CHANGELOG</div><div class="bot-console">v6.0.0 — full UI redesign (professional theme), button colors, force-join engine, isolated auto-login.
+    <div id="tab-status" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-wifi" xlink:href="#i-wifi"></use></svg> PUBLIC STATUS <button class="btn btn-ghost btn-sm" onclick="fetchPublicStatus()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="status-box" class="pro-list"></div></div></div>
+    <div id="tab-changelog" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-edit" xlink:href="#i-edit"></use></svg> CHANGELOG</div><div class="bot-console">v6.0.0 — full UI redesign (professional theme), button colors, force-join engine, isolated auto-login.
 
-v5.01.49
+Legacy v5 carried forward:
 - Proxy pool
 - Queue/jobs
 - Saved lists
@@ -1157,11 +1194,11 @@ v5.01.49
     <div id="tab-support" class="tab-section">
       <div class="grid-2">
           <div class="card" style="padding:0;">
-              <div class="card-title" style="padding:20px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="user_inbox">👥 USER INBOX</span> <button class="btn btn-ghost btn-sm" onclick="fetchChats()">🔄</button></div>
+              <div class="card-title" style="padding:20px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="user_inbox" data-ic="users"> USER INBOX</span> <button class="btn btn-ghost btn-sm" onclick="fetchChats()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div>
               <div id="chat-user-list" style="height:400px; overflow-y:auto; font-family:'Space Mono'; font-size:11px;" data-i18n="loading_chats">Loading chats...</div>
           </div>
           <div class="card" style="padding:0;">
-              <div class="card-title" style="padding:20px 20px 10px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="chat_panel">💬 CHAT PANEL</span> <span id="chat-active-user" style="color:var(--accent2); text-transform:none;" data-i18n="select_user">Select a user</span></div>
+              <div class="card-title" style="padding:20px 20px 10px; margin:0; border-bottom:1px solid var(--border);"><span data-i18n="chat_panel" data-ic="chat"> CHAT PANEL</span> <span id="chat-active-user" style="color:var(--accent2); text-transform:none;" data-i18n="select_user">Select a user</span></div>
               <div class="chat-container">
                   <div class="chat-box" id="chat-box"><div style="text-align:center; color:var(--text2); margin-top:150px; font-family:'Space Mono'; opacity:0.5;" data-i18n="select_convo">Select a conversation to start.</div></div>
                   <div class="chat-input-area">
@@ -1177,7 +1214,7 @@ v5.01.49
     <div id="tab-admin" class="tab-section">
       <div class="grid-2" style="margin-bottom:20px;">
           <div class="card" style="border-color:var(--accent3); background:rgba(255,51,102,0.02);">
-              <div class="card-title" style="margin-bottom:10px; border:none; padding:0;"><span data-i18n="broadcast">📢 GLOBAL BROADCAST</span></div>
+              <div class="card-title" style="margin-bottom:10px; border:none; padding:0;"><span data-i18n="broadcast" data-ic="mega"> GLOBAL BROADCAST</span></div>
               <div style="display:flex; gap:10px;">
                   <input type="text" id="broadcast-msg" class="input-txt" data-i18n-placeholder="ph_broadcast" placeholder="Type broadcast message..." style="margin:0; flex:1;">
                   <button class="btn btn-danger" style="margin:0; width:100px; background:var(--accent3); color:#fff;" onclick="sendBroadcast()" data-i18n="send">SEND</button>
@@ -1185,20 +1222,20 @@ v5.01.49
           </div>
           <div class="card" style="display:flex; flex-direction:column; justify-content:center; gap:15px; padding:15px 24px;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <div><b style="color:var(--accent-gold); font-size:13px;" data-i18n="lockdown">🚧 LOCKDOWN MODE</b></div>
+                  <div><b style="color:var(--accent-gold); font-size:13px;" data-i18n="lockdown" data-ic="tool"> LOCKDOWN MODE</b></div>
                   <button class="btn btn-danger btn-sm" id="btn-maint" onclick="toggleMaint()" data-i18n="enable">ENABLE</button>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <div><b style="color:var(--accent2); font-size:13px;" data-i18n="warmup">🛡️ ANTI-BAN WARMUP</b></div>
+                  <div><b style="color:var(--accent2); font-size:13px;" data-i18n="warmup" data-ic="shield"> ANTI-BAN WARMUP</b></div>
                   <button class="btn btn-primary btn-sm" style="background:var(--accent2); color:#000;" onclick="warmupNodes()" data-i18n="ping_nodes">PING NODES</button>
               </div>
               <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <div style="flex:1; min-width:180px;"><b style="color:var(--accent); font-size:13px;">⚙️ AUTO-SETUP (server-side)</b><br><span id="autosetup-status" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">menu button + commands + name — automatic</span></div>
+                  <div style="flex:1; min-width:180px;"><b style="color:var(--accent); font-size:13px;"><svg class="ic" aria-hidden="true"><use href="#i-gear" xlink:href="#i-gear"></use></svg> AUTO-SETUP (server-side)</b><br><span id="autosetup-status" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">menu button + commands + name — automatic</span></div>
                   <button class="btn btn-gold btn-sm" onclick="autoSetupRun()">RUN SETUP</button>
               </div>
               <div id="owner-mode-card" style="display:none; border-top:1px solid var(--border); padding-top:12px;">
                   <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-                      <div><b style="color:var(--accent-gold); font-size:13px;">🌐 SYSTEM MODE</b><br><span id="current-mode" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">Loading...</span></div>
+                      <div><b style="color:var(--accent-gold); font-size:13px;"><svg class="ic" aria-hidden="true"><use href="#i-globe" xlink:href="#i-globe"></use></svg> SYSTEM MODE</b><br><span id="current-mode" style="font-size:10px; color:var(--text2); font-family:'Space Mono';">Loading...</span></div>
                       <select id="system-mode-select" class="input-txt" style="margin:0; width:190px;"><option value="free">FREE MODE</option><option value="subscription">SUBSCRIPTION MODE</option></select>
                       <button class="btn btn-gold btn-sm" onclick="setSystemMode()">SAVE MODE</button>
                   </div>
@@ -1207,31 +1244,31 @@ v5.01.49
       </div>
 
       <div class="card" style="margin-bottom:24px;">
-          <div class="card-title"><span data-i18n="live_metrics">📊 LIVE ENGINE METRICS</span> <button class="btn btn-ghost btn-sm" onclick="fetchAdminStats()">🔄</button></div>
+          <div class="card-title"><span data-i18n="live_metrics" data-ic="chart"> LIVE ENGINE METRICS</span> <button class="btn btn-ghost btn-sm" onclick="fetchAdminStats()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div>
           <div class="stats-grid">
-              <div class="stat-box"><div class="stat-val" style="color:var(--accent);" id="st-users">0</div><div class="stat-label">👥 USERS</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:var(--accent-gold);" id="st-vip">0</div><div class="stat-label">🔥 VIP</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:#00ccff;" id="st-pro">0</div><div class="stat-label">💎 PRO</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:var(--text);" id="st-jobs">0</div><div class="stat-label">⚙️ ACTIVE JOBS</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:var(--accent3);" id="st-ban">0</div><div class="stat-label">🚫 BANNED</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:#b266ff;" id="st-ram">0.0</div><div class="stat-label">⚡ RAM (MB)</div></div>
-              <div class="stat-box"><div class="stat-val" style="color:var(--accent2); font-size:16px;" id="st-mode">SUB</div><div class="stat-label">🌐 MODE</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent);" id="st-users">0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-users" xlink:href="#i-users"></use></svg> USERS</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent-gold);" id="st-vip">0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-flame" xlink:href="#i-flame"></use></svg> VIP</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:#00ccff;" id="st-pro">0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-gem" xlink:href="#i-gem"></use></svg> PRO</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--text);" id="st-jobs">0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-gear" xlink:href="#i-gear"></use></svg> ACTIVE JOBS</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent3);" id="st-ban">0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-ban" xlink:href="#i-ban"></use></svg> BANNED</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:#b266ff;" id="st-ram">0.0</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-zap" xlink:href="#i-zap"></use></svg> RAM (MB)</div></div>
+              <div class="stat-box"><div class="stat-val" style="color:var(--accent2); font-size:16px;" id="st-mode">SUB</div><div class="stat-label"><svg class="ic" aria-hidden="true"><use href="#i-globe" xlink:href="#i-globe"></use></svg> MODE</div></div>
           </div>
           <div style="display:flex; justify-content:space-between; font-family:'Space Mono'; font-size:11px; color:var(--text2); border-top:1px solid var(--border); padding-top:15px; flex-wrap:wrap; gap:8px;">
-              <span>🔌 <span data-i18n="connected_nodes">Connected Nodes</span>: <b id="st-sess" style="color:var(--accent);">0/0</b></span>
+              <span> <span data-i18n="connected_nodes">Connected Nodes</span>: <b id="st-sess" style="color:var(--accent);">0/0</b></span>
               <span><span data-i18n="uptime">Server Uptime</span>: <b id="st-uptime" style="color:var(--text);">0h 0m 0s</b></span>
           </div>
       </div>
 
-      <div class="card" style="margin-bottom:20px;"><div class="card-title">🛡️ ADMIN FEATURE CENTER</div><div class="mini-toolbar"><button class="btn btn-ghost btn-sm" onclick="fetchAuditLogs()">Audit Logs</button><button class="btn btn-ghost btn-sm" onclick="fetchPlans()">Plan Manager</button><button class="btn btn-ghost btn-sm" onclick="fetchVouchers()">Voucher Manager</button><input id="detail-uid" class="mini-input" placeholder="User ID"><button class="btn btn-primary btn-sm" onclick="fetchUserDetail()">User Detail</button></div><div id="admin-feature-box" style="font-family:'Space Mono';font-size:11px;color:var(--text2);max-height:260px;overflow:auto"></div></div>
+      <div class="card" style="margin-bottom:20px;"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-shield" xlink:href="#i-shield"></use></svg> ADMIN FEATURE CENTER</div><div class="mini-toolbar"><button class="btn btn-ghost btn-sm" onclick="fetchAuditLogs()">Audit Logs</button><button class="btn btn-ghost btn-sm" onclick="fetchPlans()">Plan Manager</button><button class="btn btn-ghost btn-sm" onclick="fetchVouchers()">Voucher Manager</button><input id="detail-uid" class="mini-input" placeholder="User ID"><button class="btn btn-primary btn-sm" onclick="fetchUserDetail()">User Detail</button></div><div id="admin-feature-box" style="font-family:'Space Mono';font-size:11px;color:var(--text2);max-height:260px;overflow:auto"></div></div>
 
       <div class="grid-2">
           <div class="card">
-              <div class="card-title"><span data-i18n="analytics">📈 7-DAY ANALYTICS</span></div>
+              <div class="card-title"><span data-i18n="analytics" data-ic="activity"> 7-DAY ANALYTICS</span></div>
               <canvas id="usageChart" height="120"></canvas>
           </div>
           <div class="card">
-              <div class="card-title"><span data-i18n="manage_sessions">🗄️ MANAGE SESSIONS</span> <button class="btn btn-ghost btn-sm" onclick="fetchSessions()">🔄</button></div>
+              <div class="card-title"><span data-i18n="manage_sessions" data-ic="db"> MANAGE SESSIONS</span> <button class="btn btn-ghost btn-sm" onclick="fetchSessions()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div>
               <div id="admin-sess-list" style="font-family:'Space Mono'; font-size:11px; max-height:150px; overflow-y:auto; color:var(--text2);" data-i18n="loading_sessions">Loading sessions...</div>
           </div>
       </div>
@@ -1239,43 +1276,43 @@ v5.01.49
       <div class="grid-2">
           <div>
               <div class="card" style="margin-bottom:24px;">
-                  <div class="card-title"><span data-i18n="voucher_gen">🎁 VOUCHER GENERATOR</span></div>
+                  <div class="card-title"><span data-i18n="voucher_gen" data-ic="gift"> VOUCHER GENERATOR</span></div>
                   <div style="display:flex; gap:10px;">
                       <select id="v-type" class="input-txt" style="margin:0; width:30%; cursor:pointer;"><option value="PRO">PRO</option><option value="VIP">VIP</option></select>
                       <input type="number" id="v-days" class="input-txt" placeholder="Days" value="30" style="margin:0; width:30%;">
                       <input type="number" id="v-count" class="input-txt" placeholder="Uses" value="1" style="margin:0; width:30%;">
                   </div>
-                  <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="genVoucher()" data-i18n="gen_promo">GENERATE PROMO CODE</button>
+                  <button class="btn btn-gold" style="width:100%; margin-top:15px;" onclick="genVoucher()" data-i18n="gen_promo" data-ic="gift">GENERATE PROMO CODE</button>
                   <div id="v-result" style="margin-top:15px; font-family:'Space Mono'; color:var(--accent); text-align:center; font-weight:bold; letter-spacing:2px; font-size:16px;"></div>
               </div>
               <div class="card">
-                  <div class="card-title"><span data-i18n="pro_vip_mgmt">⚙️ PRO & VIP MANAGEMENT</span></div>
+                  <div class="card-title"><span data-i18n="pro_vip_mgmt" data-ic="gear"> PRO & VIP MANAGEMENT</span></div>
                   <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-                      <input type="number" id="target-uid" class="input-txt" data-i18n-placeholder="ph_target_uid" placeholder="🆔 Target UID" style="margin:0; text-align:center; flex:1; min-width:120px;">
+                      <input type="number" id="target-uid" class="input-txt" data-i18n-placeholder="ph_target_uid" placeholder="Target UID" style="margin:0; text-align:center; flex:1; min-width:120px;">
                       <input type="number" id="pro-days" class="input-txt" placeholder="Days" value="30" style="margin:0; width:80px; text-align:center;">
                   </div>
                   <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                      <button class="btn btn-ghost" style="border-color:var(--accent-gold); color:var(--accent-gold);" onclick="adminAct('add_vip')">🔥 ADD VIP</button>
-                      <button class="btn btn-ghost" style="border-color:var(--accent2); color:var(--accent2);" onclick="adminAct('add_sub')">💎 ADD PRO</button>
-                      <button class="btn btn-ghost" onclick="adminAct('rem_vip')">➖ REM VIP</button>
-                      <button class="btn btn-ghost" onclick="adminAct('rem_sub')">➖ REM PRO</button>
-                      <button class="btn btn-ghost" style="border-color:var(--accent3); color:var(--accent3);" onclick="adminAct('ban')">🚫 BAN</button>
-                      <button class="btn btn-ghost" onclick="adminAct('unban')">✅ UNBAN</button>
+                      <button class="btn btn-ghost" style="border-color:var(--accent-gold); color:var(--accent-gold);" onclick="adminAct('add_vip')"><svg class="ic" aria-hidden="true"><use href="#i-flame" xlink:href="#i-flame"></use></svg> ADD VIP</button>
+                      <button class="btn btn-ghost" style="border-color:var(--accent2); color:var(--accent2);" onclick="adminAct('add_sub')"><svg class="ic" aria-hidden="true"><use href="#i-gem" xlink:href="#i-gem"></use></svg> ADD PRO</button>
+                      <button class="btn btn-ghost" onclick="adminAct('rem_vip')"><svg class="ic" aria-hidden="true"><use href="#i-minus" xlink:href="#i-minus"></use></svg> REM VIP</button>
+                      <button class="btn btn-ghost" onclick="adminAct('rem_sub')"><svg class="ic" aria-hidden="true"><use href="#i-minus" xlink:href="#i-minus"></use></svg> REM PRO</button>
+                      <button class="btn btn-ghost" style="border-color:var(--accent3); color:var(--accent3);" onclick="adminAct('ban')"><svg class="ic" aria-hidden="true"><use href="#i-ban" xlink:href="#i-ban"></use></svg> BAN</button>
+                      <button class="btn btn-ghost" onclick="adminAct('unban')"><svg class="ic" aria-hidden="true"><use href="#i-checkc" xlink:href="#i-checkc"></use></svg> UNBAN</button>
                   </div>
               </div>
           </div>
           <div>
               <div class="card">
-                  <div class="card-title"><span data-i18n="db_dump">👥 DATABASE DUMP</span>
+                  <div class="card-title"><span data-i18n="db_dump" data-ic="users"> DATABASE DUMP</span>
                       <div style="display:flex; gap:8px;">
-                          <button class="btn btn-primary btn-sm" onclick="fetchAllUsers()">🔄</button>
-                          <button class="btn btn-gold btn-sm" onclick="exportCSVAdmin()">📥 CSV</button>
+                          <button class="btn btn-primary btn-sm" onclick="fetchAllUsers()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg> </button>
+                          <button class="btn btn-gold btn-sm" onclick="exportCSVAdmin()"><svg class="ic" aria-hidden="true"><use href="#i-download" xlink:href="#i-download"></use></svg> CSV</button>
                       </div>
                   </div>
                   <div id="admin-users-list" style="max-height:430px; overflow-y:auto; font-family:'Space Mono'; font-size:11px;"></div>
               </div>
               <div class="card" style="margin-top:24px;">
-                  <div class="card-title"><span data-i18n="node_health">🔌 NODE HEALTH</span></div>
+                  <div class="card-title"><span data-i18n="node_health" data-ic="plug"> NODE HEALTH</span></div>
                   <div id="node-health-list" style="font-family:'Space Mono'; font-size:11px; max-height:200px; overflow-y:auto; color:var(--text2);">No data yet.</div>
               </div>
           </div>
@@ -1295,220 +1332,214 @@ v5.01.49
 const LANGS = {
   en: {
     maint_title:"SYSTEM OFFLINE", maint_desc:"The WS CHECKER engine is upgrading.<br>Please hold tight.",
-    settings:"⚙️ Settings", theme:"🎨 Theme", language:"🌐 Language", preferences:"⚡ Preferences",
-    sound_effects:"🔊 Sound Effects", auto_refresh:"🔄 Auto-Refresh Status", auto_sort:"📊 Auto-Sort by Country",
-    notifications_pref:"🔔 Desktop Notifications",
-    keyboard_shortcuts:"⌨️ Keyboard Shortcuts", sc_settings:"Open Settings", sc_checker:"Checker Tab",
+    settings:"Settings", theme:"Theme", language:"Language", preferences:"Preferences",
+    sound_effects:"Sound Effects", auto_refresh:"Auto-Refresh Status", auto_sort:"Auto-Sort by Country",
+    notifications_pref:"Desktop Notifications",
+    keyboard_shortcuts:"Keyboard Shortcuts", sc_settings:"Open Settings", sc_checker:"Checker Tab",
     sc_history:"History Tab", sc_node:"Add Node Tab", sc_profile:"Profile Tab", sc_fire:"Fire Engine", sc_fullscreen:"Toggle Fullscreen",
-    login_title:'System <span>Login</span>', login_btn:"⚡ INITIATE LINK", logout:"LOGOUT",
+    login_title:'System <span>Login</span>', login_btn:"INITIATE LINK", logout:"LOGOUT",
     ph_uid:"Telegram User ID", ph_pass:"Web Password",
-    nav_checker:"🔍 CHECKER", nav_history:"📜 HISTORY", nav_node:"📡 ADD NODE", nav_profile:"👤 PROFILE & API",
-    nav_sysinfo:"ℹ️ SYSTEM INFO", nav_inbox:"💬 INBOX", nav_admin:"👑 GOD CONSOLE",
-    terminal:"TERMINAL CONSOLE", clear:"🗑️ CLEAR", targets:"📝 DRAG & DROP TARGETS",
-    upload_file:"📁 UPLOAD .TXT / .CSV FILE", fire_engine:"⚡ FIRE ENGINE", abort:"✕ ABORT",
-    found:"Found", unreg:"Unreg", biz_only:"💼 BIZ ONLY", has_dp:"🖼️ HAS DP",
+    nav_checker:"Checker", nav_history:"History", nav_node:"Sessions", nav_profile:"API & Webhooks",
+    nav_sysinfo:"System Info", nav_inbox:"Inbox", nav_admin:"Console",
+    terminal:"TERMINAL CONSOLE", clear:"CLEAR", targets:"DRAG & DROP TARGETS",
+    upload_file:"UPLOAD .TXT / .CSV FILE", fire_engine:"FIRE ENGINE", abort:"ABORT",
+    found:"Found", unreg:"Unreg", biz_only:"BIZ ONLY", has_dp:"HAS DP",
     awaiting:"Awaiting Targets...", render_limit:"Display limited to Top 100. Download to view all.",
-    recent_checks:"📜 RECENT CHECKS", connect_node:"📡 CONNECT PRIVATE NODE",
+    recent_checks:"RECENT CHECKS", connect_node:"CONNECT PRIVATE NODE",
     node_desc:"Add your private WhatsApp node for Ultra-Fast load balancing.<br>Format: Digits only (e.g. 919876543210)",
-    ph_phone:"Phone Number", gen_pairing:"📡 GENERATE PAIRING CODE",
-    profile_title:"👤 PROFILE & INTEGRATIONS", upgrade_tier:"💎 UPGRADE TIER", reset_engine:"🔄 RESET ENGINE",
-    api_key_title:"🔌 REST API KEY (PRO/VIP)", api_key_desc:"Embed the Beast Engine into your own software.",
-    gen_api_key:"🔄 GENERATE NEW API KEY", webhook_title:"🔗 WEBHOOK URL (PRO/VIP)",
+    ph_phone:"Phone Number", gen_pairing:"GENERATE PAIRING CODE",
+    profile_title:"PROFILE & INTEGRATIONS", upgrade_tier:"UPGRADE TIER", reset_engine:"RESET ENGINE",
+    api_key_title:"REST API KEY (PRO/VIP)", api_key_desc:"Embed the WS CHECKER engine into your own software.",
+    gen_api_key:"GENERATE NEW API KEY", webhook_title:"WEBHOOK URL (PRO/VIP)",
     webhook_desc:"Get JSON payload on your server when a scan finishes.", save:"SAVE",
-    sysinfo_title:"ℹ️ SYSTEM INFORMATION", fetching:"Fetching...",
-    user_inbox:"👥 USER INBOX", loading_chats:"Loading chats...", chat_panel:"💬 CHAT PANEL",
+    sysinfo_title:"SYSTEM INFORMATION", fetching:"Fetching...",
+    user_inbox:"USER INBOX", loading_chats:"Loading chats...", chat_panel:"CHAT PANEL",
     select_user:"Select a user", select_convo:"Select a conversation to start.",
     ph_reply:"Type reply here... (Press Enter to send)", send:"SEND",
-    broadcast:"📢 GLOBAL BROADCAST", ph_broadcast:"Type broadcast message...",
-    lockdown:"🚧 LOCKDOWN MODE", enable:"ENABLE", warmup:"🛡️ ANTI-BAN WARMUP", ping_nodes:"PING NODES",
-    live_metrics:"📊 LIVE ENGINE METRICS", connected_nodes:"Connected Nodes", uptime:"Server Uptime",
-    analytics:"📈 7-DAY ANALYTICS", manage_sessions:"🗄️ MANAGE SESSIONS", loading_sessions:"Loading sessions...",
-    voucher_gen:"🎁 VOUCHER GENERATOR", gen_promo:"GENERATE PROMO CODE",
-    pro_vip_mgmt:"⚙️ PRO & VIP MANAGEMENT", ph_target_uid:"🆔 Target UID",
-    db_dump:"👥 DATABASE DUMP", node_health:"🔌 NODE HEALTH",
-    system_alerts:"🔔 SYSTEM ALERTS", clear_all:"Clear All", no_alerts:"No new alerts.",
-    ph_numbers:"Paste numbers here OR Drag & Drop a file inside this box..."
-  },
+    broadcast:"GLOBAL BROADCAST", ph_broadcast:"Type broadcast message...",
+    lockdown:"LOCKDOWN MODE", enable:"ENABLE", warmup:"ANTI-BAN WARMUP", ping_nodes:"PING NODES",
+    live_metrics:"LIVE ENGINE METRICS", connected_nodes:"Connected Nodes", uptime:"Server Uptime",
+    analytics:"7-DAY ANALYTICS", manage_sessions:"MANAGE SESSIONS", loading_sessions:"Loading sessions...",
+    voucher_gen:"VOUCHER GENERATOR", gen_promo:"GENERATE PROMO CODE",
+    pro_vip_mgmt:"PRO & VIP MANAGEMENT", ph_target_uid:"Target UID",
+    db_dump:"DATABASE DUMP", node_health:"NODE HEALTH",
+    system_alerts:"SYSTEM ALERTS", clear_all:"Clear All", no_alerts:"No new alerts.",
+    ph_numbers:"Paste numbers here OR Drag & Drop a file inside this box..."},
   hi: {
     maint_title:"सिस्टम ऑफ़लाइन", maint_desc:"WS CHECKER इंजन अपग्रेड हो रहा है।<br>कृपया प्रतीक्षा करें।",
-    settings:"⚙️ सेटिंग्स", theme:"🎨 थीम", language:"🌐 भाषा", preferences:"⚡ प्राथमिकताएं",
-    sound_effects:"🔊 ध्वनि प्रभाव", auto_refresh:"🔄 ऑटो-रिफ्रेश", auto_sort:"📊 देश के अनुसार क्रम",
-    notifications_pref:"🔔 डेस्कटॉप सूचनाएं",
-    keyboard_shortcuts:"⌨️ कीबोर्ड शॉर्टकट", sc_settings:"सेटिंग्स खोलें", sc_checker:"चेकर टैब",
+    settings:"सेटिंग्स", theme:"थीम", language:"भाषा", preferences:"प्राथमिकताएं",
+    sound_effects:"ध्वनि प्रभाव", auto_refresh:"ऑटो-रिफ्रेश", auto_sort:"देश के अनुसार क्रम",
+    notifications_pref:"डेस्कटॉप सूचनाएं",
+    keyboard_shortcuts:"कीबोर्ड शॉर्टकट", sc_settings:"सेटिंग्स खोलें", sc_checker:"चेकर टैब",
     sc_history:"इतिहास टैब", sc_node:"नोड जोड़ें टैब", sc_profile:"प्रोफ़ाइल टैब", sc_fire:"इंजन शुरू", sc_fullscreen:"फ़ुलस्क्रीन टॉगल",
-    login_title:'सिस्टम <span>लॉगिन</span>', login_btn:"⚡ लिंक शुरू करें", logout:"लॉग आउट",
+    login_title:'सिस्टम <span>लॉगिन</span>', login_btn:"लिंक शुरू करें", logout:"लॉग आउट",
     ph_uid:"टेलीग्राम यूजर आईडी", ph_pass:"वेब पासवर्ड",
-    nav_checker:"🔍 चेकर", nav_history:"📜 इतिहास", nav_node:"📡 नोड जोड़ें", nav_profile:"👤 प्रोफ़ाइल",
-    nav_sysinfo:"ℹ️ सिस्टम जानकारी", nav_inbox:"💬 इनबॉक्स", nav_admin:"👑 गॉड कंसोल",
-    terminal:"टर्मिनल कंसोल", clear:"🗑️ साफ़", targets:"📝 नंबर डालें",
-    upload_file:"📁 .TXT / .CSV फ़ाइल अपलोड", fire_engine:"⚡ इंजन चालू", abort:"✕ रद्द",
-    found:"मिले", unreg:"अपंजीकृत", biz_only:"💼 सिर्फ बिज़", has_dp:"🖼️ DP वाले",
+    nav_checker:"चेकर", nav_history:"इतिहास", nav_node:"नोड जोड़ें", nav_profile:"प्रोफ़ाइल",
+    nav_sysinfo:"सिस्टम जानकारी", nav_inbox:"इनबॉक्स", nav_admin:"गॉड कंसोल",
+    terminal:"टर्मिनल कंसोल", clear:"साफ़", targets:"नंबर डालें",
+    upload_file:".TXT / .CSV फ़ाइल अपलोड", fire_engine:"इंजन चालू", abort:"रद्द",
+    found:"मिले", unreg:"अपंजीकृत", biz_only:"सिर्फ बिज़", has_dp:"DP वाले",
     awaiting:"लक्ष्यों की प्रतीक्षा...", render_limit:"शीर्ष 100 तक सीमित। सभी देखने के लिए डाउनलोड करें।",
-    recent_checks:"📜 हाल की जांचें", connect_node:"📡 प्राइवेट नोड कनेक्ट करें",
+    recent_checks:"हाल की जांचें", connect_node:"प्राइवेट नोड कनेक्ट करें",
     node_desc:"अल्ट्रा-फास्ट लोड बैलेंसिंग के लिए अपना व्हाट्सएप नोड जोड़ें।<br>फ़ॉर्मेट: केवल अंक (जैसे 919876543210)",
-    ph_phone:"फ़ोन नंबर", gen_pairing:"📡 पेयरिंग कोड बनाएं",
-    profile_title:"👤 प्रोफ़ाइल और इंटीग्रेशन", upgrade_tier:"💎 टियर अपग्रेड", reset_engine:"🔄 इंजन रीसेट",
-    api_key_title:"🔌 REST API कुंजी (PRO/VIP)", api_key_desc:"बीस्ट इंजन को अपने सॉफ़्टवेयर में एम्बेड करें।",
-    gen_api_key:"🔄 नई API कुंजी बनाएं", webhook_title:"🔗 वेबहुक URL (PRO/VIP)",
+    ph_phone:"फ़ोन नंबर", gen_pairing:"पेयरिंग कोड बनाएं",
+    profile_title:"प्रोफ़ाइल और इंटीग्रेशन", upgrade_tier:"टियर अपग्रेड", reset_engine:"इंजन रीसेट",
+    api_key_title:"REST API कुंजी (PRO/VIP)", api_key_desc:"WS CHECKER इंजन को अपने सॉफ़्टवेयर में एम्बेड करें।",
+    gen_api_key:"नई API कुंजी बनाएं", webhook_title:"वेबहुक URL (PRO/VIP)",
     webhook_desc:"स्कैन पूरा होने पर JSON पेलोड प्राप्त करें।", save:"सेव",
-    sysinfo_title:"ℹ️ सिस्टम जानकारी", fetching:"लोड हो रहा है...",
-    user_inbox:"👥 यूजर इनबॉक्स", loading_chats:"चैट लोड हो रही हैं...", chat_panel:"💬 चैट पैनल",
+    sysinfo_title:"सिस्टम जानकारी", fetching:"लोड हो रहा है...",
+    user_inbox:"यूजर इनबॉक्स", loading_chats:"चैट लोड हो रही हैं...", chat_panel:"चैट पैनल",
     select_user:"यूजर चुनें", select_convo:"बातचीत शुरू करने के लिए चुनें।",
     ph_reply:"यहां जवाब टाइप करें... (भेजने के लिए Enter दबाएं)", send:"भेजें",
-    broadcast:"📢 वैश्विक प्रसारण", ph_broadcast:"प्रसारण संदेश टाइप करें...",
-    lockdown:"🚧 लॉकडाउन मोड", enable:"चालू", warmup:"🛡️ एंटी-बैन वॉर्मअप", ping_nodes:"नोड पिंग",
-    live_metrics:"📊 लाइव मेट्रिक्स", connected_nodes:"कनेक्टेड नोड्स", uptime:"सर्वर अपटाइम",
-    analytics:"📈 7-दिन विश्लेषण", manage_sessions:"🗄️ सत्र प्रबंधित करें", loading_sessions:"सत्र लोड हो रहे...",
-    voucher_gen:"🎁 वाउचर जनरेटर", gen_promo:"प्रोमो कोड बनाएं",
-    pro_vip_mgmt:"⚙️ PRO और VIP प्रबंधन", ph_target_uid:"🆔 लक्ष्य UID",
-    db_dump:"👥 डेटाबेस डंप", node_health:"🔌 नोड स्वास्थ्य",
-    system_alerts:"🔔 सिस्टम अलर्ट", clear_all:"सभी साफ़", no_alerts:"कोई नया अलर्ट नहीं।",
-    ph_numbers:"नंबर यहां पेस्ट करें या फ़ाइल ड्रैग एंड ड्रॉप करें..."
-  },
+    broadcast:"वैश्विक प्रसारण", ph_broadcast:"प्रसारण संदेश टाइप करें...",
+    lockdown:"लॉकडाउन मोड", enable:"चालू", warmup:"एंटी-बैन वॉर्मअप", ping_nodes:"नोड पिंग",
+    live_metrics:"लाइव मेट्रिक्स", connected_nodes:"कनेक्टेड नोड्स", uptime:"सर्वर अपटाइम",
+    analytics:"7-दिन विश्लेषण", manage_sessions:"सत्र प्रबंधित करें", loading_sessions:"सत्र लोड हो रहे...",
+    voucher_gen:"वाउचर जनरेटर", gen_promo:"प्रोमो कोड बनाएं",
+    pro_vip_mgmt:"PRO और VIP प्रबंधन", ph_target_uid:"लक्ष्य UID",
+    db_dump:"डेटाबेस डंप", node_health:"नोड स्वास्थ्य",
+    system_alerts:"सिस्टम अलर्ट", clear_all:"सभी साफ़", no_alerts:"कोई नया अलर्ट नहीं।",
+    ph_numbers:"नंबर यहां पेस्ट करें या फ़ाइल ड्रैग एंड ड्रॉप करें..."},
   ar: {
     maint_title:"النظام غير متصل", maint_desc:"محرك WS CHECKER يتم ترقيته.<br>يرجى الانتظار.",
-    settings:"⚙️ الإعدادات", theme:"🎨 السمة", language:"🌐 اللغة", preferences:"⚡ التفضيلات",
-    sound_effects:"🔊 المؤثرات الصوتية", auto_refresh:"🔄 تحديث تلقائي", auto_sort:"📊 ترتيب حسب البلد",
-    notifications_pref:"🔔 إشعارات سطح المكتب",
-    keyboard_shortcuts:"⌨️ اختصارات لوحة المفاتيح", sc_settings:"فتح الإعدادات", sc_checker:"تبويب الفاحص",
+    settings:"الإعدادات", theme:"السمة", language:"اللغة", preferences:"التفضيلات",
+    sound_effects:"المؤثرات الصوتية", auto_refresh:"تحديث تلقائي", auto_sort:"ترتيب حسب البلد",
+    notifications_pref:"إشعارات سطح المكتب",
+    keyboard_shortcuts:"اختصارات لوحة المفاتيح", sc_settings:"فتح الإعدادات", sc_checker:"تبويب الفاحص",
     sc_history:"تبويب السجل", sc_node:"تبويب إضافة عقدة", sc_profile:"تبويب الملف الشخصي", sc_fire:"تشغيل المحرك", sc_fullscreen:"تبديل ملء الشاشة",
-    login_title:'تسجيل <span>الدخول</span>', login_btn:"⚡ بدء الاتصال", logout:"خروج",
+    login_title:'تسجيل <span>الدخول</span>', login_btn:"بدء الاتصال", logout:"خروج",
     ph_uid:"معرف مستخدم تيليجرام", ph_pass:"كلمة مرور الويب",
-    nav_checker:"🔍 الفاحص", nav_history:"📜 السجل", nav_node:"📡 إضافة عقدة", nav_profile:"👤 الملف الشخصي",
-    nav_sysinfo:"ℹ️ معلومات النظام", nav_inbox:"💬 صندوق الوارد", nav_admin:"👑 وحدة التحكم",
-    terminal:"وحدة الطرفية", clear:"🗑️ مسح", targets:"📝 إسقاط الأهداف",
-    upload_file:"📁 رفع ملف TXT / CSV", fire_engine:"⚡ تشغيل المحرك", abort:"✕ إلغاء",
-    found:"موجود", unreg:"غير مسجل", biz_only:"💼 أعمال فقط", has_dp:"🖼️ لديه صورة",
+    nav_checker:"الفاحص", nav_history:"السجل", nav_node:"إضافة عقدة", nav_profile:"الملف الشخصي",
+    nav_sysinfo:"معلومات النظام", nav_inbox:"صندوق الوارد", nav_admin:"وحدة التحكم",
+    terminal:"وحدة الطرفية", clear:"مسح", targets:"إسقاط الأهداف",
+    upload_file:"رفع ملف TXT / CSV", fire_engine:"تشغيل المحرك", abort:"إلغاء",
+    found:"موجود", unreg:"غير مسجل", biz_only:"أعمال فقط", has_dp:"لديه صورة",
     awaiting:"بانتظار الأهداف...", render_limit:"العرض محدود بأول 100. حمّل لعرض الكل.",
-    recent_checks:"📜 الفحوصات الأخيرة", connect_node:"📡 ربط عقدة خاصة",
+    recent_checks:"الفحوصات الأخيرة", connect_node:"ربط عقدة خاصة",
     node_desc:"أضف عقدة واتساب خاصة لموازنة التحميل.<br>الصيغة: أرقام فقط (مثل 919876543210)",
-    ph_phone:"رقم الهاتف", gen_pairing:"📡 إنشاء رمز الإقران",
-    profile_title:"👤 الملف الشخصي والتكاملات", upgrade_tier:"💎 ترقية المستوى", reset_engine:"🔄 إعادة تعيين المحرك",
-    api_key_title:"🔌 مفتاح API (PRO/VIP)", api_key_desc:"دمج محرك Beast في برنامجك.",
-    gen_api_key:"🔄 إنشاء مفتاح جديد", webhook_title:"🔗 رابط Webhook (PRO/VIP)",
+    ph_phone:"رقم الهاتف", gen_pairing:"إنشاء رمز الإقران",
+    profile_title:"الملف الشخصي والتكاملات", upgrade_tier:"ترقية المستوى", reset_engine:"إعادة تعيين المحرك",
+    api_key_title:"مفتاح API (PRO/VIP)", api_key_desc:"دمج محرك WS CHECKER في برنامجك.",
+    gen_api_key:"إنشاء مفتاح جديد", webhook_title:"رابط Webhook (PRO/VIP)",
     webhook_desc:"احصل على البيانات تلقائياً عند انتهاء الفحص.", save:"حفظ",
-    sysinfo_title:"ℹ️ معلومات النظام", fetching:"جارِ التحميل...",
-    user_inbox:"👥 صندوق الوارد", loading_chats:"جارِ تحميل المحادثات...", chat_panel:"💬 لوحة الدردشة",
+    sysinfo_title:"معلومات النظام", fetching:"جارِ التحميل...",
+    user_inbox:"صندوق الوارد", loading_chats:"جارِ تحميل المحادثات...", chat_panel:"لوحة الدردشة",
     select_user:"اختر مستخدم", select_convo:"اختر محادثة للبدء.",
     ph_reply:"اكتب الرد هنا... (اضغط Enter للإرسال)", send:"إرسال",
-    broadcast:"📢 بث عام", ph_broadcast:"اكتب رسالة البث...",
-    lockdown:"🚧 وضع الإغلاق", enable:"تفعيل", warmup:"🛡️ إحماء مضاد للحظر", ping_nodes:"اختبار العقد",
-    live_metrics:"📊 المقاييس المباشرة", connected_nodes:"العقد المتصلة", uptime:"وقت التشغيل",
-    analytics:"📈 تحليلات 7 أيام", manage_sessions:"🗄️ إدارة الجلسات", loading_sessions:"جارِ تحميل الجلسات...",
-    voucher_gen:"🎁 مولد القسائم", gen_promo:"إنشاء رمز ترويجي",
-    pro_vip_mgmt:"⚙️ إدارة PRO و VIP", ph_target_uid:"🆔 معرف الهدف",
-    db_dump:"👥 تصدير قاعدة البيانات", node_health:"🔌 صحة العقد",
-    system_alerts:"🔔 تنبيهات النظام", clear_all:"مسح الكل", no_alerts:"لا توجد تنبيهات جديدة.",
-    ph_numbers:"الصق الأرقام هنا أو اسحب وأفلت ملفاً..."
-  },
+    broadcast:"بث عام", ph_broadcast:"اكتب رسالة البث...",
+    lockdown:"وضع الإغلاق", enable:"تفعيل", warmup:"إحماء مضاد للحظر", ping_nodes:"اختبار العقد",
+    live_metrics:"المقاييس المباشرة", connected_nodes:"العقد المتصلة", uptime:"وقت التشغيل",
+    analytics:"تحليلات 7 أيام", manage_sessions:"إدارة الجلسات", loading_sessions:"جارِ تحميل الجلسات...",
+    voucher_gen:"مولد القسائم", gen_promo:"إنشاء رمز ترويجي",
+    pro_vip_mgmt:"إدارة PRO و VIP", ph_target_uid:"معرف الهدف",
+    db_dump:"تصدير قاعدة البيانات", node_health:"صحة العقد",
+    system_alerts:"تنبيهات النظام", clear_all:"مسح الكل", no_alerts:"لا توجد تنبيهات جديدة.",
+    ph_numbers:"الصق الأرقام هنا أو اسحب وأفلت ملفاً..."},
   es: {
     maint_title:"SISTEMA FUERA DE LÍNEA", maint_desc:"El motor de WS CHECKER se está actualizando.<br>Por favor espere.",
-    settings:"⚙️ Ajustes", theme:"🎨 Tema", language:"🌐 Idioma", preferences:"⚡ Preferencias",
-    sound_effects:"🔊 Efectos de sonido", auto_refresh:"🔄 Auto-actualizar", auto_sort:"📊 Ordenar por país",
-    notifications_pref:"🔔 Notificaciones de escritorio",
-    keyboard_shortcuts:"⌨️ Atajos de teclado", sc_settings:"Abrir ajustes", sc_checker:"Pestaña verificador",
+    settings:"Ajustes", theme:"Tema", language:"Idioma", preferences:"Preferencias",
+    sound_effects:"Efectos de sonido", auto_refresh:"Auto-actualizar", auto_sort:"Ordenar por país",
+    notifications_pref:"Notificaciones de escritorio",
+    keyboard_shortcuts:"Atajos de teclado", sc_settings:"Abrir ajustes", sc_checker:"Pestaña verificador",
     sc_history:"Pestaña historial", sc_node:"Pestaña agregar nodo", sc_profile:"Pestaña perfil", sc_fire:"Iniciar motor", sc_fullscreen:"Pantalla completa",
-    login_title:'Inicio de <span>sesión</span>', login_btn:"⚡ INICIAR ENLACE", logout:"SALIR",
+    login_title:'Inicio de <span>sesión</span>', login_btn:"INICIAR ENLACE", logout:"SALIR",
     ph_uid:"ID de usuario Telegram", ph_pass:"Contraseña web",
-    nav_checker:"🔍 VERIFICADOR", nav_history:"📜 HISTORIAL", nav_node:"📡 AGREGAR NODO", nav_profile:"👤 PERFIL",
-    nav_sysinfo:"ℹ️ INFO SISTEMA", nav_inbox:"💬 BANDEJA", nav_admin:"👑 CONSOLA ADMIN",
-    terminal:"CONSOLA TERMINAL", clear:"🗑️ LIMPIAR", targets:"📝 ARRASTRAR OBJETIVOS",
-    upload_file:"📁 SUBIR ARCHIVO .TXT / .CSV", fire_engine:"⚡ INICIAR MOTOR", abort:"✕ ABORTAR",
-    found:"Encontrados", unreg:"No reg.", biz_only:"💼 SOLO BIZ", has_dp:"🖼️ CON FOTO",
+    nav_checker:"VERIFICADOR", nav_history:"HISTORIAL", nav_node:"AGREGAR NODO", nav_profile:"PERFIL",
+    nav_sysinfo:"INFO SISTEMA", nav_inbox:"BANDEJA", nav_admin:"CONSOLA ADMIN",
+    terminal:"CONSOLA TERMINAL", clear:"LIMPIAR", targets:"ARRASTRAR OBJETIVOS",
+    upload_file:"SUBIR ARCHIVO .TXT / .CSV", fire_engine:"INICIAR MOTOR", abort:"ABORTAR",
+    found:"Encontrados", unreg:"No reg.", biz_only:"SOLO BIZ", has_dp:"CON FOTO",
     awaiting:"Esperando objetivos...", render_limit:"Limitado a 100. Descargue para ver todo.",
-    recent_checks:"📜 VERIFICACIONES RECIENTES", connect_node:"📡 CONECTAR NODO PRIVADO",
+    recent_checks:"VERIFICACIONES RECIENTES", connect_node:"CONECTAR NODO PRIVADO",
     node_desc:"Agregue su nodo WhatsApp privado para balanceo de carga.<br>Formato: Solo dígitos (ej. 919876543210)",
-    ph_phone:"Número de teléfono", gen_pairing:"📡 GENERAR CÓDIGO",
-    profile_title:"👤 PERFIL E INTEGRACIONES", upgrade_tier:"💎 MEJORAR NIVEL", reset_engine:"🔄 REINICIAR MOTOR",
-    api_key_title:"🔌 CLAVE API REST (PRO/VIP)", api_key_desc:"Integre el motor Beast en su software.",
-    gen_api_key:"🔄 GENERAR NUEVA CLAVE", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    ph_phone:"Número de teléfono", gen_pairing:"GENERAR CÓDIGO",
+    profile_title:"PERFIL E INTEGRACIONES", upgrade_tier:"MEJORAR NIVEL", reset_engine:"REINICIAR MOTOR",
+    api_key_title:"CLAVE API REST (PRO/VIP)", api_key_desc:"Integre el motor WS CHECKER en su software.",
+    gen_api_key:"GENERAR NUEVA CLAVE", webhook_title:"URL WEBHOOK (PRO/VIP)",
     webhook_desc:"Reciba datos JSON al terminar un escaneo.", save:"GUARDAR",
-    sysinfo_title:"ℹ️ INFORMACIÓN DEL SISTEMA", fetching:"Cargando...",
-    user_inbox:"👥 BANDEJA DE USUARIOS", loading_chats:"Cargando chats...", chat_panel:"💬 PANEL DE CHAT",
+    sysinfo_title:"INFORMACIÓN DEL SISTEMA", fetching:"Cargando...",
+    user_inbox:"BANDEJA DE USUARIOS", loading_chats:"Cargando chats...", chat_panel:"PANEL DE CHAT",
     select_user:"Seleccionar usuario", select_convo:"Seleccione una conversación.",
     ph_reply:"Escriba respuesta... (Enter para enviar)", send:"ENVIAR",
-    broadcast:"📢 DIFUSIÓN GLOBAL", ph_broadcast:"Escriba mensaje de difusión...",
-    lockdown:"🚧 MODO BLOQUEO", enable:"ACTIVAR", warmup:"🛡️ CALENTAMIENTO ANTI-BAN", ping_nodes:"PING NODOS",
-    live_metrics:"📊 MÉTRICAS EN VIVO", connected_nodes:"Nodos conectados", uptime:"Tiempo activo",
-    analytics:"📈 ANÁLISIS 7 DÍAS", manage_sessions:"🗄️ GESTIONAR SESIONES", loading_sessions:"Cargando sesiones...",
-    voucher_gen:"🎁 GENERADOR DE CUPONES", gen_promo:"GENERAR CÓDIGO PROMO",
-    pro_vip_mgmt:"⚙️ GESTIÓN PRO Y VIP", ph_target_uid:"🆔 UID objetivo",
-    db_dump:"👥 VOLCADO BD", node_health:"🔌 SALUD DE NODOS",
-    system_alerts:"🔔 ALERTAS DEL SISTEMA", clear_all:"Limpiar todo", no_alerts:"Sin alertas nuevas.",
-    ph_numbers:"Pegue números aquí o arrastre un archivo..."
-  },
+    broadcast:"DIFUSIÓN GLOBAL", ph_broadcast:"Escriba mensaje de difusión...",
+    lockdown:"MODO BLOQUEO", enable:"ACTIVAR", warmup:"CALENTAMIENTO ANTI-BAN", ping_nodes:"PING NODOS",
+    live_metrics:"MÉTRICAS EN VIVO", connected_nodes:"Nodos conectados", uptime:"Tiempo activo",
+    analytics:"ANÁLISIS 7 DÍAS", manage_sessions:"GESTIONAR SESIONES", loading_sessions:"Cargando sesiones...",
+    voucher_gen:"GENERADOR DE CUPONES", gen_promo:"GENERAR CÓDIGO PROMO",
+    pro_vip_mgmt:"GESTIÓN PRO Y VIP", ph_target_uid:"UID objetivo",
+    db_dump:"VOLCADO BD", node_health:"SALUD DE NODOS",
+    system_alerts:"ALERTAS DEL SISTEMA", clear_all:"Limpiar todo", no_alerts:"Sin alertas nuevas.",
+    ph_numbers:"Pegue números aquí o arrastre un archivo..."},
   pt: {
     maint_title:"SISTEMA OFFLINE", maint_desc:"O motor do WS CHECKER está sendo atualizado.<br>Por favor aguarde.",
-    settings:"⚙️ Configurações", theme:"🎨 Tema", language:"🌐 Idioma", preferences:"⚡ Preferências",
-    sound_effects:"🔊 Efeitos sonoros", auto_refresh:"🔄 Atualização automática", auto_sort:"📊 Ordenar por país",
-    notifications_pref:"🔔 Notificações desktop",
-    keyboard_shortcuts:"⌨️ Atalhos do teclado", sc_settings:"Abrir configurações", sc_checker:"Aba verificador",
+    settings:"Configurações", theme:"Tema", language:"Idioma", preferences:"Preferências",
+    sound_effects:"Efeitos sonoros", auto_refresh:"Atualização automática", auto_sort:"Ordenar por país",
+    notifications_pref:"Notificações desktop",
+    keyboard_shortcuts:"Atalhos do teclado", sc_settings:"Abrir configurações", sc_checker:"Aba verificador",
     sc_history:"Aba histórico", sc_node:"Aba adicionar nó", sc_profile:"Aba perfil", sc_fire:"Iniciar motor", sc_fullscreen:"Tela cheia",
-    login_title:'Login do <span>Sistema</span>', login_btn:"⚡ INICIAR LINK", logout:"SAIR",
+    login_title:'Login do <span>Sistema</span>', login_btn:"INICIAR LINK", logout:"SAIR",
     ph_uid:"ID de usuário Telegram", ph_pass:"Senha web",
-    nav_checker:"🔍 VERIFICADOR", nav_history:"📜 HISTÓRICO", nav_node:"📡 ADICIONAR NÓ", nav_profile:"👤 PERFIL",
-    nav_sysinfo:"ℹ️ INFO SISTEMA", nav_inbox:"💬 CAIXA", nav_admin:"👑 CONSOLE ADMIN",
-    terminal:"CONSOLE TERMINAL", clear:"🗑️ LIMPAR", targets:"📝 ARRASTAR ALVOS",
-    upload_file:"📁 ENVIAR ARQUIVO .TXT / .CSV", fire_engine:"⚡ INICIAR MOTOR", abort:"✕ CANCELAR",
-    found:"Encontrados", unreg:"Não reg.", biz_only:"💼 SÓ BIZ", has_dp:"🖼️ COM FOTO",
+    nav_checker:"VERIFICADOR", nav_history:"HISTÓRICO", nav_node:"ADICIONAR NÓ", nav_profile:"PERFIL",
+    nav_sysinfo:"INFO SISTEMA", nav_inbox:"CAIXA", nav_admin:"CONSOLE ADMIN",
+    terminal:"CONSOLE TERMINAL", clear:"LIMPAR", targets:"ARRASTAR ALVOS",
+    upload_file:"ENVIAR ARQUIVO .TXT / .CSV", fire_engine:"INICIAR MOTOR", abort:"CANCELAR",
+    found:"Encontrados", unreg:"Não reg.", biz_only:"SÓ BIZ", has_dp:"COM FOTO",
     awaiting:"Aguardando alvos...", render_limit:"Limitado a 100. Baixe para ver todos.",
-    recent_checks:"📜 VERIFICAÇÕES RECENTES", connect_node:"📡 CONECTAR NÓ PRIVADO",
+    recent_checks:"VERIFICAÇÕES RECENTES", connect_node:"CONECTAR NÓ PRIVADO",
     node_desc:"Adicione seu nó WhatsApp privado para balanceamento de carga.<br>Formato: Apenas dígitos (ex. 5511999998888)",
-    ph_phone:"Número de telefone", gen_pairing:"📡 GERAR CÓDIGO",
-    profile_title:"👤 PERFIL E INTEGRAÇÕES", upgrade_tier:"💎 ATUALIZAR NÍVEL", reset_engine:"🔄 REINICIAR MOTOR",
-    api_key_title:"🔌 CHAVE API REST (PRO/VIP)", api_key_desc:"Integre o motor Beast ao seu software.",
-    gen_api_key:"🔄 GERAR NOVA CHAVE", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    ph_phone:"Número de telefone", gen_pairing:"GERAR CÓDIGO",
+    profile_title:"PERFIL E INTEGRAÇÕES", upgrade_tier:"ATUALIZAR NÍVEL", reset_engine:"REINICIAR MOTOR",
+    api_key_title:"CHAVE API REST (PRO/VIP)", api_key_desc:"Integre o motor WS CHECKER ao seu software.",
+    gen_api_key:"GERAR NOVA CHAVE", webhook_title:"URL WEBHOOK (PRO/VIP)",
     webhook_desc:"Receba dados JSON quando uma varredura terminar.", save:"SALVAR",
-    sysinfo_title:"ℹ️ INFORMAÇÕES DO SISTEMA", fetching:"Carregando...",
-    user_inbox:"👥 CAIXA DE USUÁRIOS", loading_chats:"Carregando chats...", chat_panel:"💬 PAINEL DE CHAT",
+    sysinfo_title:"INFORMAÇÕES DO SISTEMA", fetching:"Carregando...",
+    user_inbox:"CAIXA DE USUÁRIOS", loading_chats:"Carregando chats...", chat_panel:"PAINEL DE CHAT",
     select_user:"Selecionar usuário", select_convo:"Selecione uma conversa.",
     ph_reply:"Digite resposta... (Enter para enviar)", send:"ENVIAR",
-    broadcast:"📢 TRANSMISSÃO GLOBAL", ph_broadcast:"Digite mensagem de transmissão...",
-    lockdown:"🚧 MODO BLOQUEIO", enable:"ATIVAR", warmup:"🛡️ AQUECIMENTO ANTI-BAN", ping_nodes:"PING NÓS",
-    live_metrics:"📊 MÉTRICAS AO VIVO", connected_nodes:"Nós conectados", uptime:"Tempo ativo",
-    analytics:"📈 ANÁLISE 7 DIAS", manage_sessions:"🗄️ GERENCIAR SESSÕES", loading_sessions:"Carregando sessões...",
-    voucher_gen:"🎁 GERADOR DE VOUCHERS", gen_promo:"GERAR CÓDIGO PROMO",
-    pro_vip_mgmt:"⚙️ GESTÃO PRO E VIP", ph_target_uid:"🆔 UID alvo",
-    db_dump:"👥 DUMP DO BANCO", node_health:"🔌 SAÚDE DOS NÓS",
-    system_alerts:"🔔 ALERTAS DO SISTEMA", clear_all:"Limpar tudo", no_alerts:"Sem novos alertas.",
-    ph_numbers:"Cole números aqui ou arraste um arquivo..."
-  },
+    broadcast:"TRANSMISSÃO GLOBAL", ph_broadcast:"Digite mensagem de transmissão...",
+    lockdown:"MODO BLOQUEIO", enable:"ATIVAR", warmup:"AQUECIMENTO ANTI-BAN", ping_nodes:"PING NÓS",
+    live_metrics:"MÉTRICAS AO VIVO", connected_nodes:"Nós conectados", uptime:"Tempo ativo",
+    analytics:"ANÁLISE 7 DIAS", manage_sessions:"GERENCIAR SESSÕES", loading_sessions:"Carregando sessões...",
+    voucher_gen:"GERADOR DE VOUCHERS", gen_promo:"GERAR CÓDIGO PROMO",
+    pro_vip_mgmt:"GESTÃO PRO E VIP", ph_target_uid:"UID alvo",
+    db_dump:"DUMP DO BANCO", node_health:"SAÚDE DOS NÓS",
+    system_alerts:"ALERTAS DO SISTEMA", clear_all:"Limpar tudo", no_alerts:"Sem novos alertas.",
+    ph_numbers:"Cole números aqui ou arraste um arquivo..."},
   id: {
     maint_title:"SISTEM OFFLINE", maint_desc:"Mesin WS CHECKER sedang diperbarui.<br>Harap tunggu.",
-    settings:"⚙️ Pengaturan", theme:"🎨 Tema", language:"🌐 Bahasa", preferences:"⚡ Preferensi",
-    sound_effects:"🔊 Efek suara", auto_refresh:"🔄 Auto-refresh", auto_sort:"📊 Urutkan per negara",
-    notifications_pref:"🔔 Notifikasi desktop",
-    keyboard_shortcuts:"⌨️ Pintasan keyboard", sc_settings:"Buka pengaturan", sc_checker:"Tab pemeriksa",
+    settings:"Pengaturan", theme:"Tema", language:"Bahasa", preferences:"Preferensi",
+    sound_effects:"Efek suara", auto_refresh:"Auto-refresh", auto_sort:"Urutkan per negara",
+    notifications_pref:"Notifikasi desktop",
+    keyboard_shortcuts:"Pintasan keyboard", sc_settings:"Buka pengaturan", sc_checker:"Tab pemeriksa",
     sc_history:"Tab riwayat", sc_node:"Tab tambah node", sc_profile:"Tab profil", sc_fire:"Jalankan mesin", sc_fullscreen:"Layar penuh",
-    login_title:'Login <span>Sistem</span>', login_btn:"⚡ MULAI LINK", logout:"KELUAR",
+    login_title:'Login <span>Sistem</span>', login_btn:"MULAI LINK", logout:"KELUAR",
     ph_uid:"ID pengguna Telegram", ph_pass:"Kata sandi web",
-    nav_checker:"🔍 PEMERIKSA", nav_history:"📜 RIWAYAT", nav_node:"📡 TAMBAH NODE", nav_profile:"👤 PROFIL",
-    nav_sysinfo:"ℹ️ INFO SISTEM", nav_inbox:"💬 KOTAK MASUK", nav_admin:"👑 KONSOL ADMIN",
-    terminal:"KONSOL TERMINAL", clear:"🗑️ BERSIHKAN", targets:"📝 SERET & LEPAS TARGET",
-    upload_file:"📁 UNGGAH FILE .TXT / .CSV", fire_engine:"⚡ JALANKAN MESIN", abort:"✕ BATALKAN",
-    found:"Ditemukan", unreg:"Tidak terdaftar", biz_only:"💼 BISNIS SAJA", has_dp:"🖼️ ADA DP",
+    nav_checker:"PEMERIKSA", nav_history:"RIWAYAT", nav_node:"TAMBAH NODE", nav_profile:"PROFIL",
+    nav_sysinfo:"INFO SISTEM", nav_inbox:"KOTAK MASUK", nav_admin:"KONSOL ADMIN",
+    terminal:"KONSOL TERMINAL", clear:"BERSIHKAN", targets:"SERET & LEPAS TARGET",
+    upload_file:"UNGGAH FILE .TXT / .CSV", fire_engine:"JALANKAN MESIN", abort:"BATALKAN",
+    found:"Ditemukan", unreg:"Tidak terdaftar", biz_only:"BISNIS SAJA", has_dp:"ADA DP",
     awaiting:"Menunggu target...", render_limit:"Terbatas 100. Unduh untuk melihat semua.",
-    recent_checks:"📜 PEMERIKSAAN TERBARU", connect_node:"📡 HUBUNGKAN NODE PRIBADI",
+    recent_checks:"PEMERIKSAAN TERBARU", connect_node:"HUBUNGKAN NODE PRIBADI",
     node_desc:"Tambahkan node WhatsApp pribadi untuk load balancing.<br>Format: Hanya angka (mis. 628123456789)",
-    ph_phone:"Nomor telepon", gen_pairing:"📡 BUAT KODE PAIRING",
-    profile_title:"👤 PROFIL & INTEGRASI", upgrade_tier:"💎 UPGRADE TIER", reset_engine:"🔄 RESET MESIN",
-    api_key_title:"🔌 KUNCI API REST (PRO/VIP)", api_key_desc:"Integrasikan mesin Beast ke software Anda.",
-    gen_api_key:"🔄 BUAT KUNCI BARU", webhook_title:"🔗 URL WEBHOOK (PRO/VIP)",
+    ph_phone:"Nomor telepon", gen_pairing:"BUAT KODE PAIRING",
+    profile_title:"PROFIL & INTEGRASI", upgrade_tier:"UPGRADE TIER", reset_engine:"RESET MESIN",
+    api_key_title:"KUNCI API REST (PRO/VIP)", api_key_desc:"Integrasikan mesin WS CHECKER ke software Anda.",
+    gen_api_key:"BUAT KUNCI BARU", webhook_title:"URL WEBHOOK (PRO/VIP)",
     webhook_desc:"Dapatkan data JSON saat pemindaian selesai.", save:"SIMPAN",
-    sysinfo_title:"ℹ️ INFORMASI SISTEM", fetching:"Memuat...",
-    user_inbox:"👥 KOTAK MASUK PENGGUNA", loading_chats:"Memuat chat...", chat_panel:"💬 PANEL CHAT",
+    sysinfo_title:"INFORMASI SISTEM", fetching:"Memuat...",
+    user_inbox:"KOTAK MASUK PENGGUNA", loading_chats:"Memuat chat...", chat_panel:"PANEL CHAT",
     select_user:"Pilih pengguna", select_convo:"Pilih percakapan untuk memulai.",
     ph_reply:"Ketik balasan... (Tekan Enter untuk kirim)", send:"KIRIM",
-    broadcast:"📢 SIARAN GLOBAL", ph_broadcast:"Ketik pesan siaran...",
-    lockdown:"🚧 MODE LOCKDOWN", enable:"AKTIFKAN", warmup:"🛡️ PEMANASAN ANTI-BAN", ping_nodes:"PING NODE",
-    live_metrics:"📊 METRIK LANGSUNG", connected_nodes:"Node terhubung", uptime:"Waktu aktif server",
-    analytics:"📈 ANALISIS 7 HARI", manage_sessions:"🗄️ KELOLA SESI", loading_sessions:"Memuat sesi...",
-    voucher_gen:"🎁 GENERATOR VOUCHER", gen_promo:"BUAT KODE PROMO",
-    pro_vip_mgmt:"⚙️ MANAJEMEN PRO & VIP", ph_target_uid:"🆔 UID target",
-    db_dump:"👥 DUMP DATABASE", node_health:"🔌 KESEHATAN NODE",
-    system_alerts:"🔔 PERINGATAN SISTEM", clear_all:"Hapus semua", no_alerts:"Tidak ada peringatan baru.",
-    ph_numbers:"Tempel nomor di sini atau seret file..."
-  }
+    broadcast:"SIARAN GLOBAL", ph_broadcast:"Ketik pesan siaran...",
+    lockdown:"MODE LOCKDOWN", enable:"AKTIFKAN", warmup:"PEMANASAN ANTI-BAN", ping_nodes:"PING NODE",
+    live_metrics:"METRIK LANGSUNG", connected_nodes:"Node terhubung", uptime:"Waktu aktif server",
+    analytics:"ANALISIS 7 HARI", manage_sessions:"KELOLA SESI", loading_sessions:"Memuat sesi...",
+    voucher_gen:"GENERATOR VOUCHER", gen_promo:"BUAT KODE PROMO",
+    pro_vip_mgmt:"MANAJEMEN PRO & VIP", ph_target_uid:"UID target",
+    db_dump:"DUMP DATABASE", node_health:"KESEHATAN NODE",
+    system_alerts:"PERINGATAN SISTEM", clear_all:"Hapus semua", no_alerts:"Tidak ada peringatan baru.",
+    ph_numbers:"Tempel nomor di sini atau seret file..."}
 };
 
 const RTL_LANGS = ['ar'];
@@ -1519,7 +1550,10 @@ function applyLang(lang) {
     const strings = LANGS[lang] || LANGS.en;
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
-        if (strings[key] !== undefined) el.innerHTML = strings[key];
+        if (strings[key] !== undefined) {
+            const ic = el.getAttribute('data-ic');
+            el.innerHTML = (ic ? '<svg class="ic" aria-hidden="true"><use href="#i-' + ic + '"></use></svg> ' : '') + strings[key];
+        }
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
         const key = el.getAttribute('data-i18n-placeholder');
@@ -1668,7 +1702,7 @@ function routeForTab(tab){ return ROUTES[tab] || '/checker'; }
 function updateRouteUI(tab){ const c=document.getElementById('page-crumb'); if(c){ c.style.display='block'; c.innerHTML=`Route: <b>${routeForTab(tab)}</b>`; } }
 function tabFromLocation(){ if(location.pathname==='/api') return 'tab-profile'; return PATH_TO_TAB[location.pathname] || 'tab-dashboard'; }
 function badgeText(d){
-  const tier = d.isFreeMode ? '🌍 FREE MODE' : (d.isVIP?'VIP TIER':(d.isPro?'PRO TIER':'FREE TIER'));
+  const tier = d.isFreeMode ? 'FREE MODE' : (d.isVIP?'VIP TIER':(d.isPro?'PRO TIER':'FREE TIER'));
   return d.isOwner ? `${tier} | OWNER` : (d.isAdmin ? `${tier} | ADMIN` : tier);
 }
 function safeInitialTab(){ const t=tabFromLocation(); if((t==='tab-admin'||t==='tab-support'||t==='tab-audit'||t==='tab-vouchers'||t==='tab-branding') && !userInfo?.isAdmin){ if(history.replaceState) history.replaceState({tab:'tab-check'},'',routeForTab('tab-check')); return 'tab-check'; } return t; }
@@ -1682,9 +1716,15 @@ function showLoginPage(){ hidePublicPanels(); setDisplay('auth-panel','block'); 
 function showSignupPage(){ hidePublicPanels(); setDisplay('signup-panel','block'); if(history.pushState && location.pathname!=='/signup') history.pushState({},'', '/signup'); }
 function showInitialPublicPage(){ const p=location.pathname; if(p==='/login') showLoginPage(); else if(p==='/signup') showSignupPage(); else showLandingPage(); }
 
+function icMark(ic){ return '<svg class="ic" aria-hidden="true"><use href="#i-'+ic+'"></use></svg>'; }
+function langTxt(k){ return (LANGS[currentLang]&&LANGS[currentLang][k])||LANGS.en[k]||''; }
+
 function toast(msg,type='info'){
   const w=document.getElementById('toast-wrap'); if(!w) return;
-  const e=document.createElement('div'); e.className=`toast ${type}`; e.textContent=msg;
+  const e=document.createElement('div'); e.className=`toast ${type}`;
+  const ic=type==='success'?'checkc':(type==='error'?'alert':null);
+  if(ic) e.innerHTML=`<svg class="ic" aria-hidden="true"><use href="#i-${ic}"></use></svg>`;
+  const t=document.createElement('span'); t.textContent=msg; e.appendChild(t);
   w.appendChild(e); setTimeout(()=>e.remove(),3500);
   if(prefs.desknot && Notification.permission==='granted') { try { new Notification('WS CHECKER v6',{body:msg}); } catch(ex){} }
 }
@@ -1751,7 +1791,7 @@ if(dropZone){
     dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop',(e)=>{e.preventDefault();dropZone.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
 }
-function handleFile(file){ if(!file)return; const reader=new FileReader(); reader.onload=(e)=>{setVal('numbers-input',e.target.result); updateNumberPreview(); toast("📁 File Loaded","success");}; reader.readAsText(file); }
+function handleFile(file){ if(!file)return; const reader=new FileReader(); reader.onload=(e)=>{setVal('numbers-input',e.target.result); updateNumberPreview(); toast('File Loaded','success');}; reader.readAsText(file); }
 
 function normalizeInputNumbers(){
     const raw=getVal('numbers-input'); const seen=new Set(); let dup=0;
@@ -1795,7 +1835,7 @@ function tgUserFromInitData(){
   }catch(e){ return null; }
 }
 
-// 🛜 TELEGRAM MINI APP AUTO-LOGIN — when the dashboard is opened inside
+// TELEGRAM MINI APP AUTO-LOGIN — when the dashboard is opened inside
 // Telegram, WebApp.initData is signed by Telegram; the server verifies it
 // and issues the session. No password typing needed.
 async function tgAutoLogin(){
@@ -1811,7 +1851,7 @@ async function tgAutoLogin(){
   }catch(e){
     try{ if(tg.showAlert) tg.showAlert('Auto login failed — use the ID + web password from the bot.'); }catch(_){}
     const u=tgUserFromInitData(); if(u) setVal('inp-uid',u.id);
-    showLoginPage(); toast('❌ '+(e.message||'Auto login failed'),'error');
+    showLoginPage(); toast(e.message||'Auto login failed','error');
     return false;
   }
 }
@@ -1823,7 +1863,7 @@ async function login(){
     const r=await apiFetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid,password:pass})});
     const d=await r.json(); if(!d.ok) throw new Error(d.message);
     applyAuthSuccess(d, uid);
-  } catch(e){ toast('❌ '+e.message,'error'); playErrorSound(); }
+  } catch(e){ toast(e.message,'error'); playErrorSound(); }
 }
 
 async function logout(){ try{await apiFetch('/api/logout',{method:'POST'});}catch(e){} localStorage.removeItem('blaze_uid'); localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); localStorage.removeItem('blaze_pass'); location.reload(); }
@@ -1852,7 +1892,7 @@ async function hydrateSession(){
 
 
 async function resumeLastJob(){
-  try{ const r=await apiFetch('/api/resume-job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'No job'); toast(`Resumed ${d.remaining} remaining numbers`,'success'); switchTab('tab-check'); }catch(e){ toast('❌ '+e.message,'error'); }
+  try{ const r=await apiFetch('/api/resume-job',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'No job'); toast(`Resumed ${d.remaining} remaining numbers`,'success'); switchTab('tab-check'); }catch(e){ toast(e.message,'error'); }
 }
 async function refreshDashboardHome(){
   if(!USER_ID) return;
@@ -1861,7 +1901,7 @@ async function refreshDashboardHome(){
   }catch(e){}
 }
 async function fetchDeviceSessions(){
-  try{ const r=await apiFetch('/api/security/sessions'); const d=await r.json(); if(!d.ok) return; setHTML('device-list', d.sessions.length?d.sessions.map(x=>`<div class="list-item"><div><b>${x.current?'🟢 Current':'⚪ Device'}</b><br>${esc(x.ip)}<br><span style="font-size:9px">${esc(x.lastLogin)} | ${esc(String(x.ua).substring(0,60))}</span></div></div>`).join(''):'No active device sessions.'); }catch(e){}
+  try{ const r=await apiFetch('/api/security/sessions'); const d=await r.json(); if(!d.ok) return; setHTML('device-list', d.sessions.length?d.sessions.map(x=>`<div class="list-item"><div><b>${x.current?'<svg class=\"ic\" style=\"width:11px;height:11px;color:var(--accent)\" aria-hidden=\"true\"><use href=\"#i-dot\"></use></svg> Current':'<svg class=\"ic\" style=\"width:11px;height:11px;color:var(--text2)\" aria-hidden=\"true\"><use href=\"#i-ring\"></use></svg> Device'}</b><br>${esc(x.ip)}<br><span style="font-size:9px">${esc(x.lastLogin)} | ${esc(String(x.ua).substring(0,60))}</span></div></div>`).join(''):'No active device sessions.'); }catch(e){}
 }
 async function logoutAllDevices(){ try{await apiFetch('/api/security/logout-all',{method:'POST'});}catch(e){} logout(); }
 
@@ -1884,11 +1924,27 @@ function typeWriterConsole(text){ const con=document.getElementById('bot-console
 
 function setRing(c,t,failed=0){ const pct=t?Math.min(100,Math.floor((c/t)*100)):0; const fg=document.getElementById('ring-fg'); if(fg) fg.style.strokeDashoffset=314-(314*pct/100); setTxt('ring-pct',pct+'%'); setTxt('failed-meter',failed); }
 function updateConsole(type,d){
-    if(type==='start'){ setRing(0,d.total,0); setTxt('speed-meter','0/sec'); setTxt('eta-meter','--'); typeWriterConsole(`╭━━━[ 🚀 𝗢𝗠𝗡𝗜-𝗕𝗘𝗔𝗦𝗧 𝗘𝗡𝗚𝗜𝗡𝗘 ]━━━╮\n┣ 🔎 Target: ${d.total} numbers\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`); }
-    else if(type==='live'){ setRing(d.current,d.total,d.failed||0); setTxt('speed-meter',`${d.speed||0}/sec`); setTxt('eta-meter',d.eta||calculateETA(d.current,d.total)); typeWriterConsole(`╭━━━[ ⚡ 𝗟𝗜𝗩𝗘 𝗘𝗡𝗚𝗜𝗡𝗘 ]━━━╮\n┣ ${getProgressBar(d.current,d.total)}\n┣ 📊 Progress: ${d.current}/${d.total}\n┣ ✅ Found: ${d.reg} (💼 Biz: ${d.bizCount||0})\n┣ ❌ Not Found: ${d.unreg}\n┣ ⏱️ ETA: ${calculateETA(d.current,d.total)}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`); }
-    else if(type==='done') typeWriterConsole(`╭━━━━[ 🎯 𝗖𝗛𝗘𝗖𝗞 𝗖𝗢𝗠𝗣𝗟𝗘𝗧𝗘𝗗 ]━━━━╮\n┣ 📊 Total: ${d.total} | ✅ Reg: ${d.reg} | 💼 Biz: ${d.bizCount||0}\n┣ ⏱️ Time: ${fmtDuration(jobDuration)}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
-    else if(type==='cancel') typeWriterConsole(`╭━━━[ 🚫 𝗔𝗖𝗧𝗜𝗢𝗡 𝗖𝗔𝗡𝗖𝗘𝗟𝗟𝗘𝗗 ]━━━╮\n┣ ⚠️ Job Halted.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
-    else if(type==='clear') typeWriterConsole(`╭━━━[ 🚀 𝗘𝗡𝗚𝗜𝗡𝗘 𝗜𝗗𝗟𝗘 ]━━━╮\n┣ 💡 Ready for targets.\n┣ 🛡️ Mode: Advanced Anti-Ban\n╰━━━━━━━━━━━━━━━━━━━━━━╯`);
+    if(type==='start'){ setRing(0,d.total,0); setTxt('speed-meter','0/sec'); setTxt('eta-meter','--'); typeWriterConsole(`╭━━━[ ENGINE STARTED ]━━━╮
+┣ Target: ${d.total} numbers
+╰━━━━━━━━━━━━━━━━━━━━━━━━╯`); }
+    else if(type==='live'){ setRing(d.current,d.total,d.failed||0); setTxt('speed-meter',`${d.speed||0}/sec`); setTxt('eta-meter',d.eta||calculateETA(d.current,d.total)); typeWriterConsole(`╭━━━[ LIVE ENGINE ]━━━╮
+┣ ${getProgressBar(d.current,d.total)}
+┣ Progress: ${d.current}/${d.total}
+┣ Found: ${d.reg} (Biz: ${d.bizCount||0})
+┣ Not Found: ${d.unreg}
+┣ ETA: ${calculateETA(d.current,d.total)}
+╰━━━━━━━━━━━━━━━━━━━━━╯`); }
+    else if(type==='done') typeWriterConsole(`╭━━━[ CHECK COMPLETED ]━━━╮
+┣ Total: ${d.total} | Reg: ${d.reg} | Biz: ${d.bizCount||0}
+┣ Time: ${fmtDuration(jobDuration)}
+╰━━━━━━━━━━━━━━━━━━━━━━━━━╯`);
+    else if(type==='cancel') typeWriterConsole(`╭━━━[ ACTION CANCELLED ]━━━╮
+┣ Job halted.
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`);
+    else if(type==='clear') typeWriterConsole(`╭━━━[ ENGINE IDLE ]━━━╮
+┣ Ready for targets.
+┣ Mode: Advanced Anti-Ban
+╰━━━━━━━━━━━━━━━━━━━━━╯`);
 }
 
 function clearTerminal(){
@@ -1904,10 +1960,10 @@ async function startCheck(){
   const nums=normalizeInputNumbers().nums;
   if(!nums.length) return toast("No valid numbers","error");
   checking=true; jobStartTime=Date.now(); playStartSound();
-  const cBtn=document.getElementById('check-btn'); if(cBtn){cBtn.innerText='RUNNING...'; cBtn.disabled=true;}
+  const cBtn=document.getElementById('check-btn'); if(cBtn){cBtn.innerHTML=icMark('clock')+' '+'RUNNING...'; cBtn.disabled=true;}
   setDisplay('btn-dl-txt','none'); setDisplay('btn-dl-csv','none'); setDisplay('btn-copy-res','none');
   updateConsole('start',{total:nums.length});
-  try { const r=await apiFetch('/api/start-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID,numbers:nums})}); const d=await r.json(); if(d.queued){ checking=false; if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;} toast(`Job queued at position ${d.position}`,'success'); fetchJobs(); return; } } catch(e) { checking=false; if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;} return toast("Network Error","error"); }
+  try { const r=await apiFetch('/api/start-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID,numbers:nums})}); const d=await r.json(); if(d.queued){ checking=false; if(cBtn){cBtn.innerHTML=icMark('zap')+' '+langTxt('fire_engine'); cBtn.disabled=false;} toast(`Job queued at position ${d.position}`,'success'); fetchJobs(); return; } } catch(e) { checking=false; if(cBtn){cBtn.innerHTML=icMark('zap')+' '+langTxt('fire_engine'); cBtn.disabled=false;} return toast("Network Error","error"); }
 
   checkInt=setInterval(async()=>{
     if(!checking) return clearInterval(checkInt);
@@ -1920,7 +1976,7 @@ async function startCheck(){
         if(d.progress.status==="Completed"||d.progress.status==="Cancelled"){
           checking=false; jobDuration=Date.now()-jobStartTime;
           regNums=d.results.reg||[]; unregNums=d.results.unreg||[]; failedNums=d.results.failed||[];
-          if(cBtn){cBtn.innerText='⚡ FIRE ENGINE'; cBtn.disabled=false;}
+          if(cBtn){cBtn.innerHTML=icMark('zap')+' '+langTxt('fire_engine'); cBtn.disabled=false;}
           showRes('reg');
           if(d.progress.status==="Completed"){ updateConsole('done',{total:d.progress.total,reg:d.progress.reg,bizCount:d.progress.bizCount}); setDisplay('btn-dl-txt','block'); setDisplay('btn-dl-csv','block'); setDisplay('btn-copy-res','block'); toast('Scan Complete','success'); playSuccessSound(); }
           else{ updateConsole('cancel'); playErrorSound(); }
@@ -1959,7 +2015,7 @@ function showRes(t){
         const dp = typeof n === 'object' ? (n.dp||'') : '';
         const safeDp = /^https?:\/\//i.test(dp) ? escAttr(dp) : '';
         const color = t==='failed' ? 'var(--accent-gold)' : (t==='unreg' ? 'var(--accent3)' : (n.isBiz?'var(--accent-gold)':'var(--accent)'));
-        return `<div class="list-item"><div>${i+1}.</div> <div style="flex:1; margin-left:15px;"><div style="color:${color}; font-weight:bold; font-size:13px;">${esc(num)} ${n.isBiz?'(BIZ)':''}</div><div style="font-size:10px; color:var(--text2); margin-top:3px;">${esc(about.substring(0,60))}</div></div>${safeDp?`<img src="${safeDp}" class="avatar-mini">`:''}<button class="btn-icon copy-mini" title="Copy number" onclick="copyNumber('${escAttr(num)}')">📋</button></div>`;
+        return `<div class="list-item"><div>${i+1}.</div> <div style="flex:1; margin-left:15px;"><div style="color:${color}; font-weight:bold; font-size:13px;">${esc(num)} ${n.isBiz?'(BIZ)':''}</div><div style="font-size:10px; color:var(--text2); margin-top:3px;">${esc(about.substring(0,60))}</div></div>${safeDp?`<img src="${safeDp}" class="avatar-mini">`:''}<button class="btn-icon copy-mini" title="Copy number" onclick="copyNumber('${escAttr(num)}')">${icMark('copy')}</button></div>`;
     }).join('') : '<div style="text-align:center; color:var(--text2); margin-top:80px; opacity:0.5;">No results for this filter.</div>';
     setHTML('result-list', html);
     setDisplay('render-limit-msg',isTruncated?'block':'none');
@@ -1990,15 +2046,15 @@ function downloadRes(type){
         failedNums.forEach(u=>{data+=`"${u}","Failed/Unknown","N/A","N/A","N/A","N/A","N/A"\n`;});
     } else {
         ext="txt";
-        data="════════════════════════════════════════\n   ✅ WS CHECKER v6 — RESULT LOG\n════════════════════════════════════════\n\n";
-        data+=`📅 Date       : ${new Date().toLocaleString()}\n📊 Total      : ${regNums.length+unregNums.length+failedNums.length}\n✅ Registered : ${regNums.length}\n❌ Unreg      : ${unregNums.length}\n⚠️ Failed     : ${failedNums.length}\n⏱  Duration   : ${fmtDuration(jobDuration)}\n\n`;
+        data="════════════════════════════════════════\n   WS CHECKER v6 — RESULT LOG\n════════════════════════════════════════\n\n";
+        data+=`Date        : ${new Date().toLocaleString()}\nTotal       : ${regNums.length+unregNums.length+failedNums.length}\nRegistered  : ${regNums.length}\nUnreg       : ${unregNums.length}\nFailed      : ${failedNums.length}\nDuration    : ${fmtDuration(jobDuration)}\n\n`;
         if(shouldSort){
             let sorted={};
             regNums.forEach(r=>{let n=r.num||r,isB=r.isBiz?" (BUSINESS)":"",bio=r.about?` - Bio: ${r.about.substring(0,30)}`:""; let cc=n.substring(0,3); if(n.startsWith("+91"))cc="+91 (India)";else if(n.startsWith("+1"))cc="+1 (US/CA)";else if(n.startsWith("+44"))cc="+44 (UK)";else cc="Other"; if(!sorted[cc])sorted[cc]=[]; sorted[cc].push(n+isB+bio);});
-            data+="════════════════════════════════════════\n✅ REGISTERED (SORTED):\n\n";
+            data+="════════════════════════════════════════\nREGISTERED (SORTED):\n\n";
             for(let code in sorted){data+=`[ ${code} ] - ${sorted[code].length} numbers\n${sorted[code].join("\n")}\n\n`;}
-        } else { data+="════════════════════════════════════════\n✅ REGISTERED:\n"+(regNums.map(r=>r.isBiz?r.num+" (BUSINESS)":(r.num||r)).join("\n")||"None")+"\n\n"; }
-        data+="════════════════════════════════════════\n❌ UNREGISTERED:\n"+(unregNums.join("\n")||"None")+"\n\n⚠️ FAILED/UNKNOWN:\n"+(failedNums.join("\n")||"None")+"\n";
+        } else { data+="════════════════════════════════════════\nREGISTERED:\n"+(regNums.map(r=>r.isBiz?r.num+" (BUSINESS)":(r.num||r)).join("\n")||"None")+"\n\n"; }
+        data+="════════════════════════════════════════\nUNREGISTERED:\n"+(unregNums.join("\n")||"None")+"\n\nFAILED/UNKNOWN:\n"+(failedNums.join("\n")||"None")+"\n";
     }
     let blob=new Blob(['\ufeff',data],{type:type==='csv'?'text/csv;charset=utf-8':'text/plain;charset=utf-8'});
     let url=window.URL.createObjectURL(blob);
@@ -2012,14 +2068,14 @@ async function fetchHistory(){
     try{
       const r=await apiFetch(`/api/history/${USER_ID}`); const d=await r.json();
       globalHistory=d.history||[];
-      setHTML('history-list',globalHistory.length?globalHistory.map((h,i)=>`<div class="list-item" style="display:flex; justify-content:space-between; align-items:center;"><div><strong style="color:#fff;">${i+1}. 📅 ${esc(h.date)}</strong><br><span style="color:var(--accent); font-size:10px;">✅ Reg: ${h.reg}</span> | <span style="color:var(--accent-gold); font-size:10px;">💼 Biz: ${h.isBiz||0}</span> | <span style="color:var(--accent3); font-size:10px;">❌ Unreg: ${h.unreg}</span></div><div style="display:flex; gap:10px; align-items:center;"><div style="font-weight:bold; font-size:16px;">Total: ${h.total}</div><button class="btn btn-ghost btn-sm" onclick="dlHist(${i})" style="border-color:var(--accent2); color:var(--accent2);">📥</button></div></div>`).join(''):"<div style='text-align:center; padding:20px; opacity:0.5;'>No scan history found.</div>");
+      setHTML('history-list',globalHistory.length?globalHistory.map((h,i)=>`<div class="list-item" style="display:flex; justify-content:space-between; align-items:center;"><div><strong style="color:#fff;">${i+1}. ${esc(h.date)}</strong><br><span style="color:var(--accent); font-size:10px;">${icMark('check')} Reg: ${h.reg}</span> | <span style="color:var(--accent-gold); font-size:10px;">${icMark('briefcase')} Biz: ${h.isBiz||0}</span> | <span style="color:var(--accent3); font-size:10px;">${icMark('xc')} Unreg: ${h.unreg}</span></div><div style="display:flex; gap:10px; align-items:center;"><div style="font-weight:bold; font-size:16px;">Total: ${h.total}</div><button class="btn btn-ghost btn-sm" onclick="dlHist(${i})" style="border-color:var(--accent2); color:var(--accent2);">${icMark('download')}</button></div></div>`).join(''):"<div style='text-align:center; padding:20px; opacity:0.5;'>No scan history found.</div>");
     } catch(e){ toast("Failed to fetch history","error"); }
 }
 
 function dlHist(idx){
     const h=globalHistory[idx];
-    let data=`════════════════════════════════════════\n   ✅ WS CHECKER v6 — HISTORY LOG\n════════════════════════════════════════\n\n`;
-    data+=`📅 Date Scanned   : ${esc(h.date)}\n📊 Total Numbers  : ${h.total}\n✅ Registered     : ${h.reg}\n💼 Business Accs  : ${h.isBiz||0}\n❌ Unregistered   : ${h.unreg}\n`;
+    let data=`════════════════════════════════════════\n   WS CHECKER v6 — HISTORY LOG\n════════════════════════════════════════\n\n`;
+    data+=`Date Scanned   : ${esc(h.date)}\nTotal Numbers  : ${h.total}\nRegistered     : ${h.reg}\nBusiness Accs  : ${h.isBiz||0}\nUnregistered   : ${h.unreg}\n`;
     let blob=new Blob(['\ufeff',data],{type:'text/plain;charset=utf-8'}); let url=window.URL.createObjectURL(blob);
     let a=document.createElement('a'); a.href=url; a.download=`HistoryLog_${USER_ID}_Scan_${idx+1}.txt`; a.click(); window.URL.revokeObjectURL(url);
 }
@@ -2029,7 +2085,7 @@ function dlHist(idx){
    FEATURE PACK: Retry, Lists, Jobs, Templates, Files, Admin Tools
    ============================================================ */
 async function retryFailedNumbers(){ if(!failedNums.length) return toast('No failed numbers to retry','error'); setVal('numbers-input',failedNums.join('\n')); updateNumberPreview(); switchTab('tab-check'); toast(`Loaded ${failedNums.length} failed numbers`,'success'); }
-async function saveCurrentList(){ const {nums}=normalizeInputNumbers(); if(!nums.length) return toast('No numbers to save','error'); const name=getVal('list-name')||`List ${new Date().toLocaleString()}`; try{ const r=await apiFetch('/api/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,numbers:nums,description:getVal('list-desc')})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed'); toast('List saved','success'); fetchLists(); }catch(e){toast('❌ '+e.message,'error');} }
+async function saveCurrentList(){ const {nums}=normalizeInputNumbers(); if(!nums.length) return toast('No numbers to save','error'); const name=getVal('list-name')||`List ${new Date().toLocaleString()}`; try{ const r=await apiFetch('/api/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,numbers:nums,description:getVal('list-desc')})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed'); toast('List saved','success'); fetchLists(); }catch(e){toast(e.message,'error');} }
 let savedListsCache=[];
 async function fetchLists(){
   try{ const r=await apiFetch('/api/lists'); const d=await r.json(); if(!d.ok) return; savedListsCache=d.lists||[];
@@ -2039,10 +2095,10 @@ async function fetchLists(){
 function loadSavedList(id){ const l=savedListsCache.find(x=>x.id===id); if(!l) return; setVal('numbers-input',l.numbers.join('\n')); updateNumberPreview(); switchTab('tab-check'); }
 async function deleteList(id){ if(!confirm('Delete this list?')) return; try{await apiFetch(`/api/lists/${id}`,{method:'DELETE'}); fetchLists();}catch(e){} }
 async function fetchJobs(){ try{ const r=await apiFetch('/api/jobs'); const d=await r.json(); if(!d.ok) return; const queued=(d.queued||[]).map((j,i)=>`<div class="list-item"><div><b>Queued #${i+1}</b><br>${j.numbers?.length||0} numbers | ${esc(j.queuedAt)}</div><span class="pill">Waiting</span></div>`).join(''); const jobs=(d.jobs||[]).map(j=>`<div class="list-item"><div><b>${esc(j.status||'Job')}</b><br>UID ${j.uid} | ${j.checked||0}/${j.total||0} | Remaining ${(j.remaining||[]).length}<br>${esc(j.updatedAt||'')}</div><button class="btn btn-primary btn-sm" onclick="resumeLastJob()">Resume</button></div>`).join(''); setHTML('jobs-list', queued+jobs || 'No jobs found.'); }catch(e){} }
-async function saveTemplate(){ try{ const r=await apiFetch('/api/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:getVal('tpl-name')||'Template',speed:getVal('tpl-speed'),deepScan:document.getElementById('tpl-deep')?.checked})}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); toast('Template saved','success'); fetchTemplates(); }catch(e){toast('❌ '+e.message,'error');} }
-async function fetchTemplates(){ try{ const r=await apiFetch('/api/templates'); const d=await r.json(); if(!d.ok) return; setHTML('templates-box', d.templates.length?d.templates.map(t=>`<div class="list-item"><div><b>${esc(t.name)}</b><br><span class="pill">${esc(t.speed)}</span> <span class="pill">Deep: ${t.deepScan?'yes':'no'}</span></div><button class="btn btn-primary btn-sm" onclick="setVal('scan-speed','${escAttr(t.speed)}');document.getElementById('deep-scan').checked=${!!t.deepScan};switchTab('tab-check')">Use</button></div>`).join(''):'No templates.'); }catch(e){} }
+async function saveTemplate(){ try{ const r=await apiFetch('/api/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:getVal('tpl-name')||'Template',speed:getVal('tpl-speed'),deepScan:document.getElementById('tpl-deep')?.checked})}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); toast('Template saved','success'); fetchTemplates(); }catch(e){toast(e.message,'error');} }
+async function fetchTemplates(){ try{ const r=await apiFetch('/api/templates'); const d=await r.json(); if(!d.ok) return; setHTML('templates-box', d.templates.length?d.templates.map(t=>`<div class="list-item"><div><b>${esc(t.name)}</b><br><span class="pill">${esc(({safe:'Safe',balanced:'Balanced',fast:'Fast',beast:'Max'})[t.speed]||t.speed)}</span> <span class="pill">Deep: ${t.deepScan?'yes':'no'}</span></div><button class="btn btn-primary btn-sm" onclick="setVal('scan-speed','${escAttr(t.speed)}');document.getElementById('deep-scan').checked=${!!t.deepScan};switchTab('tab-check')">Use</button></div>`).join(''):'No templates.'); }catch(e){} }
 async function fetchFiles(){ try{ const r=await apiFetch('/api/files'); const d=await r.json(); if(d.ok) setHTML('files-box', d.files.length?d.files.map(f=>`<div class="list-item"><div>${esc(f.name||f.id)}</div></div>`).join(''):'No saved files yet.'); }catch(e){} }
-async function shareCurrentResults(){ try{ const r=await apiFetch('/api/share-result',{method:'POST'}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setHTML('share-box',`Share link: <b>${esc(location.origin+d.url)}</b> <button class="btn-icon copy-mini" onclick="copyText('${escAttr(location.origin+d.url)}','Share link copied')">📋</button>`); }catch(e){toast('❌ '+e.message,'error');} }
+async function shareCurrentResults(){ try{ const r=await apiFetch('/api/share-result',{method:'POST'}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setHTML('share-box',`Share link: <b>${esc(location.origin+d.url)}</b> <button class="btn-icon copy-mini" onclick="copyText('${escAttr(location.origin+d.url)}','Share link copied')">${icMark('copy')}</button>`); }catch(e){toast(e.message,'error');} }
 async function testWebhook(){ try{ const r=await apiFetch('/api/webhook/test',{method:'POST'}); const d=await r.json(); toast(d.ok?'Webhook OK':'Webhook failed',d.ok?'success':'error'); fetchWebhookLogs(); }catch(e){toast('Webhook test failed','error');} }
 async function fetchForceJoinSettings(){ try{ const r=await apiFetch('/api/force-join'); const d=await r.json(); if(!d.ok) return; const s=d.settings||{}; setVal('fj-enabled',String(!!s.enabled)); setVal('fj-channels',(s.channels||[]).map(c=>`${c.title||''}|${c.chatId||''}|${c.url||''}`).join('\n')); setHTML('forcejoin-box',`<pre>${esc(JSON.stringify(d,null,2))}</pre>`); }catch(e){} }
 async function saveForceJoinSettings(){ try{ const lines=getVal('fj-channels').split(/\n+/).map(x=>x.trim()).filter(Boolean); const channels=lines.map(line=>{const [title,chatId,url]=line.split('|'); return {title:title||chatId,chatId,url};}); const r=await apiFetch('/api/admin/force-join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:getVal('fj-enabled')==='true',channels})}); const d=await r.json(); toast(d.ok?'Force join saved':'Failed',d.ok?'success':'error'); fetchForceJoinSettings(); }catch(e){toast('Force join save failed','error')} }
@@ -2056,7 +2112,7 @@ async function fetchAuditLogsFull(){ const r=await apiFetch('/api/admin/audit');
 function renderAuditLogs(){ const q=(getVal('audit-search')||'').toLowerCase(); const logs=auditCache.filter(x=>JSON.stringify(x).toLowerCase().includes(q)); setHTML('audit-full-box', logs.length?logs.map(x=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(x.action)}</b> <span class="pill">Actor ${esc(x.actor)}</span><br>${esc(x.ts)} | Target: ${esc(x.target)}<br><small>${esc(JSON.stringify(x.details||{}))}</small></div></div>`).join(''):'No audit logs found.'); }
 async function fetchPlans(){ const r=await apiFetch('/api/admin/plans'); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d.plans,null,2))}</pre>`); }
 async function fetchVouchers(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d.vouchers,null,2))}</pre>`); }
-async function fetchVoucherManager(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); const entries=Object.entries(d.vouchers||{}); setHTML('voucher-manager-box', entries.length?entries.map(([code,v])=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(code)}</b><br><span class="pill">${esc(v.type)}</span> <span class="pill">${esc(v.days)} days</span> <span class="pill">Uses left: ${esc(v.uses)}</span><br>Used by: ${(v.usedBy||[]).map(esc).join(', ')||'none'}</div><div style="display:flex;gap:6px"><button class="btn-icon copy-mini" onclick="copyText('${escAttr(code)}','Voucher copied')">📋</button><button class="btn btn-danger btn-sm" onclick="disableVoucher('${escAttr(code)}')">Disable</button></div></div>`).join(''):'No vouchers yet.'); }
+async function fetchVoucherManager(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); const entries=Object.entries(d.vouchers||{}); setHTML('voucher-manager-box', entries.length?entries.map(([code,v])=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(code)}</b><br><span class="pill">${esc(v.type)}</span> <span class="pill">${esc(v.days)} days</span> <span class="pill">Uses left: ${esc(v.uses)}</span><br>Used by: ${(v.usedBy||[]).map(esc).join(', ')||'none'}</div><div style="display:flex;gap:6px"><button class="btn-icon copy-mini" onclick="copyText('${escAttr(code)}','Voucher copied')">${icMark('copy')}</button><button class="btn btn-danger btn-sm" onclick="disableVoucher('${escAttr(code)}')">Disable</button></div></div>`).join(''):'No vouchers yet.'); }
 async function genVoucherManager(){ try{ const bulk=Number(getVal('vm-bulk')||1); const exp=getVal('vm-expiry')?new Date(getVal('vm-expiry')).getTime():null; const endpoint=bulk>1?'/api/admin/vouchers/bulk':'/api/admin/voucher'; const body=bulk>1?{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),uses:Number(getVal('vm-count')||1),count:bulk,expiresAt:exp}:{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),count:Number(getVal('vm-count')||1),expiresAt:exp}; const r=await apiFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setTxt('vm-result',d.code||`${d.codes.length} codes generated`); fetchVoucherManager(); }catch(e){toast('Voucher failed','error')} }
 function exportVouchersCSV(){ window.open('/api/admin/vouchers-export','_blank'); }
 async function disableVoucher(code){ await apiFetch(`/api/admin/vouchers/${encodeURIComponent(code)}/disable`,{method:'POST'}); fetchVoucherManager(); }
@@ -2091,12 +2147,12 @@ document.addEventListener('keydown',e=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowe
    ============================================================ */
 async function reqPairing(){
     const phone=getVal('pair-phone'); if(!phone) return toast("Enter Phone","error");
-    const btn=document.getElementById('btn-pair'); if(btn){btn.innerText='⏳ GENERATING...'; btn.disabled=true;}
+    const btn=document.getElementById('btn-pair'); if(btn){btn.innerHTML=icMark('clock')+' '+'GENERATING...'; btn.disabled=true;}
     try{
         const r=await apiFetch('/api/add-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID,phone})});
-        const d=await r.json(); if(btn){btn.innerText='📡 GENERATE PAIRING CODE'; btn.disabled=false;}
-        if(d.ok){setTxt('pair-result',d.code); setDisplay('pair-result','block'); toast("Code Generated","success");}else toast('❌ '+d.error,'error');
-    } catch(e){ if(btn){btn.disabled=false; btn.innerText='📡 GENERATE PAIRING CODE';} toast("Network Error","error"); }
+        const d=await r.json(); if(btn){btn.innerHTML=icMark('wifi')+' '+langTxt('gen_pairing'); btn.disabled=false;}
+        if(d.ok){setTxt('pair-result',d.code); setDisplay('pair-result','block'); toast("Code Generated","success");}else toast(d.error,'error');
+    } catch(e){ if(btn){btn.disabled=false; btn.innerHTML=icMark('wifi')+' '+langTxt('gen_pairing');} toast("Network Error","error"); }
 }
 
 async function buyPrem(){ try{await apiFetch('/api/premium-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Request Sent','success'); }
@@ -2116,7 +2172,7 @@ async function saveWebhook(){
       const r=await apiFetch('/api/user/set-webhook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({webhook:url})});
       const d=await r.json(); if(!d.ok) throw new Error(d.message||d.error||'Failed');
       toast('Webhook Saved!','success');
-    }catch(e){ toast('❌ '+e.message,'error'); }
+    }catch(e){ toast(e.message,'error'); }
 }
 
 async function fetchSysInfo(){ try{const r=await apiFetch('/api/sysinfo'); const d=await r.json(); setTxt('sys-info-text',d.text);}catch(e){} }
@@ -2140,7 +2196,7 @@ async function clearNotifs(){ try{const url=userInfo?.isAdmin?'/api/admin/notifs
 async function fetchChats(){
     try{
         const r=await apiFetch(`/api/admin/chats/${USER_ID}`); const d=await r.json();
-        if(d.ok){ setHTML('chat-user-list',d.chats.map(c=>`<div id="chat-list-${escAttr(c.uid)}" class="list-item" style="cursor:pointer;" onclick="openChat('${escAttr(c.uid)}','${escAttr(c.name)}')"><div><b style="color:#fff; font-size:12px;">👤 ${esc(c.name)}</b> <br><span style="color:var(--text2); font-size:10px;">${esc((c.last?.text||'Chat').substring(0,30))}...</span></div></div>`).join('')); if(d.chats.length>0&&!activeChatUid) openChat(d.chats[0].uid,d.chats[0].name); }
+        if(d.ok){ setHTML('chat-user-list',d.chats.map(c=>`<div id="chat-list-${escAttr(c.uid)}" class="list-item" style="cursor:pointer;" onclick="openChat('${escAttr(c.uid)}','${escAttr(c.name)}')"><div><b style="color:#fff; font-size:12px;">${esc(c.name)}</b> <br><span style="color:var(--text2); font-size:10px;">${esc((c.last?.text||'Chat').substring(0,30))}...</span></div></div>`).join('')); if(d.chats.length>0&&!activeChatUid) openChat(d.chats[0].uid,d.chats[0].name); }
     } catch(e){}
 }
 function openChat(uid,name){
@@ -2171,7 +2227,7 @@ async function fetchSessions(){
     if(!userInfo?.isAdmin) return;
     try{
         const r=await apiFetch(`/api/status?uid=${USER_ID}`); const d=await r.json();
-        if(d.ok&&d.sessions){ setHTML('admin-sess-list',d.sessions.length?d.sessions.map(s=>`<div class="list-item" style="padding:10px;"><div><b style="color:#fff;">📱 ${esc(String(s.id||'').substring(0,10))}...</b> <span style="font-size:9px; color:${s.status==='Connected'?'var(--accent)':'var(--accent3)'};">[${esc(s.status)}]</span><br><span style="color:var(--text2); font-size:10px;">Owner: ${esc(s.owner)} | Type: ${esc(String(s.type||'').toUpperCase())} | Proxy: ${esc(s.proxy||'none')}</span></div><button class="btn btn-danger btn-sm" onclick="delSess('${escAttr(s.id)}')">🗑️</button></div>`).join(''):"<div style='text-align:center; padding:10px;'>No active nodes.</div>"); }
+        if(d.ok&&d.sessions){ setHTML('admin-sess-list',d.sessions.length?d.sessions.map(s=>`<div class="list-item" style="padding:10px;"><div><b style="color:#fff;">${esc(String(s.id||'').substring(0,10))}...</b> <span style="font-size:9px; color:${s.status==='Connected'?'var(--accent)':'var(--accent3)'};">[${esc(s.status)}]</span><br><span style="color:var(--text2); font-size:10px;">Owner: ${esc(s.owner)} | Type: ${esc(String(s.type||'').toUpperCase())} | Proxy: ${esc(s.proxy||'none')}</span></div><button class="btn btn-danger btn-sm" onclick="delSess('${escAttr(s.id)}')">${icMark('trash')}</button></div>`).join(''):"<div style='text-align:center; padding:10px;'>No active nodes.</div>"); }
     } catch(e){}
 }
 async function delSess(sid){ try{await apiFetch('/api/admin/del_session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID,sessionId:sid})});}catch(e){} toast('Session deleted','success'); fetchSessions(); fetchSysStatus(); }
@@ -2195,7 +2251,7 @@ async function setSystemMode(){
       const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed');
       userInfo.systemMode=d.systemMode; userInfo.isFreeMode=d.systemMode==='free'; userInfo.isPro=userInfo.isFreeMode||userInfo.isPro;
       toast(`System mode: ${d.systemMode.toUpperCase()}`,'success'); fetchAdminStats();
-    }catch(e){ toast('❌ '+e.message,'error'); }
+    }catch(e){ toast(e.message,'error'); }
 }
 
 async function autoSetupRun(){
@@ -2203,15 +2259,15 @@ async function autoSetupRun(){
     const r=await apiFetch('/api/admin/auto-setup',{method:'POST'});
     const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed');
     const s=document.getElementById('autosetup-status');
-    if(s){ s.textContent = d.whitelistPending
-      ? '🟡 Domain not allow-listed yet: add it in @BotFather → Bot Settings → Domain, then RUN SETUP again'
-      : '🟢 Applied automatically. Mini App: ' + (d.appLink||''); }
+    if(s){ s.innerHTML = d.whitelistPending
+      ? '<svg class=\"ic\" aria-hidden=\"true\" style=\"width:10px;height:10px;color:var(--accent-gold)\"><use href=\"#i-dot\"></use></svg> Domain not allow-listed yet: add it in @BotFather → Bot Settings → Domain, then RUN SETUP again'
+      : '<svg class=\"ic\" aria-hidden=\"true\" style=\"width:10px;height:10px;color:var(--accent)\"><use href=\"#i-dot\"></use></svg> Applied automatically. Mini App: ' + esc(d.appLink||''); }
     toast(d.whitelistPending?'Auto-setup ran — whitelist domain needed':'Auto-setup complete','success');
-  }catch(e){ toast('❌ '+e.message,'error'); }
+  }catch(e){ toast(e.message,'error'); }
 }
 async function warmupNodes(){
     toast("Pinging Network...","info");
-    try{const r=await apiFetch('/api/admin/warmup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID})}); const d=await r.json(); toast(d.ok?`${d.sent} Pings Sent!`:`❌ ${d.msg}`,d.ok?'success':'error');}catch(e){toast("Network Error","error");}
+    try{const r=await apiFetch('/api/admin/warmup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminUid:USER_ID})}); const d=await r.json(); toast(d.ok?`${d.sent} Pings Sent!`:`${d.msg}`,d.ok?'success':'error');}catch(e){toast("Network Error","error");}
 }
 
 async function genVoucher(){
@@ -2249,7 +2305,7 @@ async function fetchAllUsers(){
     try{
         const r=await apiFetch(`/api/admin/users/${USER_ID}`); const d=await r.json(); if(!d.ok) return;
         allUsersData=d.users; let h="";
-        Object.keys(d.users).forEach(id=>{ let u=d.users[id]; let b=d.admins.includes(Number(id))?"👑":(d.vips.includes(Number(id))?"🔥":(d.subs.includes(Number(id))?"💎":"")); h+=`<div class="list-item"><div><b style="color:#fff;">${esc(id)}</b> ${b}</div> <div style="color:var(--text2);">@${esc(u.username||'N/A')} - ${esc(u.name)}</div></div>`; });
+        Object.keys(d.users).forEach(id=>{ let u=d.users[id]; let b=d.admins.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent-gold)"><use href="#i-crown"></use></svg>':(d.vips.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent)"><use href="#i-flame"></use></svg>':(d.subs.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent2)"><use href="#i-gem"></use></svg>':'')); h+=`<div class="list-item"><div><b style="color:#fff;">${esc(id)}</b> ${b}</div> <div style="color:var(--text2);">@${esc(u.username||'N/A')} - ${esc(u.name)}</div></div>`; });
         setHTML('admin-users-list',h||"No users.");
     } catch(e){}
 }
@@ -2271,7 +2327,7 @@ async function renderPublicShare(){
     const res=d.share.results||{}; sharedNums=[...(res.reg||[]).map(x=>x.num||x),...(res.unreg||[]),...(res.failed||[])];
     setDisplay('auth-panel','block');
     setHTML('auth-panel',`<div class="auth-title">Shared <span>Results</span></div><div class="auth-box" style="max-width:850px;margin:auto"><h3 style="color:var(--accent)">Summary</h3><p style="font-family:'Space Mono';color:var(--text2)">Registered: ${(res.reg||[]).length} | Unregistered: ${(res.unreg||[]).length} | Failed: ${(res.failed||[]).length}</p><button class="btn btn-primary" onclick="copyText(sharedNums.join('\n'),'Shared numbers copied')">Copy All</button><div class="result-list" style="height:420px;margin-top:15px">${sharedNums.slice(0,300).map((n,i)=>`<div class="list-item"><b>${i+1}</b><span>${esc(n)}</span></div>`).join('')}</div></div>`);
-  }catch(e){ setHTML('auth-panel',`<div class="auth-box">❌ Share not found or expired.</div>`); }
+  }catch(e){ setHTML('auth-panel',`<div class="auth-box" style="display:flex;gap:8px;align-items:center;justify-content:center;color:var(--accent3);"><svg class="ic" aria-hidden="true"><use href="#i-alert"></use></svg><span>Share not found or expired.</span></div>`); }
 }
 
 
@@ -2294,7 +2350,7 @@ window.onload=()=>{
     if(localStorage.getItem('blaze_uid')) setVal('inp-uid',localStorage.getItem('blaze_uid'));
     const inTelegram = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
     if(inTelegram){
-      // 🛜 Mini App: the web session must ALWAYS belong to the CURRENT Telegram
+      // Mini App: the web session must ALWAYS belong to the CURRENT Telegram
       // account. Re-authenticate with this launch's signed initData so that
       // switching to a second Telegram account never inherits the previous
       // account's cookie/localStorage session (account isolation).
