@@ -575,6 +575,62 @@ body.high-contrast { --border: #7c8a99; --text: #ffffff; --text2: #dde4ec; --bg:
     .modal { padding: 18px; }
 }
 
+
+/* ============================================================
+   WS CHECKER v6 — Mobile experience pass
+   ============================================================ */
+@media (max-width: 1024px) {
+    /* sticky topbar that never collides with the nav strip */
+    header { position: relative; }
+    #main-nav.nav-bar { position: sticky; top: 0; z-index: 96; border-radius: 12px; }
+    #main-nav .nav-item { min-height: 42px; }
+    /* prevent iOS auto-zoom when focusing fields */
+    .input-txt, textarea, select, .mini-input, .auth-box input, #cmd-input { font-size: 16px; }
+    .btn { max-width: 100%; }
+    .card { padding: 16px; }
+    .grid-2, .pro-grid { grid-template-columns: 1fr; }
+    .chat-input-area { flex-wrap: wrap; }
+    .chat-input-area .input-txt { flex: 1 1 100%; }
+    .chat-input-area .btn { width: auto; flex: 0 0 auto; }
+    .result-tab-item .btn { min-height: 50px; }
+}
+@media (max-width: 700px) {
+    .stat-val { font-size: 19px; }
+    .dash-card-grid { gap: 10px; }
+    .stat-box { padding: 13px 12px; }
+    .stat-label { font-size: 9px; }
+    .logo-text { font-size: 17px; }
+    .logo-sub { letter-spacing: 1.6px; }
+    .result-tab-item .btn { min-height: 54px; font-weight: 700; }
+    .hero-card { padding: 22px; }
+    .feature-card { font-size: 12.5px; }
+    .modal { padding: 18px; }
+    .user-info { padding: 14px; }
+    .badge-pro { margin-left: 0; }
+    .grid-2 { gap: 12px; }
+    #notif-dropdown { right: 10px; width: calc(100vw - 20px); }
+    .bot-console, pre.bot-console { font-size: 11px; padding: 12px; }
+    .list-item { padding: 10px 11px; flex-wrap: wrap; }
+    .mini-toolbar { grid-template-columns: 1fr; }
+    .pro-side { padding: 12px; }
+    /* long words / urls never push the page sideways */
+    .card, .stat-box, .pro-side, .user-info { overflow-wrap: anywhere; min-width: 0; }
+    .tab-section { padding-top: 12px; }
+}
+/* RTL safety for the fixed sidebar */
+[dir="rtl"] .shell { padding-left: 20px; }
+@media (min-width: 1025px) {
+    [dir="rtl"] .shell { padding-left: 20px; padding-right: 272px; }
+    [dir="rtl"] #main-nav.nav-bar { left: auto; right: 16px; }
+}
+
+@media (max-width: 700px) {
+    /* never let inline flex rows overflow a phone screen */
+    #app-container div[style*="display:flex"], .shell div[style*="display:flex"] { flex-wrap: wrap; }
+    #app-container div[style*="display:flex"] > .input-txt,
+    #app-container div[style*="display:flex"] > select { flex: 1 1 150px; }
+    #sys-info-text { overflow-x: auto; }
+}
 </style>
 </head>
 <body>
