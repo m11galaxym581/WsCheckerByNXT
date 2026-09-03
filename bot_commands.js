@@ -124,7 +124,7 @@ module.exports = (bot) => {
     // auto-fallback: the same menu with web_app buttons replaced by normal
     // URL buttons pointing at t.me/<bot>/app (always works).
     const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
-    const appDeepLink = () => state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : (config.MENU_BUTTON_URL || config.DASHBOARD_URL);
+    const appDeepLink = () => state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app?mode=fullscreen` : (config.MENU_BUTTON_URL || config.DASHBOARD_URL);
     // Pre-whitelist fallback: t.me/<bot>/app is dead until the menu button is
     // stored, so fall back to the dashboard URL itself (opens in Telegram's
     // browser where ID+password login still works).
@@ -176,7 +176,7 @@ module.exports = (bot) => {
 
         // Mini App deep link (t.me/<bot>/app) — auto-login inside Telegram.
         const miniAppLine = state.BOT_INFO?.username
-            ? `┣ 🛜 *Mini App:* t.me/${state.BOT_INFO.username}/app\n`
+            ? `┣ 🛜 *Mini App:* t.me/${state.BOT_INFO.username}/app?mode=fullscreen\n`
             : "";
 
         const welcomeText =
@@ -200,7 +200,7 @@ module.exports = (bot) => {
     bot.onText(/\/app/, async (msg) => {
         const uid = msg.from.id;
         const url = dashboardUrl();
-        const link = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : url;
+        const link = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app?mode=fullscreen` : url;
         const ready = !!(state.autoSetup && state.autoSetup.webAppReady !== false && state.autoSetup.menuButtonActive);
         const body = ready
             ? `Tap below to open the full dashboard inside Telegram — you are logged in *automatically* (no password needed).`
@@ -261,7 +261,7 @@ module.exports = (bot) => {
 
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
-        L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app` : "username unknown"}`);
+        L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app?mode=fullscreen` : "username unknown"}`);
         L.push(`\n💡 Mini Apps sirf *Telegram app ke andar* khulte hain — browser/web me nahi.`);
         const finalText = L.join("\n");
         if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));

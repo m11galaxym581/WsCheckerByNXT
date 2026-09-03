@@ -187,7 +187,9 @@ The bot ships as a **Telegram Mini App**, exactly like a "web URL synced" bot:
 - The main menu shows an **"🛜 Open Web App"** inline button.
 - Both launch the dashboard (`DASHBOARD_URL`, must be HTTPS) inside Telegram.
 - The deep link **`https://t.me/<botusername>/app`** works too — share it like:
-  `https://t.me/<yourbot>/app?mode=fullscreen`.
+  `https://t.me/<yourbot>/app?mode=fullscreen` (fullscreen launch, Study_Ratna style).
+- Inside Telegram the page calls `WebApp.requestFullscreen()` (+`expand()`
+  fallback), so the dashboard fills the whole screen like a native app.
 
 **Auto login (no password):** when the dashboard opens inside Telegram, the page
 reads `Telegram.WebApp.initData` (signed by Telegram) and POSTs it to
