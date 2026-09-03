@@ -227,7 +227,7 @@ module.exports = (bot) => {
 
         if (data === "gen_web_pass") {
             const pass = generateWebPass(uid);
-            const miniApp = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app?mode=fullscreen` : config.DASHBOARD_URL;
+            const miniApp = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : config.DASHBOARD_URL;
             return safeEdit(`╭━━━━[ 🔐 *𝗪𝗘𝗕 𝗗𝗔𝗦𝗛𝗕𝗢𝗔𝗥𝗗* ]━━━━╮\n┣ 🆔 *User ID:* \`${uid}\`\n┣ 🔑 *Password:* \`${pass}\`\n┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n┣ 💡 Login at the Web URL to use Drag & Drop.\n┣ 🛜 *Auto-Login (inside Telegram):*\n┣    ${miniApp}\n┣    No password needed when opened from Telegram\n┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main", "🔙 Back"));
         }
 

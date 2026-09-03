@@ -29,7 +29,7 @@ state.autoSetup = state.autoSetup || { ran: false, at: null, results: {}, summar
 function appUrl() { return config.MENU_BUTTON_URL || config.DASHBOARD_URL; }
 
 function appLink() {
-    return state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app?mode=fullscreen` : appUrl();
+    return state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : appUrl();
 }
 
 // Friendly one-line summary of a single step result.
@@ -160,7 +160,7 @@ async function runAutoSetup(bot) {
             const me = results.getMe.ok ? results.getMe.res : null;
             await bot.sendMessage(config.OWNER_ID,
                 `╭━━━[ ⚙️ *𝗔𝗨𝗧𝗢-𝗦𝗘𝗧𝗨𝗣 𝗥𝗘𝗣𝗢𝗥𝗧* ]━━━╮\n` +
-                `┣ 🛜 *Mini App:* ${me ? `t.me/${me.username}/app?mode=fullscreen` : url}\n` +
+                `┣ 🛜 *Mini App:* ${me ? `t.me/${me.username}/app` : url}\n` +
                 `┣ 🌐 *Domain:* ${url.split("/")[2] || url}\n` +
                 `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
                 `┣ ${results.menuButtonActive ? "🟢 All bot settings applied automatically." : "🟡 Menu button pending — whitelist domain in @BotFather, then send /autosetup"}\n` +

@@ -51,7 +51,7 @@ async function main() {
     assert.strictEqual(r1.ran, true);
     assert.strictEqual(r1.menuButtonActive, true, "menu button stored & verified");
     assert.strictEqual(r1.whitelistPending, false);
-    assert.strictEqual(r1.appLink, "https://t.me/blaze_demo_bot/app?mode=fullscreen", "app link built from bot username");
+    assert.strictEqual(r1.appLink, "https://t.me/blaze_demo_bot/app", "app link built from bot username");
     assert.strictEqual(state.BOT_INFO.username, "blaze_demo_bot");
     assert.ok(r1.results.setName.ok && r1.results.setCommands.ok && r1.results.setDescription.ok);
     assert.ok(r1.summary.includes("✅"), "summary lists successes");
