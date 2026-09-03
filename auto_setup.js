@@ -104,8 +104,11 @@ async function runAutoSetup(bot) {
     }
 
     // ── 5. Verify what Telegram actually stored ───────────────
+    // getChatMenuButton returns the MenuButton object directly:
+    //   { type: 'web_app', text, web_app: { url } } | { type: 'default' }
     results.verifyMenuButton = await attempt("getChatMenuButton", () => bot.getChatMenuButton());
-    const storedType = results.verifyMenuButton.ok ? results.verifyMenuButton.res?.menu_button?.type : null;
+    const storedButton = results.verifyMenuButton.ok ? (results.verifyMenuButton.res?.menu_button || results.verifyMenuButton.res) : null;
+    const storedType = storedButton?.type || null;
     results.menuButtonActive = results.verifyMenuButton.ok && storedType === "web_app";
 
     // ── 6. Domain whitelist probe ─────────────────────────────

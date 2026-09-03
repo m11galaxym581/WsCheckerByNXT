@@ -37,7 +37,8 @@ const makeBot = (overrides = {}) => ({
     async setMyShortDescription() { return true; },
     async setMyCommands(cmds) { assert.ok(Array.isArray(cmds) && cmds.length, "commands must be an array"); return true; },
     async setChatMenuButton() { return true; },
-    async getChatMenuButton() { return { menu_button: { type: "web_app" } }; },
+    // Real Telegram API: getChatMenuButton returns the MenuButton directly.
+    async getChatMenuButton() { return { type: "web_app", text: "Open App", web_app: { url: "https://x.test" } }; },
     async sendMessage(chatId, text) { ownerMessages.push({ chatId, text }); return { message_id: ownerMessages.length }; },
     async deleteMessage() { return true; },
     ...overrides,
@@ -62,7 +63,7 @@ async function main() {
     ownerMessages = [];
     const blockedBot = makeBot({
         async setChatMenuButton() { const e = new Error("Bad Request: BUTTON_URL_INVALID"); e.description = "Bad Request: BUTTON_URL_INVALID: The domain of the URL must be added to the bot's whitelist"; throw e; },
-        async getChatMenuButton() { return { menu_button: { type: "default" } }; },
+        async getChatMenuButton() { return { type: "default" }; },
     });
     const r2 = await runAutoSetup(blockedBot);
     assert.strictEqual(r2.whitelistPending, true, "whitelist pending detected");

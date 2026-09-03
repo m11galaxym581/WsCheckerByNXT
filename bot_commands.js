@@ -125,15 +125,19 @@ module.exports = (bot) => {
     // URL buttons pointing at t.me/<bot>/app (always works).
     const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
     const appDeepLink = () => state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : (config.MENU_BUTTON_URL || config.DASHBOARD_URL);
-    const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: b.text, url: appDeepLink() } : b));
+    // Pre-whitelist fallback: t.me/<bot>/app is dead until the menu button is
+    // stored, so fall back to the dashboard URL itself (opens in Telegram's
+    // browser where ID+password login still works).
+    const dashboardUrl = () => config.MENU_BUTTON_URL || config.DASHBOARD_URL;
+    const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: "🌐 Open Dashboard", url: dashboardUrl() } : b));
 
     async function sendWithWebApp(uid, text, opts, rows) {
-        const kb = rows || [[{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }]];
+        const kb = rows || [[{ text: "🛜 Open Web App", web_app: { url: dashboardUrl() } }]];
         try {
             return await bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: kb } });
         } catch (e) {
             if (isWhitelistBlock(e)) {
-                console.warn("⚠️ [Bot] web_app button blocked (domain whitelist pending) — fell back to t.me link.");
+                console.warn("⚠️ [Bot] web_app button blocked (domain whitelist pending) — fell back to dashboard URL.");
                 return bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: withoutWebApp(kb) } });
             }
             throw e;
@@ -195,16 +199,72 @@ module.exports = (bot) => {
     // ── /app — Open the Mini App / Web App ────────────────────
     bot.onText(/\/app/, async (msg) => {
         const uid = msg.from.id;
-        const url = config.MENU_BUTTON_URL || config.DASHBOARD_URL;
+        const url = dashboardUrl();
         const link = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : url;
+        const ready = !!(state.autoSetup && state.autoSetup.webAppReady !== false && state.autoSetup.menuButtonActive);
+        const body = ready
+            ? `Tap below to open the full dashboard inside Telegram — you are logged in *automatically* (no password needed).`
+            : `The Mini App works *inside the Telegram app*. If the button does not launch yet, the domain must be allow-listed once:\n\n@BotFather → /mybots → Bot Settings → Domain → \`${new URL(url).host}\`\n\nThen send /autosetup. Meanwhile the button opens the dashboard (use 🔐 Web Login → ID + password).`;
         return sendWithWebApp(uid,
-            `🛜 *Open the Web App*\n\n` +
-            `Tap below to open the full dashboard inside Telegram — ` +
-            `you are logged in *automatically* (no password needed).\n\n` +
-            `🔗 Share link: ${link}`,
+            `🛜 *Open the Web App*\n\n${body}\n\n🔗 App link (Telegram app me kholo): ${link}`,
             { parse_mode: "Markdown" },
             [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
+    });
+
+    // ── /appcheck — Mini App diagnostics (owner/admin) ────────
+    bot.onText(/\/appcheck/, async (msg) => {
+        const uid = msg.from.id;
+        if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
+        const url = dashboardUrl();
+        let domain = url;
+        try { domain = new URL(url).host; } catch (_) {}
+        const send = (txt) => bot.sendMessage(uid, txt, { parse_mode: "Markdown" }).catch(() => {});
+        const L = [];
+        L.push(`🌐 *Mini App Diagnostics*\n`);
+        L.push(`1️⃣ *Configured URL:* \`${url}\``);
+        L.push(`   Domain to whitelist: \`${domain}\``);
+
+        // Current menu button state
+        try {
+            const mb = await bot.getChatMenuButton();
+            const btn = (mb && (mb.menu_button || mb)) || {};
+            L.push(btn.type === "web_app"
+                ? `2️⃣ *Menu button:* ✅ web_app → ${(btn.web_app && (btn.web_app.url || btn.url)) || "?"}`
+                : `2️⃣ *Menu button:* ❌ type = "${btn.type || "none"}" — /autosetup se set karo`);
+        } catch (e) { L.push(`2️⃣ *Menu button:* read failed — ${e.description || e.message}`); }
+
+        // Try applying it live
+        try {
+            await bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } });
+            L.push(`3️⃣ *Apply menu button:* ✅ done`);
+        } catch (e) {
+            const err = String(e.description || e.message || "");
+            L.push(`3️⃣ *Apply menu button:* ❌ ${err.slice(0, 180)}`);
+            if (/whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(err)) {
+                L.push(`   👉 YAHI PROBLEM HAI — @BotFather → /mybots → Bot Settings → *Domain* → \`${domain}\` daalo, phir /autosetup`);
+            }
+        }
+
+        // Is the dashboard itself reachable over HTTPS?
+        L.push(`4️⃣ *Site reachable:* checking…`);
+        const statusMsg = await send(L.join("\n"));
+        try {
+            const ctl = typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined;
+            const r = await fetch(url, { method: "GET", redirect: "follow", signal: ctl });
+            L.push(`4️⃣ *Site reachable:* ✅ HTTP ${r.status} (${(r.headers.get("content-type") || "").split(";")[0]})`);
+        } catch (e) {
+            const why = (e && (e.name === "TimeoutError" || e.name === "AbortError")) ? "timeout (12s)" : (e.cause && e.cause.message) || e.message || String(e);
+            L.push(`4️⃣ *Site reachable:* ❌ ${why}`);
+            L.push(`   👉 Railway URL up hai? Custom domain hai toh DNS/SSL check karo.`);
+        }
+
+        let uname = state.BOT_INFO?.username;
+        if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
+        L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app` : "username unknown"}`);
+        L.push(`\n💡 Mini Apps sirf *Telegram app ke andar* khulte hain — browser/web me nahi.`);
+        const finalText = L.join("\n");
+        if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));
     });
 
     // ── /autosetup — Re-run server-side auto-setup (owner) ────

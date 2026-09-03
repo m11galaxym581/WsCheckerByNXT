@@ -795,6 +795,10 @@ Proxy help: create proxies.txt and enable from /proxies.</div></div></div>
   </div>
 </div>
 
+<!-- Telegram Mini App bridge. Telegram injects this automatically in most
+     clients; loading it explicitly makes WebApp + initData available reliably
+     in every Telegram WebView (it is a no-op when already injected). -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 /* ============================================================
    i18n — MULTI-LANGUAGE SYSTEM
@@ -1335,7 +1339,11 @@ async function hydrateSession(){
     hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
     switchTab(safeInitialTab(), null, false); fetchSysStatus(); if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
     welcomeVoice(); return true;
-  } catch(e){ localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); AUTH_TOKEN=''; CSRF_TOKEN=''; showInitialPublicPage(); return false; }
+  } catch(e){ localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_csrf'); localStorage.removeItem('blaze_uid'); AUTH_TOKEN=''; CSRF_TOKEN='';
+    // Inside Telegram with a stale/expired web session → re-authenticate via the
+    // signed initData instead of dropping the user on the login page.
+    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return tgAutoLogin();
+    showInitialPublicPage(); return false; }
 }
 
 

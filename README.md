@@ -479,6 +479,31 @@ Check the environment variable / `.env`:
 TG_TOKEN=...
 ```
 
+### Mini App does not start (`t.me/<bot>/app` shows nothing)
+Two causes, in order of likelihood:
+
+1. **Domain not allow-listed** — Telegram only opens Mini Apps whose domain is
+   whitelisted per-bot in @BotFather (`/mybots` → Bot Settings → Domain). Until
+   then the menu button cannot be stored and `/app` has nothing to launch.
+   Check with the owner command **`/appcheck`** — it reports the exact domain,
+   the current menu button, and tests your dashboard URL live.
+2. **Opened from a browser** — Mini Apps only run inside the Telegram apps
+   (mobile/desktop). From a web browser `t.me/<bot>/app` cannot launch the app.
+3. **URL mismatch** — the domain allow-listed in BotFather must exactly match
+   `DASHBOARD_URL`/`MENU_BUTTON_URL` (scheme + host). If you whitelist a custom
+   domain, set `DASHBOARD_URL=https://yourcustom.com` explicitly (Railway's
+   auto-detected `*.up.railway.app` domain would otherwise be used).
+
+### Mini App opens but auto-login fails / shows login page
+- Make sure it was opened **inside Telegram** (`Telegram.WebApp.initData` only
+  exists there). A plain browser tab never gets initData → password login only.
+- The page loads Telegram's `telegram-web-app.js` bridge and falls back to
+  `tg-auth` whenever an old web session expires — a stale cookie is not the
+  cause. Run `/appcheck`; if everything is green but login still fails, open
+  the app again from the menu button (fresh initData).
+- Bot tokens rotate → if `TG_TOKEN` in the environment was changed after a
+  deploy, restart the service so the new token is used for signature checks.
+
 ### App still uses users.json instead of Postgres
 - Confirm `DATABASE_URL` is set on the app service (Railway: add a PostgreSQL
   service to the project — the variable is injected automatically, check the

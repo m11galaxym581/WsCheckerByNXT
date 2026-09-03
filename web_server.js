@@ -305,7 +305,7 @@ function startServer(bot) {
     // ── 🚧 MAINTENANCE MIDDLEWARE ───────────────────────────────────
     app.use((req, res, next) => {
         const db = getDB();
-        const publicDuringMaintenance = req.path === "/" || req.path.includes('/api/login') || req.path.includes('/api/status') || req.path.includes('/api/sysinfo');
+        const publicDuringMaintenance = req.path === "/" || req.path.includes('/api/login') || req.path.includes('/api/tg-auth') || req.path.includes('/api/status') || req.path.includes('/api/sysinfo');
         if (db.meta?.maintenance && !publicDuringMaintenance && !req.path.includes('/api/admin')) {
             const user = verifyToken(readToken(req));
             if (!user || !db.admins.includes(Number(user.uid))) {
