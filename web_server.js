@@ -14,7 +14,7 @@ const crypto  = require("crypto");
 const config = require("./config");
 const { OWNER_ID, PORT, WEB_SECRET } = config;
 const { 
-    getDB, saveDB, isAdmin, isVIP, isSub, isBanned, verifyWebPass, setWebhook, setUserLang, 
+    getDB, saveDB, registerUser, isAdmin, isVIP, isSub, isBanned, verifyWebPass, setWebhook, setUserLang, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
     banUser, unbanUser, addAdmin, removeAdmin, 
     getStats, generateApiKey, getUidByApiKey, 
@@ -24,6 +24,35 @@ const {
 const { warmupNodes, deleteSession, startSession, requestPairingCode } = require("./whatsapp");
 const state = require("./state");
 const proxyManager = require("./proxy_manager");
+
+// ── Telegram Mini App initData verifier (auto-login) ─────────
+// Validates initData signed by Telegram using the bot token.
+// Docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+function verifyTelegramInitData(initData, botToken) {
+    try {
+        const params = new URLSearchParams(String(initData || ""));
+        const hash = params.get("hash");
+        if (!hash) return null;
+        params.delete("hash");
+        const checkString = [...params.entries()]
+            .map(([k, v]) => `${k}=${v}`)
+            .sort()
+            .join("\n");
+        const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+        const calcHash = crypto.createHmac("sha256", secretKey).update(checkString).digest("hex");
+        const a = Buffer.from(calcHash, "hex");
+        const b = Buffer.from(hash, "hex");
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+        // Reject stale payloads (older than 24h) to prevent replays
+        const authDate = Number(params.get("auth_date") || 0);
+        if (!authDate || (Date.now() / 1000) - authDate > 86400) return null;
+        const rawUser = params.get("user");
+        if (!rawUser) return null;
+        const user = JSON.parse(rawUser);
+        if (!user || !Number(user.id)) return null;
+        return user;
+    } catch (_) { return null; }
+}
 
 function startServer(bot) {
     const app = express(); 
@@ -153,8 +182,8 @@ function startServer(bot) {
     }
     function requireCsrf(req, res, next) {
         const original = req.originalUrl || req.url || "";
-        // Login and public API-key endpoints must work before a CSRF cookie exists.
-        if (original.startsWith("/api/login") || original.startsWith("/api/v1") || original.startsWith("/api/human-challenge")) return next();
+        // Login-like endpoints must work before a CSRF cookie exists.
+        if (original.startsWith("/api/login") || original.startsWith("/api/tg-auth") || original.startsWith("/api/v1") || original.startsWith("/api/human-challenge")) return next();
         if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
         const cookies = parseCookies(req);
         const sent = req.headers['x-csrf-token'] || req.body?.csrfToken;
@@ -391,21 +420,10 @@ function startServer(bot) {
         });
     });
 
-    app.post("/api/login", async (req, res) => {
-        const { uid, password } = req.body; 
-        const db = getDB(); 
-        const nUid = Number(uid);
-        const locked = isLoginLocked(req, nUid);
-        if (locked) return res.status(429).json({ ok: false, message: `Too many login attempts. Try after ${locked}s.` });
-        const user = db.users[nUid];
-        
-        if (!user || !user.web_pass || !password || !verifyWebPass(user.web_pass, password) || user.banned) {
-            recordLoginFailure(req, nUid);
-            return res.json({ ok: false, message: "Invalid credentials or Banned." });
-        }
-        const fj = await checkForceJoin(nUid);
-        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
-        clearLoginFailures(req, nUid);
+    // Shared "session issued" handler for every successful login path.
+    // Sets the auth+CSRF cookies, records the device session and returns the
+    // full user payload the web UI expects.
+    function finalizeAuth(req, res, db, nUid, user) {
         const sid = crypto.randomBytes(12).toString("base64url");
         const token = createToken(nUid, sid);
         const csrfToken = crypto.randomBytes(16).toString("base64url");
@@ -413,9 +431,10 @@ function startServer(bot) {
         const sessions = deviceSessions.get(nUid) || [];
         sessions.unshift({ sid, ip: req.ip || req.socket.remoteAddress, ua: req.headers['user-agent'] || 'Unknown', lastLogin: new Date().toISOString() });
         deviceSessions.set(nUid, sessions.slice(0, 10));
-        
+
         res.json({ 
             ok: true, 
+            authMode: req.authMode || "password",
             csrfToken,
             user: { 
                 id: nUid, 
@@ -434,6 +453,54 @@ function startServer(bot) {
             isAdmin: db.admins.includes(nUid),
             isOwner: nUid === OWNER_ID
         });
+    }
+
+    app.post("/api/login", async (req, res) => {
+        const { uid, password } = req.body; 
+        const db = getDB(); 
+        const nUid = Number(uid);
+        const locked = isLoginLocked(req, nUid);
+        if (locked) return res.status(429).json({ ok: false, message: `Too many login attempts. Try after ${locked}s.` });
+        const user = db.users[nUid];
+        
+        if (!user || !user.web_pass || !password || !verifyWebPass(user.web_pass, password) || user.banned) {
+            recordLoginFailure(req, nUid);
+            return res.json({ ok: false, message: "Invalid credentials or Banned." });
+        }
+        const fj = await checkForceJoin(nUid);
+        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
+        clearLoginFailures(req, nUid);
+        req.authMode = "password";
+        finalizeAuth(req, res, db, nUid, user);
+    });
+
+    // ── 🛜 TELEGRAM MINI APP AUTO-LOGIN ─────────────────────────
+    // When the dashboard is opened inside Telegram (Mini App), Telegram sends
+    // signed initData (user + auth_date + hash). We verify the HMAC-SHA256
+    // signature with the bot token, auto-register the user and issue a normal
+    // web session — no web password needed inside Telegram.
+    app.post("/api/tg-auth", async (req, res) => {
+        const initData = req.body?.initData || req.body?.tg_init_data || "";
+        const tgUser = verifyTelegramInitData(initData, config.TG_TOKEN);
+        if (!tgUser) return res.status(401).json({ ok: false, message: "Telegram verification failed. Open the dashboard from the bot's Mini App." });
+
+        const nUid = Number(tgUser.id);
+        const db = getDB();
+        if (db.users[nUid]?.banned) return res.status(403).json({ ok: false, message: "Access denied." });
+
+        registerUser({
+            id: nUid,
+            first_name: tgUser.first_name || tgUser.firstName || "Telegram User",
+            username: tgUser.username || "NoUser",
+        });
+        const user = getDB().users[nUid];
+
+        const fj = await checkForceJoin(nUid);
+        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
+
+        if (state.pushUserNotification) state.pushUserNotification(nUid, "🛜 Logged in via Telegram Mini App", "info");
+        req.authMode = "telegram";
+        finalizeAuth(req, res, getDB(), nUid, user);
     });
 
 

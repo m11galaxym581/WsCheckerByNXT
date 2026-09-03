@@ -58,7 +58,9 @@ railway up
 | --- | --- | --- |
 | `TG_TOKEN` | ✅ | Telegram bot token from @BotFather |
 | `OWNER_ID` | ✅ | Your numeric Telegram user ID (owner/admin) |
-| `DASHBOARD_URL` | ⬜ | Public panel URL, e.g. `https://your-app.up.railway.app`. When unset it is auto-detected from `RAILWAY_PUBLIC_DOMAIN` |
+| `DASHBOARD_URL` | ⬜ | Public panel URL, e.g. `https://your-app.up.railway.app`. When unset it is auto-detected from `RAILWAY_PUBLIC_DOMAIN`. Must be HTTPS for the Mini App |
+| `MENU_BUTTON_TEXT` | ⬜ | Label of the Telegram Mini App menu button (default `🚀 Open App`) |
+| `MENU_BUTTON_URL` | ⬜ | Override the Mini App URL (defaults to `DASHBOARD_URL`) |
 | `WEB_SECRET` | ⬜ | Long random secret; defaults to `TG_TOKEN` |
 | `NODE_ENV` | ⬜ | Set `production` for Secure cookies (panel is HTTPS on Railway) |
 
@@ -149,19 +151,44 @@ NODE_ENV=development
 
 ## 5. Login flow
 
-Captcha/human verification has been removed.
+### 🛜 Telegram Mini App — web URL synced + auto account login
 
-Login uses:
+The bot ships as a **Telegram Mini App**, exactly like a "web URL synced" bot:
+
+- A permanent **"🚀 Open App" menu button** sits on the bot's chat input bar
+  (set at boot via `setChatMenuButton`).
+- The main menu shows an **"🛜 Open Web App"** inline button.
+- Both launch the dashboard (`DASHBOARD_URL`, must be HTTPS) inside Telegram.
+- The deep link **`https://t.me/<botusername>/app`** works too — share it like:
+  `https://t.me/<yourbot>/app?mode=fullscreen`.
+
+**Auto login (no password):** when the dashboard opens inside Telegram, the page
+reads `Telegram.WebApp.initData` (signed by Telegram) and POSTs it to
+`/api/tg-auth`. The server verifies the HMAC-SHA256 signature with the bot token
+(`secret = HMAC_SHA256("WebAppData", bot_token)`), rejects stale payloads
+(> 24h), registers the Telegram user if new, and issues the same secure auth +
+CSRF cookies used by the normal login. The user lands directly on the dashboard.
+
+One-time setup (2 minutes, required so Telegram accepts your web URL):
+
+1. Open **@BotFather** → `/mybots` → select your bot → **Bot Settings** →
+   **Domain** → send your dashboard domain (e.g. `your-app.up.railway.app`).
+2. Optional: **Bot Settings → Menu Button** → set it to your `https://` URL
+   (the app also sets it automatically at boot once the domain is whitelisted).
+
+### Password login (browser fallback)
+
+Outside Telegram (normal browser/PC) the classic login still works:
 
 - Telegram numeric user ID
-- Web password generated from bot
+- Web password generated from bot (main menu → 🔐 Web Login)
 - Secure auth cookie
 - CSRF token for protected web actions
 
 From Telegram bot:
 
 ```txt
-/start -> Login to Dashboard
+/start -> 🔐 Web Login  (or 🛜 Open Web App for auto-login)
 ```
 
 The bot gives your web password. Use that password on the dashboard login page.

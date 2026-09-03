@@ -46,6 +46,7 @@ module.exports = (bot) => {
     function mainMenu(uid) {
         const L = getUserLang(uid);
         const btns = [
+            [{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }],
             [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
             [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📱 Add Node", callback_data: "add_sess_req" }],
             [{ text: "📜 History", callback_data: "my_history" }, { text: "🌐 Language", callback_data: "language_menu" }],
@@ -146,7 +147,12 @@ module.exports = (bot) => {
 
         // Optional: Auto-delete previous message logic if requested (requires tracking msg IDs)
         // This is typically handled purely in callback_query, but text commands send new messages.
-        
+
+        // Mini App deep link (t.me/<bot>/app) — auto-login inside Telegram.
+        const miniAppLine = state.BOT_INFO?.username
+            ? `┣ 🛜 *Mini App:* t.me/${state.BOT_INFO.username}/app\n`
+            : "";
+
         return bot.sendMessage(uid,
             `╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  V4.0* ]━━━━━━╮\n` +
             `┣ 👤 *Welcome,* ${msg.from.first_name}!\n` +
@@ -157,6 +163,7 @@ module.exports = (bot) => {
             `┣ 🌐 *System Mode:* ${freeMode ? 'FREE' : 'SUBSCRIPTION'}\n` +
             `┣ 🚀 *Engine Mode:* 0-Delay Multi-Thread\n` +
             `┣ 🛡️ *Security:* Proxied Anti-Ban\n` +
+            miniAppLine +
              `┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL} \n` +
             `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`,
             { parse_mode: "Markdown", ...mainMenu(uid) }

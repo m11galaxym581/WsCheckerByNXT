@@ -414,6 +414,7 @@
       <div class="feature-card"><b>Step 1</b>Open Telegram bot and send /start</div>
       <div class="feature-card"><b>Step 2</b>Click “Login to Dashboard” to generate your web password.</div>
       <div class="feature-card"><b>Step 3</b>Return here and login with your Telegram ID + password.</div>
+      <div class="feature-card" style="border-color:var(--accent);"><b>🛜 Opened from Telegram?</b> Just tap <b>Open Web App</b> in the bot — you are logged in automatically. No password needed inside Telegram.</div>
       <button class="btn btn-primary" style="width:100%;margin-top:14px;" onclick="showLoginPage()">I Have Password — Login</button>
       <button class="btn btn-ghost" onclick="showLandingPage()" style="width:100%;margin-top:10px;">← Back</button>
     </div>
@@ -1254,27 +1255,62 @@ function copyInputNumbers(){ const {nums}=normalizeInputNumbers(); if(!nums.leng
    AUTHENTICATION & MAINTENANCE
    ============================================================ */
 
+// Shared post-auth setup for every login path (password OR Telegram Mini App).
+function applyAuthSuccess(d, uid){
+  USER_ID=String(uid); CSRF_TOKEN=d.csrfToken||''; userInfo=d;
+  localStorage.setItem('blaze_uid',USER_ID); localStorage.setItem('blaze_csrf',CSRF_TOKEN); localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_pass');
+  setTxt('prof-name',d.user.name||'User'); setTxt('prof-id','ID: '+USER_ID);
+  const badge=document.getElementById('prof-badge');
+  if(badge){ badge.textContent=badgeText(d); badge.className=d.isVIP||d.isOwner?'badge-pro badge-vip':'badge-pro'; }
+  if(d.user.lang) setLang(d.user.lang);
+  setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
+  setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
+  if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
+  setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
+  hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
+  switchTab(safeInitialTab(), null, false);
+  fetchSysStatus();
+  if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
+  toast('System Authorized','success'); welcomeVoice();
+}
+
+function tgUserFromInitData(){
+  try{
+    const tg=window.Telegram&&window.Telegram.WebApp;
+    if(!tg||!tg.initData) return null;
+    const u=JSON.parse(new URLSearchParams(tg.initData).get('user')||'null');
+    return u&&u.id?u:null;
+  }catch(e){ return null; }
+}
+
+// 🛜 TELEGRAM MINI APP AUTO-LOGIN — when the dashboard is opened inside
+// Telegram, WebApp.initData is signed by Telegram; the server verifies it
+// and issues the session. No password typing needed.
+async function tgAutoLogin(){
+  const tg=window.Telegram&&window.Telegram.WebApp;
+  if(!tg||!tg.initData) return false;
+  try{ if(tg.ready) tg.ready(); if(tg.expand) tg.expand(); }catch(e){}
+  try{
+    const r=await apiFetch('/api/tg-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData})});
+    const d=await r.json(); if(!d.ok) throw new Error(d.message||'Auth failed');
+    applyAuthSuccess(d, d.user?d.user.id:tgUserFromInitData()?.id);
+    try{ if(tg.close){} }catch(e){}
+    return true;
+  }catch(e){
+    try{ if(tg.showAlert) tg.showAlert('Auto login failed — use the ID + web password from the bot.'); }catch(_){}
+    const u=tgUserFromInitData(); if(u) setVal('inp-uid',u.id);
+    showLoginPage(); toast('❌ '+(e.message||'Auto login failed'),'error');
+    return false;
+  }
+}
+
 async function login(){
   const uid=getVal('inp-uid').trim(), pass=getVal('inp-pass').trim();
   if(!uid||!pass) return toast("Enter credentials","error");
   try{
     const r=await apiFetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid,password:pass})});
     const d=await r.json(); if(!d.ok) throw new Error(d.message);
-    USER_ID=uid; CSRF_TOKEN=d.csrfToken||''; userInfo=d;
-    localStorage.setItem('blaze_uid',uid); localStorage.setItem('blaze_csrf',CSRF_TOKEN); localStorage.removeItem('blaze_token'); localStorage.removeItem('blaze_pass');
-    setTxt('prof-name',d.user.name||'User'); setTxt('prof-id','ID: '+uid);
-    const badge=document.getElementById('prof-badge');
-    if(badge){ badge.textContent=badgeText(d); badge.className=d.isVIP||d.isOwner?'badge-pro badge-vip':'badge-pro'; }
-    if(d.user.lang) setLang(d.user.lang);
-    setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
-    setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
-    if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
-    setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
-    hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
-    switchTab(safeInitialTab(), null, false);
-    fetchSysStatus();
-    if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
-    toast('System Authorized','success'); welcomeVoice();
+    applyAuthSuccess(d, uid);
   } catch(e){ toast('❌ '+e.message,'error'); playErrorSound(); }
 }
 
@@ -1729,7 +1765,15 @@ window.onload=()=>{
 
     // Auto-resume via signed secure cookie.
     if(localStorage.getItem('blaze_uid')) setVal('inp-uid',localStorage.getItem('blaze_uid'));
-    if(CSRF_TOKEN || localStorage.getItem('blaze_uid')) hydrateSession(); else showInitialPublicPage();
+    const inTelegram = !!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData);
+    if(CSRF_TOKEN || localStorage.getItem('blaze_uid')){
+      hydrateSession();
+    } else if(inTelegram){
+      // 🛜 Opened as a Telegram Mini App → auto login (no password needed).
+      tgAutoLogin();
+    } else {
+      showInitialPublicPage();
+    }
 };
 </script>
 </body>

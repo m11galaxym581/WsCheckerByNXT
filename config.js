@@ -104,6 +104,12 @@ const config = {
     BRAND_VER: "v5.01.49",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
 
+    // ── Telegram Mini App (WebApp menu button) ────────────────
+    // DASHBOARD_URL must be HTTPS. In Telegram the domain also has to be
+    // whitelisted via @BotFather → /mybots → Bot Settings → Domain.
+    MENU_BUTTON_TEXT: env("MENU_BUTTON_TEXT", "🚀 Open App"),
+    MENU_BUTTON_URL: env("MENU_BUTTON_URL", ""), // falls back to DASHBOARD_URL
+
     // ── Platform / Storage Helpers ────────────────────────────
     DATA_ROOT,          // where all persistent state lives
     dataPath,           // resolve a filename inside DATA_ROOT
