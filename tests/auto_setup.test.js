@@ -35,10 +35,15 @@ const makeBot = (overrides = {}) => ({
     async setMyName() { return true; },
     async setMyDescription() { return true; },
     async setMyShortDescription() { return true; },
+    async getMyName() { return { name: "WS CHECKER" }; },
+    async getMyDescription() { return { description: "WhatsApp checker" }; },
+    async getMyShortDescription() { return { short_description: "Number checker" }; },
     async setMyCommands(cmds) { assert.ok(Array.isArray(cmds) && cmds.length, "commands must be an array"); return true; },
     async setChatMenuButton() { return true; },
     // Real Telegram API: getChatMenuButton returns the MenuButton directly.
     async getChatMenuButton() { return { type: "web_app", text: "Open App", web_app: { url: "https://x.test" } }; },
+    // Raw Bot API request used for setMyProfilePhoto (no wrapper in lib yet)
+    async _request(method) { if (method === "setMyProfilePhoto") return true; throw new Error("unhandled _request: " + method); },
     async sendMessage(chatId, text) { ownerMessages.push({ chatId, text }); return { message_id: ownerMessages.length }; },
     async deleteMessage() { return true; },
     ...overrides,

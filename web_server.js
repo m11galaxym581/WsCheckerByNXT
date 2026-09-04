@@ -957,6 +957,8 @@ function startServer(bot) {
             summary: s.summary || "Auto-setup has not run yet.",
             menuButtonError: s.menuButtonError || null,
             menuButtonStored: s.menuButtonStored || null,
+            profilePhotoActive: !!s.profilePhotoActive,
+            storedName: s.storedName || null,
             backend: (typeof require("./database").dbBackend === "function") ? require("./database").dbBackend() : "file",
             platform: config.isRailway ? "railway" : "other",
         });

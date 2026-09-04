@@ -142,10 +142,51 @@ async function runAutoSetup(bot) {
         }
     }
 
-    // ── 2. Name / descriptions ────────────────────────────────
-    results.setName = await withRetry("setMyName", () => bot.setMyName(config.BOT_NAME));
-    results.setDescription = await withRetry("setMyDescription", () => bot.setMyDescription(config.BOT_DESCRIPTION));
-    results.setShortDescription = await withRetry("setMyShortDescription", () => bot.setMyShortDescription(config.BOT_SHORT_DESC));
+    // ── 2. Name / about(short description) / description ─────
+    // NOTE: these wrappers pass `form` straight to the urlencoded HTTP layer,
+    // so they MUST receive the official form object ({name}, {description},
+    // {short_description}) — passing a bare string made Telegram answer
+    // "BOT_TITLE_INVALID" even though the name itself was valid.
+    results.setName = await withRetry("setMyName", () => bot.setMyName({ name: String(config.BOT_NAME).slice(0, 64) }));
+    results.setDescription = await withRetry("setMyDescription", () => bot.setMyDescription({ description: String(config.BOT_DESCRIPTION).slice(0, 512) }));
+    results.setShortDescription = await withRetry("setMyShortDescription", () => bot.setMyShortDescription({ short_description: String(config.BOT_SHORT_DESC).slice(0, 120) }));
+    // Read back what Telegram actually stored (name/description are keyed by
+    // language; omit language_code → the default language).
+    results.storedName = await attempt("getMyName", () => bot.getMyName());
+    results.storedDescription = await attempt("getMyDescription", () => bot.getMyDescription());
+    results.storedShortDescription = await attempt("getMyShortDescription", () => bot.getMyShortDescription());
+
+    // ── 2b. Profile photo (DP) via setMyProfilePhoto ──────────
+    // Bot API 8.4+ (Feb 2026): bots can change their own profile picture.
+    // Static type requires a NEW .JPG upload (file_ids can't be reused),
+    // sent as multipart: field "photo" = JSON {type:"static",
+    // photo:"attach://<name>"} plus the JPG under that attach name.
+    // node-telegram-bot-api v0.67 has no wrapper yet → raw _request.
+    const fs = require("fs");
+    const pathMod = require("path");
+    const photoPath = pathMod.join(__dirname, "assets", "bot-photo.jpg");
+    results.setProfilePhoto = { ok: false, skipped: false, error: "" };
+    if (fs.existsSync(photoPath) && bot && typeof bot._request === "function") {
+        results.setProfilePhoto = await attempt("setMyProfilePhoto", () =>
+            bot._request("setMyProfilePhoto", {
+                formData: {
+                    bot_profile_jpg: {
+                        value: fs.createReadStream(photoPath),
+                        options: { filename: "bot-photo.jpg", contentType: "image/jpeg" },
+                    },
+                    photo: JSON.stringify({ type: "static", photo: "attach://bot_profile_jpg" }),
+                },
+            })
+        );
+        if (results.setProfilePhoto.ok) {
+            console.log("✅ [AutoSetup] Bot profile photo set (assets/bot-photo.jpg)");
+        } else {
+            console.warn(`⚠️ [AutoSetup] Profile photo not set: ${String(results.setProfilePhoto.error).slice(0, 200)}`);
+        }
+    } else {
+        results.setProfilePhoto.skipped = true;
+        results.setProfilePhoto.error = "no assets/bot-photo.jpg available in this deploy";
+    }
 
     // ── 3. Command list (visible in the bot menu) ─────────────
     results.setCommands = await withRetry("setMyCommands", () => bot.setMyCommands(config.BOT_COMMANDS));
@@ -228,10 +269,19 @@ async function runAutoSetup(bot) {
     // ── Summary ───────────────────────────────────────────────
     const lines = [];
     lines.push(stepLabel("Bot identity", results.getMe));
-    lines.push(stepLabel("Bot name", results.setName));
-    lines.push(stepLabel("Description", results.setDescription));
-    lines.push(stepLabel("Short description", results.setShortDescription));
+    const storedNameOk = results.storedName && results.storedName.ok && results.storedName.res && results.storedName.res.name;
+    if (results.setName.ok && storedNameOk) lines.push(`✅ Bot name — ${String(results.storedName.res.name).slice(0, 64)}`);
+    else lines.push(stepLabel("Bot name", results.setName));
+    const storedDescOk = results.storedDescription && results.storedDescription.ok && results.storedDescription.res && results.storedDescription.res.description;
+    if (results.setDescription.ok && storedDescOk) lines.push(`✅ Description — ${String(results.storedDescription.res.description).slice(0, 90)}${String(results.storedDescription.res.description).length > 90 ? "…" : ""}`);
+    else lines.push(stepLabel("Description", results.setDescription));
+    const storedAboutOk = results.storedShortDescription && results.storedShortDescription.ok && results.storedShortDescription.res && results.storedShortDescription.res.short_description;
+    if (results.setShortDescription.ok && storedAboutOk) lines.push(`✅ About (profile) — ${String(results.storedShortDescription.res.short_description).slice(0, 90)}`);
+    else lines.push(stepLabel("About (profile)", results.setShortDescription));
     lines.push(stepLabel("Command list", results.setCommands));
+    if (results.setProfilePhoto && results.setProfilePhoto.ok) lines.push("✅ Profile photo — WS CHECKER logo (assets/bot-photo.jpg)");
+    else if (results.setProfilePhoto && results.setProfilePhoto.skipped) lines.push(`⚠️ Profile photo — skipped (${results.setProfilePhoto.error})`);
+    else lines.push(stepLabel("Profile photo", results.setProfilePhoto || { ok: false, error: "not attempted" }));
     if (results.menuButtonActive) lines.push(`✅ Mini App menu button — ${config.MENU_BUTTON_TEXT} → ${url}`);
     else if (whitelistPending) lines.push("❌ Mini App menu button — domain not allow-listed yet");
     else {
@@ -251,7 +301,9 @@ async function runAutoSetup(bot) {
 
     state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
         menuButtonError: (results.setMenuButton && !results.setMenuButton.ok) ? String(results.setMenuButton.error).slice(0, 300) : null,
-        menuButtonStored: storedType || null };
+        menuButtonStored: storedType || null,
+        profilePhotoActive: !!(results.setProfilePhoto && results.setProfilePhoto.ok),
+        storedName: (storedNameOk && String(results.storedName.res.name)) || null };
     console.log("🧩 [AutoSetup] Summary:\n" + summary);
 
     // ── 6. Owner report (only if the owner has started the bot) ─
@@ -260,14 +312,24 @@ async function runAutoSetup(bot) {
         const owner = db.users[config.OWNER_ID];
         if (owner && bot) {
             const me = results.getMe.ok ? results.getMe.res : null;
+            const nameLine = (results.setName.ok && storedNameOk) ? `✅ *Name:* ${String(results.storedName.res.name).slice(0, 64)}` : `❌ Name: ${String((results.setName && results.setName.error) || "failed").slice(0, 120)}`;
+            const photoLine = (results.setProfilePhoto && results.setProfilePhoto.ok)
+                ? "🖼 *Profile photo:* WS CHECKER logo ✓"
+                : `🖼 Profile photo: ${String((results.setProfilePhoto && (results.setProfilePhoto.error || (results.setProfilePhoto.skipped ? "skipped" : "failed"))) || "failed").slice(0, 120)}`;
+            const aboutLine = (results.setShortDescription.ok && storedAboutOk) ? `✅ *About:* ${String(results.storedShortDescription.res.short_description).slice(0, 90)}` : `❌ About: ${String((results.setShortDescription && results.setShortDescription.error) || "failed").slice(0, 120)}`;
+            const descLine = (results.setDescription.ok && storedDescOk) ? `✅ *Description:* ${String(results.storedDescription.res.description).slice(0, 90)}${String(results.storedDescription.res.description).length > 90 ? "…" : ""}` : `❌ Description: ${String((results.setDescription && results.setDescription.error) || "failed").slice(0, 120)}`;
             await bot.sendMessage(config.OWNER_ID,
                 `╭━━━[ ⚙️ *𝗔𝗨𝗧𝗢-𝗦𝗘𝗧𝗨𝗣 𝗥𝗘𝗣𝗢𝗥𝗧* ]━━━╮\n` +
                 `┣ 🤖 *Bot:* ${botTag}\n` +
+                `┣ ${nameLine}\n` +
+                `┣ ${photoLine}\n` +
+                `┣ ${aboutLine}\n` +
+                `┣ ${descLine}\n` +
+                `┣ 🧩 Commands: auto ✓\n` +
                 `┣ 🛜 *Mini App:* ${me ? `https://t.me/${me.username}/app` : url}\n` +
                 `┣ 🌐 *Domain:* ${url.split("/")[2] || url}\n` +
                 `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `┣ ${results.menuButtonActive ? "🟢 All bot settings applied automatically." : "🟡 Menu button pending — whitelist the domain in @BotFather for THIS bot, then send /autosetup"}\n` +
-                `┣ 🧩 Commands/name/description: auto ✓\n` +
+                `┣ ${results.menuButtonActive ? "🟢 Menu button active." : "🟡 Menu button pending — whitelist the domain in @BotFather, then send /autosetup"}\n` +
                 `╰━━━━━━━━━━━━━━━━━━━━━━╯`,
                 { parse_mode: "Markdown" }).catch(() => {});
         }
