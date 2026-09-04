@@ -48,6 +48,71 @@ async function attempt(label, fn) {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// ── Background self-heal ──────────────────────────────────────
+// The menu button can only be stored once the bot's domain is allow-listed
+// in @BotFather (no API can do that step). When a run finishes with the
+// button NOT active, keep retrying quietly in the background — the moment
+// the owner adds the domain, the button is applied automatically (no manual
+// /autosetup, no redeploy). Stops as soon as it succeeds.
+let _healTimer = null;
+let _healTries = 0;
+const HEAL_INTERVAL_MS = 5 * 60 * 1000; // retry every 5 minutes
+const HEAL_MAX_TRIES = 72;               // …for up to 6 hours, then wait for next boot
+
+function stopHeal() {
+    if (_healTimer) { clearInterval(_healTimer); _healTimer = null; }
+    _healTries = 0;
+}
+
+async function healTick(bot) {
+    const st = state.autoSetup;
+    if (!bot || !st || st.menuButtonActive) { stopHeal(); return; }
+    if (_healTries >= HEAL_MAX_TRIES) {
+        console.warn("⚠️ [AutoSetup] Self-heal gave up for now — whitelist the domain in @BotFather, then send /autosetup (or redeploy).");
+        stopHeal();
+        return;
+    }
+    _healTries++;
+    const url = appUrl();
+    try {
+        await bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } });
+        // Telegram applies menu-button changes asynchronously — poll read-back.
+        let stored = null;
+        for (let i = 0; i < 4; i++) {
+            const rb = await bot.getChatMenuButton().catch(() => null);
+            stored = rb?.menu_button || rb || null;
+            if (stored?.type === "web_app") break;
+            if (i < 3) await sleep(1500);
+        }
+        if (stored?.type === "web_app") {
+            stopHeal();
+            st.menuButtonActive = true;
+            st.whitelistPending = false;
+            st.webAppReady = true;
+            st.at = new Date().toISOString();
+            st.summary = "✅ Auto-setup complete — Mini App menu button active (applied automatically after the domain was allow-listed).";
+            console.log(`✅ [AutoSetup] Self-heal: Mini App menu button now active → ${url}`);
+            try {
+                await bot.sendMessage(config.OWNER_ID,
+                    "🟢 *Menu button is now active!*\n\nTap it (or send /app) to open the Mini App — it launches instantly inside Telegram.",
+                    { parse_mode: "Markdown" }).catch(() => {});
+            } catch (_) {}
+        }
+    } catch (e) {
+        const err = String(e.description || e.message || e);
+        if (!/whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(err)) {
+            console.warn(`⚠️ [AutoSetup] Self-heal attempt ${_healTries} failed (${err.slice(0, 120)}) — will retry.`);
+        }
+    }
+}
+
+function maybeStartHeal(bot) {
+    if (_healTimer || !bot) return;
+    console.log("♻️ [AutoSetup] Menu button pending — background self-heal started (applies automatically once the domain is allow-listed in @BotFather).");
+    _healTimer = setInterval(() => healTick(bot), HEAL_INTERVAL_MS);
+    healTick(bot); // try immediately too — the domain may have just been added
+}
+
 async function runAutoSetup(bot) {
     if (!config.AUTO_SETUP) {
         state.autoSetup = { ran: false, at: null, results: {}, summary: "Auto-setup disabled (AUTO_SETUP=false)." };
@@ -192,6 +257,10 @@ async function runAutoSetup(bot) {
                 { parse_mode: "Markdown" }).catch(() => {});
         }
     } catch (_) { /* owner may not have started the bot yet — fine */ }
+
+    // ── Self-heal when the menu button could not be stored ────
+    if (!results.menuButtonActive) maybeStartHeal(bot);
+    else stopHeal();
 
     return state.autoSetup;
 }
