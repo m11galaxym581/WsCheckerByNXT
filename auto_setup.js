@@ -75,7 +75,7 @@ async function healTick(bot) {
     _healTries++;
     const url = appUrl();
     try {
-        const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, url });
+        const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, web_app: { url } });
         await bot.setChatMenuButton({ menu_button: menuButtonJson });
         // Telegram applies menu-button changes asynchronously — poll read-back.
         let stored = null;
@@ -152,10 +152,11 @@ async function runAutoSetup(bot) {
 
     // ── 4. Mini App menu button (needs whitelisted domain) ────
     const url = appUrl();
-    // NOTE: this lib auto-stringifies only reply_markup/entities — menu_button
-    // must be JSON.stringify'd or it is mangled by form encoding ([object Object])
-    // and Telegram answers 400, which used to look like a generic "not confirmed".
-    const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, url });
+    // NOTE: (1) this lib auto-stringifies only reply_markup/entities — menu_button
+    // must be JSON.stringify'd; (2) Telegram's MenuButtonWebApp schema nests the
+    // url under web_app: { type:"web_app", text, web_app:{ url } } — a top-level
+    // url made Telegram answer "Can't find field web_app" forever.
+    const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, web_app: { url } });
     results.setMenuButton = await withRetry(
         "setChatMenuButton",
         () => bot.setChatMenuButton({ menu_button: menuButtonJson }),
