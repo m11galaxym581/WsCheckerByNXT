@@ -32,26 +32,66 @@ function appUrl() { return config.MENU_BUTTON_URL || config.DASHBOARD_URL; }
 // open the Mini App once a Mini App / "Main Mini App" is registered for the
 // bot in @BotFather — a Telegram-side directory setting that no Bot API call
 // can create. Without it, a plain t.me/<bot>/app link just opens the bot's
-// chat. What ALWAYS opens the Mini App is the chat menu button (web_app) and
-// web_app inline buttons, so the canonical deep link below uses the
-// startapp form: once the owner enables the Main Mini App in @BotFather it
-// auto-opens the Mini App in the chat; before that it is harmless (lands in
-// the chat, where the 🚀 Open App button is one tap away).
+// chat, and ?startapp requires the user to have started the bot first.
+// Registered direct-link Mini Apps open with NO Start required.
+//
+// Whether Telegram resolves the direct link is PUBLIC information: the
+// landing page for https://t.me/<bot>/<slug> renders an "Open App" link
+// containing appname=<slug> only when an app with that short name exists
+// (a bare bot page never contains appname). So the code probes that page
+// once per boot and only advertises the direct /app link after Telegram
+// itself confirms it resolves — no manual configuration needed.
+const DIRECT_APP_SLUG = String(process.env.MINI_APP_SLUG || "app");
+
+let _directProbeCache = null; // { key, ok, at } — positives cached forever, negatives for 15 min
+let _probeImpl = null;        // test hook
 
 function botUsername() { return state.BOT_INFO?.username || null; }
 
-// Canonical Mini App deep link used in every message the code generates.
-function appLink() {
-    const uname = botUsername();
-    return uname ? `https://t.me/${uname}?startapp` : appUrl();
+async function probeDirectApp(uname, slug) {
+    if (_probeImpl) { // test hook: always fresh, and keeps appLink() coherent
+        const ok = !!(await _probeImpl(uname, slug));
+        _directProbeCache = { key: `${uname}/${slug}`, ok, at: Date.now() };
+        return ok;
+    }
+    const key = `${uname}/${slug}`;
+    const cached = _directProbeCache && _directProbeCache.key === key ? _directProbeCache : null;
+    if (cached && (cached.ok || Date.now() - cached.at < 15 * 60 * 1000)) return cached.ok;
+    let ok = false;
+    try {
+        const ctl = typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(10000) : undefined;
+        const r = await fetch(`https://t.me/${encodeURIComponent(uname)}/${encodeURIComponent(slug)}`, {
+            headers: { "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36" },
+            redirect: "follow",
+            signal: ctl,
+        });
+        if (r.ok) {
+            const html = await r.text();
+            ok = new RegExp(`appname=${slug}(&|["'\\s]|$)`).test(html);
+        }
+    } catch (_) { ok = false; }
+    _directProbeCache = { key, ok, at: Date.now() };
+    return ok;
 }
 
-// Legacy deep link kept for reference/back-compat: t.me/<bot>/app — works
-// ONLY after the bot has a Main Mini App registered in @BotFather. Users
-// clicking it on a bot without one land in the bot's chat (Telegram-side).
+// Canonical Mini App deep link used in every message the code generates.
+// Prefers the registered direct link (verified by probe); falls back to the
+// startapp form, which opens the Mini App in-chat (still fine once the
+// owner enables the Main Mini App / menu button flow).
+function appLink() {
+    const uname = botUsername();
+    if (!uname) return appUrl();
+    if (_directProbeCache && _directProbeCache.key === `${uname}/${DIRECT_APP_SLUG}` && _directProbeCache.ok) {
+        return `https://t.me/${uname}/${DIRECT_APP_SLUG}`;
+    }
+    return `https://t.me/${uname}?startapp`;
+}
+
+// Direct t.me/<bot>/app link kept for reference — resolves only while an app
+// with short name "app" is registered in @BotFather (see probeDirectApp).
 function directAppLink() {
     const uname = botUsername();
-    return uname ? `https://t.me/${uname}/app` : appUrl();
+    return uname ? `https://t.me/${uname}/${DIRECT_APP_SLUG}` : appUrl();
 }
 
 // Friendly one-line summary of a single step result.
@@ -150,6 +190,25 @@ async function runAutoSetup(bot) {
         console.log(`✅ [AutoSetup] Bot identity: @${state.BOT_INFO.username} (${state.BOT_INFO.first_name})`);
     } else {
         console.error(`❌ [AutoSetup] getMe failed: ${results.getMe.error}`);
+    }
+
+    // ── 1b. Direct Mini App link probe (t.me/<bot>/<slug>) ────
+    // Telegram's landing page for the direct link shows appname=<slug> only
+    // once the owner registered the Mini App in @BotFather (/newapp). When
+    // confirmed, the direct link opens the Mini App with NO "start the bot
+    // first" step — so advertise it. Otherwise fall back to ?startapp.
+    results.directApp = { ok: false, slug: DIRECT_APP_SLUG, error: null };
+    if (results.getMe.ok && state.BOT_INFO?.username) {
+        const uname = state.BOT_INFO.username;
+        const confirmed = await probeDirectApp(uname, DIRECT_APP_SLUG);
+        results.directApp.ok = confirmed;
+        if (confirmed) {
+            console.log(`✅ [AutoSetup] Direct Mini App link verified: https://t.me/${uname}/${DIRECT_APP_SLUG} (Telegram confirms the app is registered — opens without Start)`);
+        } else {
+            console.log(`ℹ️ [AutoSetup] Direct Mini App link not registered yet: https://t.me/${uname}/${DIRECT_APP_SLUG} — @BotFather → /newapp (short name: ${DIRECT_APP_SLUG}); will keep using ?startapp until then.`);
+        }
+    } else {
+        results.directApp.error = "getMe failed — probe skipped";
     }
 
     // Retry transient network errors a few times; permanent API errors
@@ -314,6 +373,14 @@ async function runAutoSetup(bot) {
             : `read-back type = ${storedType || "none"}`;
         lines.push(`⚠️ Mini App menu button — not confirmed: ${detail}`);
     }
+    const uname = results.getMe.ok && results.getMe.res?.username ? results.getMe.res.username : null;
+    if (uname) {
+        if (results.directApp.ok) {
+            lines.push(`✅ Direct Mini App link — https://t.me/${uname}/${DIRECT_APP_SLUG} (Telegram-verified — opens without Start)`);
+        } else {
+            lines.push(`ℹ️ Direct link https://t.me/${uname}/${DIRECT_APP_SLUG} — register it via @BotFather → /newapp (short name: ${DIRECT_APP_SLUG}) so users don't have to Start the bot first`);
+        }
+    }
 
     const botTag = results.getMe.ok && results.getMe.res?.username ? `@${results.getMe.res.username}` : "your bot";
     let summary = lines.join("\n");
@@ -321,7 +388,7 @@ async function runAutoSetup(bot) {
         summary += `\n⚠️ ACTION NEEDED (30 sec, once): @BotFather → /mybots → select ${botTag} → Bot Settings → *Domain* → add: ${url.split("/")[2]}\nThen send /autosetup or redeploy — everything else is automatic.`;
     }
 
-    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), directAppLink: directAppLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
+    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), directAppLink: directAppLink(), directAppReady: !!(results.directApp && results.directApp.ok), directSlug: DIRECT_APP_SLUG, whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
         menuButtonError: (results.setMenuButton && !results.setMenuButton.ok) ? String(results.setMenuButton.error).slice(0, 300) : null,
         menuButtonStored: storedType || null,
         profilePhotoActive: !!(results.setProfilePhoto && results.setProfilePhoto.ok),
@@ -348,7 +415,7 @@ async function runAutoSetup(bot) {
                 `┣ ${aboutLine}\n` +
                 `┣ ${descLine}\n` +
                 `┣ 🧩 Commands: auto ✓\n` +
-                `┣ 🛜 *Mini App:* ${me ? `https://t.me/${me.username}?startapp` : url}\n` +
+                `┣ 🛜 *Mini App:* ${me ? appLink() : url}\n` +
                 `┣ 🌐 *Domain:* ${url.split("/")[2] || url}\n` +
                 `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
                 `┣ ${results.menuButtonActive ? "🟢 Menu button active." : "🟡 Menu button pending — whitelist the domain in @BotFather, then send /autosetup"}\n` +
@@ -364,4 +431,4 @@ async function runAutoSetup(bot) {
     return state.autoSetup;
 }
 
-module.exports = { runAutoSetup, appLink, directAppLink, appUrl };
+module.exports = { runAutoSetup, appLink, directAppLink, appUrl, probeDirectApp, _setProbeImpl: (fn) => { _probeImpl = fn; } };

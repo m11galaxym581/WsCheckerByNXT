@@ -22,7 +22,7 @@ process.env.DASHBOARD_URL = "https://blaze-dash.up.railway.app";
 
 const state = require("../state");
 const { getDB, saveDB } = require("../database");
-const { runAutoSetup } = require("../auto_setup");
+const { runAutoSetup, appLink, _setProbeImpl } = require("../auto_setup");
 
 // register the owner so the report path triggers
 const db = getDB();
@@ -50,6 +50,11 @@ const makeBot = (overrides = {}) => ({
 });
 
 async function main() {
+    // Direct-link probe is mocked: false by default (no real network in
+    // tests). Scenario 4 flips it to true to test the verified-direct-link
+    // path.
+    _setProbeImpl(async () => false);
+
     // ── Scenario 1: happy path ────────────────────────────────
     ownerMessages = [];
     const r1 = await runAutoSetup(makeBot());
@@ -114,6 +119,26 @@ async function main() {
     assert.strictEqual(r3.whitelistPending, false);
     assert.ok(r3.results.verifyMenuButton.ok);
     console.log("✅ Scenario 3 (read-after-apply ordering + async propagation) PASSED");
+
+    // ── Scenario 4: direct Mini App link verified via probe ──
+    // When Telegram's landing page confirms the registered app
+    // (appname=<slug>), the canonical deep link switches from ?startapp to
+    // the direct t.me/<bot>/app form and the summary says so.
+    ownerMessages = [];
+    _setProbeImpl(async () => true);
+    const r4 = await runAutoSetup(makeBot());
+    assert.strictEqual(r4.directAppReady, true, "direct app probe confirmed");
+    assert.strictEqual(r4.appLink, "https://t.me/blaze_demo_bot/app", "verified direct link used once Telegram confirms it");
+    assert.strictEqual(r4.directSlug, "app");
+    assert.ok(r4.summary.includes("Telegram-verified"), "summary reports verified direct link");
+    assert.ok(r4.summary.includes("https://t.me/blaze_demo_bot/app"), "summary shows the direct link");
+    assert.strictEqual(appLink(), "https://t.me/blaze_demo_bot/app", "appLink() helper prefers the verified direct link");
+    const ownerMsg4 = ownerMessages.find(m => m.chatId === 8708907310);
+    assert.ok(ownerMsg4 && ownerMsg4.text.includes("t.me/blaze_demo_bot/app"), "owner report uses the verified direct link");
+    console.log("✅ Scenario 4 (verified direct link advertised) PASSED");
+
+    // Reset the probe hook for any later scenario.
+    _setProbeImpl(async () => false);
     console.log("🎉 AUTO-SETUP TESTS PASSED");
     process.exit(0);
 }

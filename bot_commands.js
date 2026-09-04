@@ -125,14 +125,19 @@ module.exports = (bot) => {
     // built-in browser, where ID+password login still works).
     const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
     const dashboardUrl = () => config.MENU_BUTTON_URL || config.DASHBOARD_URL;
-    // Deep link that always reaches the bot with the Mini App one tap away
-    // (and auto-opens it on clients that support startapp). A direct
-    // t.me/<bot>/app link only works once a *Main Mini App* is registered in
-    // @BotFather — no Bot API call can create that, so the code never
-    // advertises the bare /app form as a working link.
-    const startAppDeepLink = () => state.BOT_INFO?.username
-        ? `https://t.me/${state.BOT_INFO.username}?startapp`
-        : dashboardUrl();
+    // ── Deep link helpers ─────────────────────────────────────
+    // The direct t.me/<bot>/app link is advertised only after auto_setup has
+    // probed Telegram and confirmed the Mini App is registered (appname=app
+    // on the landing page). Registered direct links open the Mini App with
+    // NO "start the bot first" step; the ?startapp form is the fallback.
+    const miniAppDeepLink = () => {
+        const uname = state.BOT_INFO?.username;
+        if (!uname) return dashboardUrl();
+        if (state.autoSetup && state.autoSetup.directAppReady) {
+            return `https://t.me/${uname}/${state.autoSetup.directSlug || "app"}`;
+        }
+        return `https://t.me/${uname}?startapp`;
+    };
     const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: "🌐 Open Dashboard", url: dashboardUrl() } : b));
 
     async function sendWithWebApp(uid, text, opts, rows) {
@@ -178,11 +183,13 @@ module.exports = (bot) => {
         // Optional: Auto-delete previous message logic if requested (requires tracking msg IDs)
         // This is typically handled purely in callback_query, but text commands send new messages.
 
-        // Mini App entry point: the 🛜 Open Web App button below the menu
-        // opens the Mini App from any chat (the direct t.me/<bot>/app link is
-        // not advertised — it opens the chat unless a Main Mini App is
-        // registered in @BotFather).
-        const miniAppLine = "┣ 🛜 *Mini App:* tap *Open Web App* below ⤵\n";
+        // Mini App entry point: the direct link is shown only after
+        // auto_setup probed Telegram and confirmed the registered Mini App
+        // (it then opens with no Start needed); otherwise point at the
+        // 🛜 Open Web App button below the menu, which always works.
+        const miniAppLine = (state.autoSetup && state.autoSetup.directAppReady && state.BOT_INFO?.username)
+            ? `┣ 🛜 *Mini App:* ${miniAppDeepLink()}\n`
+            : "┣ 🛜 *Mini App:* tap *Open Web App* below ⤵\n";
 
         const welcomeText =
             `╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n` +
@@ -213,11 +220,13 @@ module.exports = (bot) => {
             : "The Mini App only launches *inside the Telegram app* — and the menu button is applied only after this bot's domain is allow-listed:\n\n@BotFather → /mybots → select this bot → Bot Settings → *Domain* → add `" + new URL(url).host + "`\n\nThen send /autosetup. Until then, use the button below (falls back to 🔐 Web Login → ID + password).";
         let note = "";
         if (uname) {
-            const startLink = `https://t.me/${uname}?startapp`;
-            if (uid === config.OWNER_ID || isAdmin(uid)) {
-                note = `\n\n🔗 *Deep links (need a one-time BotFather step):*\n• ${startLink} — opens the Mini App in this chat after a *Main Mini App* is set\n• https://t.me/${uname}/app — opens it directly after a Mini App with the short name *app* is registered\n\n@BotFather → /mybots → select this bot → Bot Settings → *Main Mini App* / *Configure Mini App* → URL: ${url}. Telegram-side only — no Bot API call can create it.`;
+            const slug = (state.autoSetup && state.autoSetup.directSlug) || "app";
+            if (state.autoSetup && state.autoSetup.directAppReady) {
+                note = `\n\n🔗 *Mini App link (verified — opens directly, no Start needed):* ${miniAppDeepLink()}`;
+            } else if (uid === config.OWNER_ID || isAdmin(uid)) {
+                note = `\n\n⚠️ The direct link https://t.me/${uname}/${slug} is *not registered* in @BotFather yet — Telegram still opens this chat for it.\n\nFix (1 minute): @BotFather → /newapp → select this bot → title → URL: ${url} → short name: *${slug}*\n\nThen send /autosetup — the server verifies Telegram-side automatically. Meanwhile the button below (and https://t.me/${uname}?startapp) both work; the startapp link needs the bot started once.`;
             } else {
-                note = `\n\n🔗 Deep link (inside Telegram): ${startLink}`;
+                note = `\n\n🔗 Deep link (inside Telegram): https://t.me/${uname}?startapp`;
             }
         }
         return sendWithWebApp(uid,
@@ -289,10 +298,27 @@ module.exports = (bot) => {
 
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
+        const slug = (state.autoSetup && state.autoSetup.directSlug) || "app";
         if (uname) {
-            L.push(`5️⃣ *Deep link:* https://t.me/${uname}?startapp — opens the Mini App in this chat once a *Main Mini App* is set in @BotFather.`);
-            L.push(`   ⏳ *Direct link:* https://t.me/${uname}/app — opens the Mini App directly once a Mini App with short name *app* is registered in @BotFather.`);
-            L.push(`   👉 @BotFather → /mybots → select this bot → *Bot Settings* → *Main Mini App* / *Configure Mini App* → URL: ${url}. Telegram-side setting — no Bot API call can create it.`);
+            // Live re-probe: Telegram's public landing page shows appname=<slug>
+            // only while the Mini App is registered — refresh right now so the
+            // owner sees the truth immediately after a /newapp registration.
+            let directOk = !!(state.autoSetup && state.autoSetup.directAppReady);
+            try {
+                const as = require("./auto_setup");
+                directOk = await as.probeDirectApp(uname, slug);
+            } catch (_) {}
+            state.autoSetup = state.autoSetup || {};
+            state.autoSetup.directAppReady = directOk;
+            state.autoSetup.directSlug = slug;
+            if (directOk) {
+                state.autoSetup.appLink = `https://t.me/${uname}/${slug}`;
+                L.push(`5️⃣ *Direct link:* ✅ https://t.me/${uname}/${slug} — Telegram confirms the Mini App is registered; it opens directly (no Start needed).`);
+            } else {
+                L.push(`5️⃣ *Direct link:* ❌ https://t.me/${uname}/${slug} — not registered yet; Telegram opens this chat for it.`);
+                L.push(`   👉 Register (1 minute): @BotFather → /newapp → select this bot → URL: ${url} → short name: *${slug}*`);
+                L.push(`   ⏳ Meanwhile: https://t.me/${uname}?startapp (works after the bot is started once).`);
+            }
         } else {
             L.push(`5️⃣ *App link:* username unknown`);
         }

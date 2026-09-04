@@ -950,8 +950,13 @@ function startServer(bot) {
             botUsername: state.BOT_INFO?.username || null,
             appUrl: s.appUrl || config.MENU_BUTTON_URL || config.DASHBOARD_URL,
             appLink: s.appLink || null,
-            miniAppLink: state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}?startapp` : null,
-            directMiniAppLink: state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : null,
+            directAppReady: !!(s.directAppReady),
+            miniAppLink: (state.BOT_INFO?.username)
+                ? (s.directAppReady
+                    ? `https://t.me/${state.BOT_INFO.username}/${s.directSlug || "app"}`
+                    : `https://t.me/${state.BOT_INFO.username}?startapp`)
+                : null,
+            directMiniAppLink: state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/${(s && s.directSlug) || "app"}` : null,
             lastRunAt: s.at || null,
             menuButtonActive: !!s.menuButtonActive,
             whitelistPending: !!s.whitelistPending,
