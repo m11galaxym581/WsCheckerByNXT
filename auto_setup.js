@@ -28,8 +28,30 @@ state.autoSetup = state.autoSetup || { ran: false, at: null, results: {}, summar
 
 function appUrl() { return config.MENU_BUTTON_URL || config.DASHBOARD_URL; }
 
+// Deep links (https://t.me/<bot>/<app> and https://t.me/<bot>?startapp) only
+// open the Mini App once a Mini App / "Main Mini App" is registered for the
+// bot in @BotFather — a Telegram-side directory setting that no Bot API call
+// can create. Without it, a plain t.me/<bot>/app link just opens the bot's
+// chat. What ALWAYS opens the Mini App is the chat menu button (web_app) and
+// web_app inline buttons, so the canonical deep link below uses the
+// startapp form: once the owner enables the Main Mini App in @BotFather it
+// auto-opens the Mini App in the chat; before that it is harmless (lands in
+// the chat, where the 🚀 Open App button is one tap away).
+
+function botUsername() { return state.BOT_INFO?.username || null; }
+
+// Canonical Mini App deep link used in every message the code generates.
 function appLink() {
-    return state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : appUrl();
+    const uname = botUsername();
+    return uname ? `https://t.me/${uname}?startapp` : appUrl();
+}
+
+// Legacy deep link kept for reference/back-compat: t.me/<bot>/app — works
+// ONLY after the bot has a Main Mini App registered in @BotFather. Users
+// clicking it on a bot without one land in the bot's chat (Telegram-side).
+function directAppLink() {
+    const uname = botUsername();
+    return uname ? `https://t.me/${uname}/app` : appUrl();
 }
 
 // Friendly one-line summary of a single step result.
@@ -299,7 +321,7 @@ async function runAutoSetup(bot) {
         summary += `\n⚠️ ACTION NEEDED (30 sec, once): @BotFather → /mybots → select ${botTag} → Bot Settings → *Domain* → add: ${url.split("/")[2]}\nThen send /autosetup or redeploy — everything else is automatic.`;
     }
 
-    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
+    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), directAppLink: directAppLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
         menuButtonError: (results.setMenuButton && !results.setMenuButton.ok) ? String(results.setMenuButton.error).slice(0, 300) : null,
         menuButtonStored: storedType || null,
         profilePhotoActive: !!(results.setProfilePhoto && results.setProfilePhoto.ok),
@@ -326,7 +348,7 @@ async function runAutoSetup(bot) {
                 `┣ ${aboutLine}\n` +
                 `┣ ${descLine}\n` +
                 `┣ 🧩 Commands: auto ✓\n` +
-                `┣ 🛜 *Mini App:* ${me ? `https://t.me/${me.username}/app` : url}\n` +
+                `┣ 🛜 *Mini App:* ${me ? `https://t.me/${me.username}?startapp` : url}\n` +
                 `┣ 🌐 *Domain:* ${url.split("/")[2] || url}\n` +
                 `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
                 `┣ ${results.menuButtonActive ? "🟢 Menu button active." : "🟡 Menu button pending — whitelist the domain in @BotFather, then send /autosetup"}\n` +
@@ -342,4 +364,4 @@ async function runAutoSetup(bot) {
     return state.autoSetup;
 }
 
-module.exports = { runAutoSetup, appLink, appUrl };
+module.exports = { runAutoSetup, appLink, directAppLink, appUrl };

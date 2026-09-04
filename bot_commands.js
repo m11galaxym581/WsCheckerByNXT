@@ -121,13 +121,18 @@ module.exports = (bot) => {
     // Telegram rejects web_app buttons at send-time while the domain is not
     // allow-listed in @BotFather. Instead of failing the whole message we
     // auto-fallback: the same menu with web_app buttons replaced by normal
-    // URL buttons pointing at t.me/<bot>/app (always works).
+    // URL buttons pointing at the dashboard itself (opens in Telegram's
+    // built-in browser, where ID+password login still works).
     const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
-    const appDeepLink = () => state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/app` : (config.MENU_BUTTON_URL || config.DASHBOARD_URL);
-    // Pre-whitelist fallback: t.me/<bot>/app is dead until the menu button is
-    // stored, so fall back to the dashboard URL itself (opens in Telegram's
-    // browser where ID+password login still works).
     const dashboardUrl = () => config.MENU_BUTTON_URL || config.DASHBOARD_URL;
+    // Deep link that always reaches the bot with the Mini App one tap away
+    // (and auto-opens it on clients that support startapp). A direct
+    // t.me/<bot>/app link only works once a *Main Mini App* is registered in
+    // @BotFather — no Bot API call can create that, so the code never
+    // advertises the bare /app form as a working link.
+    const startAppDeepLink = () => state.BOT_INFO?.username
+        ? `https://t.me/${state.BOT_INFO.username}?startapp`
+        : dashboardUrl();
     const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: "🌐 Open Dashboard", url: dashboardUrl() } : b));
 
     async function sendWithWebApp(uid, text, opts, rows) {
@@ -173,10 +178,11 @@ module.exports = (bot) => {
         // Optional: Auto-delete previous message logic if requested (requires tracking msg IDs)
         // This is typically handled purely in callback_query, but text commands send new messages.
 
-        // Mini App deep link (t.me/<bot>/app) — auto-login inside Telegram.
-        const miniAppLine = state.BOT_INFO?.username
-            ? `┣ 🛜 *Mini App:* https://t.me/${state.BOT_INFO.username}/app\n`
-            : "";
+        // Mini App entry point: the 🛜 Open Web App button below the menu
+        // opens the Mini App from any chat (the direct t.me/<bot>/app link is
+        // not advertised — it opens the chat unless a Main Mini App is
+        // registered in @BotFather).
+        const miniAppLine = "┣ 🛜 *Mini App:* tap *Open Web App* below ⤵\n";
 
         const welcomeText =
             `╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n` +
@@ -201,13 +207,21 @@ module.exports = (bot) => {
         const url = dashboardUrl();
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; state.BOT_INFO = state.BOT_INFO || {}; state.BOT_INFO.username = uname; } catch (_) {} }
-        const link = uname ? `https://t.me/${uname}/app` : url;
         const ready = !!(state.autoSetup && state.autoSetup.webAppReady !== false && state.autoSetup.menuButtonActive);
         const body = ready
-            ? `Tap *Open Web App* below or open the Mini App link inside Telegram — you are logged in *automatically* (no password needed).`
-            : "The Mini App only launches *inside the Telegram app* — and the link opens the Mini App only after this bot's domain is allow-listed:\n\n@BotFather → /mybots → select this bot → Bot Settings → *Domain* → add `" + new URL(url).host + "`\n\nThen send /autosetup. Until then, use the button below (falls back to 🔐 Web Login → ID + password).";
+            ? "Tap *Open Web App* below, or press *🚀 Open App* under the chat box — you are logged in *automatically* (no password needed)."
+            : "The Mini App only launches *inside the Telegram app* — and the menu button is applied only after this bot's domain is allow-listed:\n\n@BotFather → /mybots → select this bot → Bot Settings → *Domain* → add `" + new URL(url).host + "`\n\nThen send /autosetup. Until then, use the button below (falls back to 🔐 Web Login → ID + password).";
+        let note = "";
+        if (uname) {
+            const startLink = `https://t.me/${uname}?startapp`;
+            if (uid === config.OWNER_ID || isAdmin(uid)) {
+                note = `\n\n🔗 *Deep links (need a one-time BotFather step):*\n• ${startLink} — opens the Mini App in this chat after a *Main Mini App* is set\n• https://t.me/${uname}/app — opens it directly after a Mini App with the short name *app* is registered\n\n@BotFather → /mybots → select this bot → Bot Settings → *Main Mini App* / *Configure Mini App* → URL: ${url}. Telegram-side only — no Bot API call can create it.`;
+            } else {
+                note = `\n\n🔗 Deep link (inside Telegram): ${startLink}`;
+            }
+        }
         return sendWithWebApp(uid,
-            `🛜 *Open the Web App*\n\n${body}\n\n🔗 Mini App link (https, open inside the Telegram app): ${link}`,
+            `🛜 *Open the Mini App*\n\n${body}${note}`,
             { parse_mode: "Markdown" },
             [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
@@ -275,8 +289,14 @@ module.exports = (bot) => {
 
         let uname = state.BOT_INFO?.username;
         if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
-        L.push(`5️⃣ *App link:* ${uname ? `https://t.me/${uname}/app` : "username unknown"}`);
-        L.push(`6️⃣ *Link opens the chat instead of the Mini App?* Use the *https://* link (not http://) and open it inside Telegram. If it still opens the chat, fully close and reopen Telegram, then tap the link again. The Mini App works only when the menu button (step 3 ✅) is set for *this* bot.`);
+        if (uname) {
+            L.push(`5️⃣ *Deep link:* https://t.me/${uname}?startapp — opens the Mini App in this chat once a *Main Mini App* is set in @BotFather.`);
+            L.push(`   ⏳ *Direct link:* https://t.me/${uname}/app — opens the Mini App directly once a Mini App with short name *app* is registered in @BotFather.`);
+            L.push(`   👉 @BotFather → /mybots → select this bot → *Bot Settings* → *Main Mini App* / *Configure Mini App* → URL: ${url}. Telegram-side setting — no Bot API call can create it.`);
+        } else {
+            L.push(`5️⃣ *App link:* username unknown`);
+        }
+        L.push(`6️⃣ *Deep link still opens the chat?* Open it inside the Telegram app (mobile, or a recent Telegram Desktop) — never in a browser. The 🚀 Open App button under the chat box and web_app buttons inside chats open the Mini App regardless of the direct link.`);
         L.push(`\n💡 Mini Apps only open inside the *Telegram app* — not in a browser/web.`);
         const finalText = L.join("\n");
         if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));
@@ -304,7 +324,7 @@ module.exports = (bot) => {
         const text = `
 ╭━━━[ 🛠️ *𝗛𝗘𝗟𝗣 & 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ]━━━╮
 ┣ /start - Open Main Menu
-┣ /app - Open Web App (auto login)
+┣ /app - Open Mini App (auto login)
 ┣ /reset - Clear active jobs & web state
 ┣ /redeem \`<code>\` - Claim Promo Voucher
 ┣ /setwebhook \`<url>\` - Set API Webhook

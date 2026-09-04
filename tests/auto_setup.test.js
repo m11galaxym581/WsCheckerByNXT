@@ -56,12 +56,13 @@ async function main() {
     assert.strictEqual(r1.ran, true);
     assert.strictEqual(r1.menuButtonActive, true, "menu button stored & verified");
     assert.strictEqual(r1.whitelistPending, false);
-    assert.strictEqual(r1.appLink, "https://t.me/blaze_demo_bot/app", "app link built from bot username");
+    assert.strictEqual(r1.appLink, "https://t.me/blaze_demo_bot?startapp", "app link built from bot username (startapp form — always works)");
+    assert.strictEqual(r1.directAppLink, "https://t.me/blaze_demo_bot/app", "direct /app link kept as reference (needs BotFather Main Mini App)");
     assert.strictEqual(state.BOT_INFO.username, "blaze_demo_bot");
     assert.ok(r1.results.setName.ok && r1.results.setCommands.ok && r1.results.setDescription.ok);
     assert.ok(r1.summary.includes("✅"), "summary lists successes");
     const ownerMsg = ownerMessages.find(m => m.chatId === 8708907310);
-    assert.ok(ownerMsg && ownerMsg.text.includes("t.me/blaze_demo_bot/app"), "owner report sent with app link");
+    assert.ok(ownerMsg && ownerMsg.text.includes("t.me/blaze_demo_bot?startapp"), "owner report sent with startapp link");
     console.log("✅ Scenario 1 (happy path) PASSED");
 
     // ── Scenario 2: domain whitelist pending ─────────────────
