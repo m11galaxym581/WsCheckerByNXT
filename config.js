@@ -80,6 +80,18 @@ const defaultDynamicConfig = {
     PROXY_STICKY: true,        // keep same proxy assigned to session
     AUTO_RESPONDER: true,      // NEW: Bot replies if someone messages the node
     AUTO_RESPONDER_MSG: "Automated Node: I cannot read your messages.",
+    // ── WhatsApp Anti-Ban Safety Engine ──────────────────────
+    // Shapes every request each connected node sends so the number never
+    // looks like a bot to WhatsApp: capped parallel lookups per node, a
+    // small randomized gap between them, and an automatic pause after
+    // repeated failures (429/timeouts/forbidden). Toggle live from the
+    // admin console — no restart needed.
+    WA_SAFETY_MODE: true,               // master switch for the safety gate
+    WA_MAX_CONCURRENT_PER_NODE: 10,     // never fire more than this at once per node
+    WA_MIN_GAP_MS: 120,                 // min gap between two node operations (+0-90ms jitter)
+    WA_MAX_FAILS_BEFORE_PAUSE: 6,       // consecutive failures before pausing the node
+    WA_PAUSE_MS: 45000,                 // pause duration after failure burst (safety pause)
+    WA_MAX_RECONNECT_TRIES: 9,          // reconnect attempts before giving up + notifying
     ENABLE_WEBHOOKS: true,     // Allow POSTing results to external servers
     FORCE_JOIN_ENABLED: false,
     FORCE_JOIN_CHANNELS: []    // [{ title:"Channel", chatId:"@channel", url:"https://t.me/channel" }]

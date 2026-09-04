@@ -13,7 +13,7 @@ const {
     banUser, unbanUser, setMaintenance 
 } = require("./database");
 const { sendBroadcastReport } = require("./utils");
-const { warmupNodes }         = require("./whatsapp");
+const { warmupNodes, listAllSessions } = require("./whatsapp");
 const config                  = require("./config");
 const state                   = require("./state");
 const { tr, langKeyboard }    = require("./i18n");
@@ -47,11 +47,11 @@ module.exports = (bot) => {
         const btns = [
             [{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }],
             [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
-            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📱 Add Node", callback_data: "add_sess_req" }],
-            [{ text: "📜 History", callback_data: "my_history" }, { text: "🌐 Language", callback_data: "language_menu" }],
-            [{ text: "⚙️ API & Webhooks", callback_data: "api_menu" }, { text: "ℹ️ System Info", callback_data: "show_info" }],
-            [{ text: "💬 Support", callback_data: "support_chat" }, { text: "💎 Upgrade", callback_data: "buy_prem_req" }],
-            [{ text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            [{ text: "📱 Add Node", callback_data: "add_sess_req" }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
+            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
+            [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
+            [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
+            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);
@@ -520,14 +520,11 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     // ── /sessions ─────────────────────────────────────────────
     bot.onText(/\/sessions/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
-        const keys = Object.keys(state.sessions);
-        if (!keys.length) return bot.sendMessage(msg.chat.id, "❌ No active sessions.");
-        const lines = keys.map(k => {
-            const s = state.sessions[k];
-            const icon = s.status === "Connected" ? "🟢" : "🔴";
-            return `${icon} \`${k}\` — ${s.type.toUpperCase()} — Owner: \`${s.owner}\``;
-        }).join("\n");
-        return bot.sendMessage(msg.chat.id, `╭━━━[ 🗄️ *𝗔𝗖𝗧𝗜𝗩𝗘 𝗡𝗢𝗗𝗘𝗦* ]━━━╮\n${lines}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
+        const rows = listAllSessions();
+        if (!rows.length) return bot.sendMessage(msg.chat.id, "❌ No sessions found.");
+        const icons = { Connected: "🟢", Connecting: "🟡", Offline: "🔴", Blocked: "🚫" };
+        const lines = rows.map(r => `${icons[r.status] || "⚪"} \`${r.sid}\` — ${r.type.toUpperCase()} — Owner: \`${r.owner}\` — ${r.status.toUpperCase()}`).join("\n");
+        return bot.sendMessage(msg.chat.id, `╭━━━[ 🗄️ *𝗔𝗟𝗟 𝗡𝗢𝗗𝗘𝗦* (${rows.length}) ]━━━╮\n${lines}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
     });
 
     // ── /warmup ───────────────────────────────────────────────

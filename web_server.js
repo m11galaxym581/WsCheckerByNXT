@@ -21,7 +21,7 @@ const {
     setMaintenance, createVoucher, storageInfo, restoreDatabase 
 } = require("./database");
 
-const { warmupNodes, deleteSession, startSession, requestPairingCode } = require("./whatsapp");
+const { warmupNodes, deleteSession, startSession, requestPairingCode, listUserSessions, listAllSessions } = require("./whatsapp");
 const state = require("./state");
 const proxyManager = require("./proxy_manager");
 
@@ -603,21 +603,23 @@ function startServer(bot) {
     });
 
     // ── Session Pairing via Web ──
+    // type = "private" (runs only this user's checks — default) or "public"
+    // (shared pool that other users without their own node can also use).
     app.post("/api/add-session", requireAuth, async (req, res) => {
         try {
-            const { uid, phone } = req.body;
+            const { uid, phone, type } = req.body;
             if (!uid || !phone) return res.status(400).json({ ok: false, error: "Missing parameters." });
             if (!assertSelfOrAdmin(req, res, uid)) return;
 
             const num = String(phone).replace(/[^0-9]/g, "");
             const db = getDB();
             const u = db.users[Number(uid)]?.name || uid;
+            const sessionType = String(type || "").toLowerCase() === "public" ? "public" : "private";
             
             // Notify Admin Bell
-            state.pushNotification(`📱 Session Pairing Requested by ${u}`, 'info');
+            state.pushNotification(`📱 Session Pairing Requested by ${u} (${sessionType})`, 'info');
             
             const slot = `s_${uid}_${Date.now()}`;
-            const sessionType = isAdmin(Number(uid)) ? "public" : "private";
             
             // Start Socket Process
             await startSession(slot, u, { id: Number(uid), name: u, username: "N/A" }, sessionType, bot);
@@ -630,11 +632,45 @@ function startServer(bot) {
             const code = await requestPairingCode(slot, num);
             
             // Backup code to Telegram
-            bot.sendMessage(uid, `🔑 *${config.PAIRING_BRAND} Pairing Code:* \`${code}\`\n⏳ Expires in 30s — WhatsApp → Linked Devices → Pair. Type the code exactly.`, { parse_mode: "Markdown" }).catch(()=>{});
+            bot.sendMessage(uid, `🔑 *${config.PAIRING_BRAND} Pairing Code:* \`${code}\`\n🎖️ Type: ${sessionType === "public" ? "🌍 PUBLIC (shared pool)" : "🔒 PRIVATE (your checks only)"}\n⏳ Expires in 30s — WhatsApp → Linked Devices → Pair. Type the code exactly.`, { parse_mode: "Markdown" }).catch(()=>{});
             
-            res.json({ ok: true, code, brand: config.PAIRING_BRAND });
+            res.json({ ok: true, code, type: sessionType, brand: config.PAIRING_BRAND });
         } catch (e) { 
             res.status(500).json({ ok: false, error: e.message || "Failed to generate code." }); 
+        }
+    });
+
+    // ── My Sessions — user self-service (list / delete / reconnect) ──
+    app.get("/api/my-sessions", requireAuth, (req, res) => {
+        const target = req.query.uid ? Number(req.query.uid) : req.user.uid;
+        if (target !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "Not allowed." });
+        res.json({ ok: true, sessions: listUserSessions(target) });
+    });
+
+    app.delete("/api/session/:sid", requireAuth, async (req, res) => {
+        const sid = String(req.params.sid || "");
+        const row = listAllSessions().find(r => r.sid === sid);
+        if (!row) return res.status(404).json({ ok: false, error: "Session not found." });
+        if (row.owner !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "You can only remove your own sessions." });
+        try {
+            await deleteSession(sid);
+            res.json({ ok: true, sid });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message || "Failed to remove session." });
+        }
+    });
+
+    app.post("/api/session/:sid/reconnect", requireAuth, async (req, res) => {
+        const sid = String(req.params.sid || "");
+        const row = listAllSessions().find(r => r.sid === sid);
+        if (!row) return res.status(404).json({ ok: false, error: "Session not found." });
+        if (row.owner !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "You can only reconnect your own sessions." });
+        if (row.status === "Blocked") return res.status(400).json({ ok: false, error: "This node is blocked by WhatsApp — remove it and re-add after the block lifts." });
+        try {
+            await startSession(sid, "User", { id: row.owner, name: "User" }, row.type, bot, false);
+            res.json({ ok: true, sid });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message || "Failed to reconnect." });
         }
     });
 
