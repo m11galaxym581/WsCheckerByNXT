@@ -18,7 +18,7 @@ const {
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
     banUser, unbanUser, addAdmin, removeAdmin, 
     getStats, generateApiKey, getUidByApiKey, 
-    setMaintenance, createVoucher, restoreDatabase 
+    setMaintenance, createVoucher, storageInfo, restoreDatabase 
 } = require("./database");
 
 const { warmupNodes, deleteSession, startSession, requestPairingCode } = require("./whatsapp");
@@ -409,13 +409,17 @@ function startServer(bot) {
             proxyId: state.sessions[k].proxyId || (db.sessionMeta[k] || {}).proxyId || null
         }));
         const isAdm = req.user && db.admins.includes(Number(req.user.uid));
+        const sInfo = storageInfo();
+        const storage = { backend: sInfo.backend, volumeMounted: sInfo.volumeMounted, dataRootDurable: sInfo.dataRootDurable };
+        if (isAdm) storage.dataRoot = sInfo.dataRoot;
         res.json({ 
             ok: true, 
             botInfo: state.BOT_INFO, 
             sessions: isAdm ? sess : sess.map(s => ({ status: s.status, type: s.type })), 
             activeTasks: state.processingUsers.size,
             systemMode: String(config.dynamic.SYSTEM_MODE || "subscription").toLowerCase(), 
-            maintenance: db.meta?.maintenance 
+            maintenance: db.meta?.maintenance,
+            storage
         });
     });
 
@@ -900,7 +904,7 @@ function startServer(bot) {
         res.json({ ok: true, users: db.users, admins: db.admins, subs: db.subscribers, vips: db.vips, banned: db.banned || [] }); 
     });
     
-    app.get("/api/public-status", (req,res)=>{ const db=getDB(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime()}); });
+    app.get("/api/public-status", (req,res)=>{ const db=getDB(); const sInfo=storageInfo(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime(), storage:{backend:sInfo.backend, volumeMounted:sInfo.volumeMounted, dataRootDurable:sInfo.dataRootDurable}}); });
 
     // ── ⚙️ AUTO-SETUP STATUS (public, no secrets) ──────────────
     // Shows what the server configured automatically and whether the
