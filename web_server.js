@@ -630,9 +630,9 @@ function startServer(bot) {
             const code = await requestPairingCode(slot, num);
             
             // Backup code to Telegram
-            bot.sendMessage(uid, `🔑 *Web Pairing Code:* \`${code}\`\nExpires in 30s.`, { parse_mode: "Markdown" }).catch(()=>{});
+            bot.sendMessage(uid, `🔑 *${config.PAIRING_BRAND} Pairing Code:* \`${code}\`\n⏳ Expires in 30s — WhatsApp → Linked Devices → Pair. Type the code exactly.`, { parse_mode: "Markdown" }).catch(()=>{});
             
-            res.json({ ok: true, code });
+            res.json({ ok: true, code, brand: config.PAIRING_BRAND });
         } catch (e) { 
             res.status(500).json({ ok: false, error: e.message || "Failed to generate code." }); 
         }

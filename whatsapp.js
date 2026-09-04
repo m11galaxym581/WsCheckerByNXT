@@ -197,10 +197,21 @@ async function startSession(sessionId, displayName, requesterInfo, sessionType =
 }
 
 // ── Request pairing code ──────────────────────────────────────
+// WhatsApp lets the PAIRING DEVICE choose the code: Baileys generates it
+// locally (never from WhatsApp's server) and the user types it into
+// WhatsApp → Linked Devices → Pair. So instead of a random code we send the
+// fixed branded code from config (CUSTOM_PAIRING_CODE, default "BLAZENXT" —
+// must be exactly 8 chars, A-Z/0-9, or the library throws). The phone
+// accepts exactly this value; config.PAIRING_BRAND ("BlazeNXT") is the
+// label used in the messages that show the code.
 async function requestPairingCode(sessionId, phoneNumber) {
     const sess = state.sessions[sessionId];
     if (!sess?.sock) throw new Error("Session socket not ready");
-    return await sess.sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ""));
+    const custom = config.CUSTOM_PAIRING_CODE;
+    if (!custom || custom.length !== 8) {
+        throw new Error(`CUSTOM_PAIRING_CODE must be exactly 8 characters (A-Z/0-9) — got "${custom || "(empty)"}". Check the env var or config.js.`);
+    }
+    return await sess.sock.requestPairingCode(phoneNumber.replace(/[^0-9]/g, ""), custom);
 }
 
 // ── Delete a session ──────────────────────────────────────────

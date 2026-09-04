@@ -127,7 +127,7 @@ module.exports = (bot) => {
             state.clearUserStep(uid);
             const sessionType = isAdmin(uid) ? "public" : "private";
             
-            await send(`⏳ *Generating Pairing Code...*\nRequesting WA Server for \`+${num}\``);
+            await send(`⏳ *Preparing Pairing...*\nSetting up secure pairing for \`+${num}\``);
             
             try {
                 await startSession(slot, msg.from.first_name, { id: uid, name: msg.from.first_name, username: msg.from.username || "N/A" }, sessionType, bot);
@@ -139,12 +139,13 @@ module.exports = (bot) => {
                 
                 const code = await requestPairingCode(slot, num);
                 return send(
-                    `╭━━━━[ 📡 *𝗣𝗔𝗜𝗥𝗜𝗡𝗚 𝗖𝗢𝗗𝗘* ]━━━━╮\n` +
+                    `╭━━━━[ 📡 *${config.PAIRING_BRAND} PAIRING* ]━━━━╮\n` +
                     `┣ 📱 *Number:* \`+${num}\`\n` +
                     `┣ 🔑 *Code:* \`${code}\`\n` +
                     `┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
                     `┣ ⏳ *Expires in:* 30 seconds\n` +
-                    `┣ 📲 Open WA → Linked Devices\n` +
+                    `┣ 📲 Open WhatsApp → Linked Devices\n` +
+                    `┣ 📝 Type *${code}* exactly on the phone\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`
                 );
             } catch (err) {

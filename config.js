@@ -135,6 +135,17 @@ const config = {
     MENU_BUTTON_TEXT: env("MENU_BUTTON_TEXT", "🚀 Open App"),
     MENU_BUTTON_URL: env("MENU_BUTTON_URL", ""), // falls back to DASHBOARD_URL
 
+    // ── WhatsApp Session Pairing (branded code) ────────────────
+    // The WhatsApp pairing code is chosen by THIS device (Baileys generates
+    // it locally — WhatsApp's server never issues it to the bot) and typed
+    // by the user into WhatsApp → Linked Devices. Baileys therefore accepts
+    // a custom fixed code: exactly 8 characters (A-Z/0-9), anything else
+    // makes the library throw. PAIRING_BRAND is the label shown around the
+    // code; CUSTOM_PAIRING_CODE is the exact value the user must type on
+    // the phone.
+    CUSTOM_PAIRING_CODE: env("CUSTOM_PAIRING_CODE", "BLAZENXT").toUpperCase().replace(/[^A-Z0-9]/g, ""),
+    PAIRING_BRAND: env("PAIRING_BRAND", "BlazeNXT"),
+
     // ── Platform / Storage Helpers ────────────────────────────
     DATA_ROOT,          // where all persistent state lives
     dataPath,           // resolve a filename inside DATA_ROOT
