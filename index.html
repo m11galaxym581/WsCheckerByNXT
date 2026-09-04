@@ -1609,7 +1609,15 @@ function togglePref(key) {
         if(prefs.refresh && USER_ID) { if(!liveStatusPoll) liveStatusPoll = setInterval(fetchSysStatus, 10000); }
         else { clearInterval(liveStatusPoll); liveStatusPoll = null; }
     }
-    if(key === 'desknot' && prefs.desknot) { Notification.requestPermission(); }
+    if(key === 'desknot' && prefs.desknot) {
+        // The Notifications API does not exist in every webview (Telegram
+        // Mini App on iOS, some Android browsers) — request only when real.
+        if(typeof Notification!=='undefined') {
+            try { Notification.requestPermission().catch(()=>{}); } catch(e){}
+        } else {
+            toast('Desktop notifications are not supported in this app/browser.','info');
+        }
+    }
     if(key === 'autoTheme' && prefs.autoTheme) applyAutoTheme();
 }
 
@@ -1726,7 +1734,14 @@ function toast(msg,type='info'){
   if(ic) e.innerHTML=`<svg class="ic" aria-hidden="true"><use href="#i-${ic}"></use></svg>`;
   const t=document.createElement('span'); t.textContent=msg; e.appendChild(t);
   w.appendChild(e); setTimeout(()=>e.remove(),3500);
-  if(prefs.desknot && Notification.permission==='granted') { try { new Notification('WS CHECKER v6',{body:msg}); } catch(ex){} }
+  // Desktop notifications are optional AND unavailable in some browsers /
+  // in-app webviews (e.g. Telegram Mini App on iOS). Guard so this helper
+  // can NEVER throw and break its caller.
+  try {
+    if(prefs.desknot && typeof Notification!=='undefined' && Notification.permission==='granted') {
+      new Notification('WS CHECKER v6',{body:msg});
+    }
+  } catch(ex){}
 }
 
 function closeNav(){
@@ -1844,12 +1859,16 @@ async function tgAutoLogin(){
   try{ if(tg.ready) tg.ready(); if(tg.expand) tg.expand(); }catch(e){}
   try{
     const r=await apiFetch('/api/tg-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:tg.initData})});
-    const d=await r.json(); if(!d.ok) throw new Error(d.message||'Auth failed');
+    const d=await r.json(); if(!d.ok) throw new Error(d.message||d.error||'Auth failed');
     applyAuthSuccess(d, d.user?d.user.id:tgUserFromInitData()?.id);
     try{ if(tg.close){} }catch(e){}
     return true;
   }catch(e){
-    try{ if(tg.showAlert) tg.showAlert('Auto login failed — use the ID + web password from the bot.'); }catch(_){}
+    // Keep the Mini App alert honest: show the real reason so force-join /
+    // verification problems are visible, with the password path as fallback.
+    const reason = (e && e.message && e.message !== 'Auth failed') ? e.message : 'use the ID + web password from the bot.';
+    try{ if(tg.showAlert) tg.showAlert('Auto login failed — ' + reason); }catch(_){}
+    if(window.console && console.error) console.error('[tg-auth] Auto login failed:', e);
     const u=tgUserFromInitData(); if(u) setVal('inp-uid',u.id);
     showLoginPage(); toast(e.message||'Auto login failed','error');
     return false;

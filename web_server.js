@@ -504,27 +504,32 @@ function startServer(bot) {
     // signature with the bot token, auto-register the user and issue a normal
     // web session — no web password needed inside Telegram.
     app.post("/api/tg-auth", async (req, res) => {
-        const initData = req.body?.initData || req.body?.tg_init_data || "";
-        const tgUser = verifyTelegramInitData(initData, config.TG_TOKEN);
-        if (!tgUser) return res.status(401).json({ ok: false, message: "Telegram verification failed. Open the dashboard from the bot's Mini App." });
+        try {
+            const initData = req.body?.initData || req.body?.tg_init_data || "";
+            const tgUser = verifyTelegramInitData(initData, config.TG_TOKEN);
+            if (!tgUser) return res.status(401).json({ ok: false, message: "Telegram verification failed. Open the dashboard from the bot's Mini App." });
 
-        const nUid = Number(tgUser.id);
-        const db = getDB();
-        if (db.users[nUid]?.banned) return res.status(403).json({ ok: false, message: "Access denied." });
+            const nUid = Number(tgUser.id);
+            const db = getDB();
+            if (db.users[nUid]?.banned) return res.status(403).json({ ok: false, message: "Access denied." });
 
-        registerUser({
-            id: nUid,
-            first_name: tgUser.first_name || tgUser.firstName || "Telegram User",
-            username: tgUser.username || "NoUser",
-        });
-        const user = getDB().users[nUid];
+            registerUser({
+                id: nUid,
+                first_name: tgUser.first_name || tgUser.firstName || "Telegram User",
+                username: tgUser.username || "NoUser",
+            });
+            const user = getDB().users[nUid];
 
-        const fj = await checkForceJoin(nUid);
-        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
+            const fj = await checkForceJoin(nUid);
+            if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
 
-        if (state.pushUserNotification) state.pushUserNotification(nUid, "🛜 Logged in via Telegram Mini App", "info");
-        req.authMode = "telegram";
-        finalizeAuth(req, res, getDB(), nUid, user);
+            if (state.pushUserNotification) state.pushUserNotification(nUid, "🛜 Logged in via Telegram Mini App", "info");
+            req.authMode = "telegram";
+            finalizeAuth(req, res, getDB(), nUid, user);
+        } catch (err) {
+            console.error("❌ [tg-auth] Auto-login failed:", err.message);
+            res.status(500).json({ ok: false, message: "Auto-login service error. Please use the ID + web password from the bot.", error: err.message });
+        }
     });
 
 
