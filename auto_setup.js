@@ -75,7 +75,8 @@ async function healTick(bot) {
     _healTries++;
     const url = appUrl();
     try {
-        await bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } });
+        const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, url });
+        await bot.setChatMenuButton({ menu_button: menuButtonJson });
         // Telegram applies menu-button changes asynchronously — poll read-back.
         let stored = null;
         for (let i = 0; i < 4; i++) {
@@ -151,9 +152,13 @@ async function runAutoSetup(bot) {
 
     // ── 4. Mini App menu button (needs whitelisted domain) ────
     const url = appUrl();
+    // NOTE: this lib auto-stringifies only reply_markup/entities — menu_button
+    // must be JSON.stringify'd or it is mangled by form encoding ([object Object])
+    // and Telegram answers 400, which used to look like a generic "not confirmed".
+    const menuButtonJson = JSON.stringify({ type: "web_app", text: config.MENU_BUTTON_TEXT, url });
     results.setMenuButton = await withRetry(
         "setChatMenuButton",
-        () => bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } }),
+        () => bot.setChatMenuButton({ menu_button: menuButtonJson }),
         (err) => !/whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domains/i.test(String(err)) // whitelist errors don't heal with retries
     );
     if (results.setMenuButton.ok) {
