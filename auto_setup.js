@@ -233,7 +233,14 @@ async function runAutoSetup(bot) {
     lines.push(stepLabel("Command list", results.setCommands));
     if (results.menuButtonActive) lines.push(`✅ Mini App menu button — ${config.MENU_BUTTON_TEXT} → ${url}`);
     else if (whitelistPending) lines.push("❌ Mini App menu button — domain not allow-listed yet");
-    else lines.push("⚠️ Mini App menu button — not confirmed yet (offline / retry with /autosetup)");
+    else {
+        // Surface the exact Telegram error so a persistent failure is not a
+        // mystery ("not confirmed yet (offline)" told us nothing).
+        const setErr = results.setMenuButton && !results.setMenuButton.ok ? String(results.setMenuButton.error) : "";
+        const detail = setErr ? setErr.split("\n")[0].slice(0, 180)
+            : `read-back type = ${storedType || "none"}`;
+        lines.push(`⚠️ Mini App menu button — not confirmed: ${detail}`);
+    }
 
     const botTag = results.getMe.ok && results.getMe.res?.username ? `@${results.getMe.res.username}` : "your bot";
     let summary = lines.join("\n");
@@ -241,7 +248,9 @@ async function runAutoSetup(bot) {
         summary += `\n⚠️ ACTION NEEDED (30 sec, once): @BotFather → /mybots → select ${botTag} → Bot Settings → *Domain* → add: ${url.split("/")[2]}\nThen send /autosetup or redeploy — everything else is automatic.`;
     }
 
-    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive };
+    state.autoSetup = { ran: true, at: new Date().toISOString(), results, summary, appUrl: url, appLink: appLink(), whitelistPending, webAppReady, menuButtonActive: !!results.menuButtonActive,
+        menuButtonError: (results.setMenuButton && !results.setMenuButton.ok) ? String(results.setMenuButton.error).slice(0, 300) : null,
+        menuButtonStored: storedType || null };
     console.log("🧩 [AutoSetup] Summary:\n" + summary);
 
     // ── 6. Owner report (only if the owner has started the bot) ─
