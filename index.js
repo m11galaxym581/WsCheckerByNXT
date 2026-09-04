@@ -62,6 +62,14 @@ async function main() {
     const backend = await initDB();
     console.log(`🗄️  [DB] Storage backend: ${backend}`);
 
+    // Restore Postgres-backed state that a redeploy wiped from disk:
+    // force-join channels/limits (dynamic config), WhatsApp session rows,
+    // job state, proxies.txt mirror. Runs before the server + nodes start.
+    if (backend === "postgres") {
+        try { await require("./pg_state").bootRestore(); }
+        catch (err) { console.error("❌ [PG] Boot restore failed:", err.message); }
+    }
+
     // ── 🤖 TELEGRAM BOT INITIALIZATION ────────────────────────
     bot = new (require("node-telegram-bot-api"))(config.TG_TOKEN, {
         polling: {
@@ -162,6 +170,8 @@ async function main() {
             }
             await syncDB();
             console.log("✅ [Shutdown] Database writes flushed.");
+            await require("./pg_state").flushAll();
+            console.log("✅ [Shutdown] WhatsApp session state flushed to Postgres.");
 
             // 3. Alert Owner
             await bot.sendMessage(config.OWNER_ID,

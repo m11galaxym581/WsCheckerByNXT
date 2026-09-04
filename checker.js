@@ -43,6 +43,8 @@ function saveJobState(uid, data) {
         const dir = path.join(config.DATA_ROOT, "job_state");
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, `${uid}.json`), JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
+        // Mirror into Postgres so resume-state survives Railway redeploys.
+        try { require("./pg_state").saveJob(uid, { ...data, updatedAt: new Date().toISOString() }); } catch (_) {}
     } catch (_) {}
 }
 

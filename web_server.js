@@ -149,6 +149,26 @@ function startServer(bot) {
     function sign(data) { return crypto.createHmac("sha256", WEB_SECRET || config.TG_TOKEN).update(data).digest("base64url"); }
     const revokedSids = new Set();
     const deviceSessions = new Map();
+    // Hydrate web login sessions from the DB document so that logged-in
+    // devices (and their "log out all devices" state) survive redeploys.
+    try {
+        const _db = getDB();
+        if (_db.meta && typeof _db.meta.webSessions === "object") {
+            for (const uid of Object.keys(_db.meta.webSessions)) {
+                const arr = _db.meta.webSessions[uid];
+                if (Array.isArray(arr)) deviceSessions.set(Number(uid), arr);
+            }
+        }
+    } catch (_) {}
+    function persistDeviceSessions(uid) {
+        try {
+            const db = getDB();
+            if (!db.meta) db.meta = {};
+            db.meta.webSessions = db.meta.webSessions || {};
+            db.meta.webSessions[String(uid)] = deviceSessions.get(uid) || [];
+            saveDB(db);
+        } catch (_) {}
+    }
     function createToken(uid, sid = crypto.randomBytes(12).toString("base64url")) {
         const payload = { uid: Number(uid), sid, exp: Date.now() + TOKEN_TTL_MS, iat: Date.now() };
         const body = b64url(payload);
@@ -434,6 +454,7 @@ function startServer(bot) {
         const sessions = deviceSessions.get(nUid) || [];
         sessions.unshift({ sid, ip: req.ip || req.socket.remoteAddress, ua: req.headers['user-agent'] || 'Unknown', lastLogin: new Date().toISOString() });
         deviceSessions.set(nUid, sessions.slice(0, 10));
+        persistDeviceSessions(nUid);
 
         res.json({ 
             ok: true, 
@@ -542,11 +563,18 @@ function startServer(bot) {
         const sessions = deviceSessions.get(req.user.uid) || [];
         sessions.forEach(s => revokedSids.add(s.sid));
         deviceSessions.set(req.user.uid, []);
+        persistDeviceSessions(req.user.uid);
         clearAuthCookies(res);
         res.json({ ok:true });
     });
 
-    app.post("/api/logout", requireAuth, (req, res) => { if (req.user.sid) revokedSids.add(req.user.sid); clearAuthCookies(res); res.json({ ok:true }); });
+    app.post("/api/logout", requireAuth, (req, res) => { 
+        if (req.user.sid) revokedSids.add(req.user.sid);
+        const arr = (deviceSessions.get(req.user.uid) || []).filter(s => s.sid !== req.user.sid);
+        deviceSessions.set(req.user.uid, arr);
+        persistDeviceSessions(req.user.uid);
+        clearAuthCookies(res); res.json({ ok:true });
+    });
 
     app.get("/api/user/api-usage", requireAuth, (req, res) => {
         const db = getDB(); const u = db.users[req.user.uid] || {};

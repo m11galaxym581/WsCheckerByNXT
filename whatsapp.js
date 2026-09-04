@@ -20,6 +20,7 @@ const { saveSessionMeta, deleteSessionMeta, getDB } = require("./database");
 const config = require("./config");
 const state  = require("./state");
 const proxyManager = require("./proxy_manager");
+const pgState = require("./pg_state");
 
 // ── Silent logger (prevents Baileys spam in console) ──────────
 const silentLogger = pino({ level: "silent" });
@@ -51,7 +52,20 @@ async function startSession(sessionId, displayName, requesterInfo, sessionType =
     const sessDir = SESSION_DIR(sessionId);
 
     try {
-        const { state: authState, saveCreds } = await useMultiFileAuthState(sessDir);
+        // PostgreSQL-backed auth (creds + signal keys in one JSONB row, no
+        // session folder needed) when Postgres is up; classic multi-file auth
+        // (session_<id>/ folder on DATA_ROOT) otherwise.
+        const usePG = pgState.active();
+        let authState, saveCreds;
+        if (usePG) {
+            const pgAuth = await pgState.makeWAAuth(sessionId);
+            authState = pgAuth.state;
+            saveCreds = pgAuth.saveCreds;
+        } else {
+            const mf = await useMultiFileAuthState(sessDir);
+            authState = mf.state;
+            saveCreds = mf.saveCreds;
+        }
         const { version } = await fetchLatestBaileysVersion();
         
         // Proxy Pool Logic: one sticky residential proxy per WA node/session.
@@ -104,6 +118,7 @@ async function startSession(sessionId, displayName, requesterInfo, sessionType =
                 state.setSession(sessionId, { status: "Connected", connectedAt: Date.now(), proxyId: proxyInfo?.id || null, proxy: proxyInfo?.masked || null });
                 if (proxyInfo?.url) proxyManager.markProxyResult(proxyInfo.url, true, Date.now() - (state.sessions[sessionId]?.startedAt || Date.now()));
                 saveSessionMeta(sessionId, requesterInfo.id, sessionType, { proxyId: proxyInfo?.id || null, proxy: proxyInfo?.masked || null });
+                if (usePG) pgState.flushSession(sessionId).catch(() => {}); // pairing creds → Postgres now
                 console.log(`✅ [WA] Node Active [${sessionId}]`);
 
                 if (!silent) {
@@ -195,6 +210,7 @@ async function deleteSession(sessionId) {
     }
     state.removeSession(sessionId);
     _cleanupSession(sessionId);
+    if (pgState.active()) await pgState.dropWA(sessionId).catch(() => {});
     proxyManager.releaseProxy(sessionId);
     deleteSessionMeta(sessionId);
 }
@@ -207,15 +223,50 @@ function _cleanupSession(sessionId) {
 // ── Restore sessions ──────────────────────────────────────────
 async function loadSavedSessions(bot) {
     const db = getDB();
+    const restored = new Set();
+    const stagger = async (sid, meta) => {
+        if (restored.has(sid)) return;
+        restored.add(sid);
+        await startSession(sid, "Saved", { id: meta.owner, name: "System" }, meta.type, bot, true);
+        await new Promise(r => setTimeout(r, 1500)); // Stagger starts
+    };
+
+    if (pgState.active()) {
+        // Postgres mode: every session row IS the session — no folders needed.
+        // Known ids come from sessionMeta (Postgres-backed DB doc) plus any
+        // wa:* rows that still exist.
+        const ids = new Set(Object.keys(db.sessionMeta || {}));
+        try { for (const sid of await pgState.listWASessions()) ids.add(sid); } catch (_) {}
+        // One-time migration: legacy session_* folders still on disk (volume /
+        // local dev) that have no PG row yet are imported into Postgres first.
+        try {
+            const rows = new Set(await pgState.listWASessions());
+            const entries = fs.readdirSync(config.DATA_ROOT);
+            for (const entry of entries) {
+                if (!entry.startsWith("session_") || rows.has(entry.slice(8))) continue;
+                const p = path.join(config.DATA_ROOT, entry);
+                if (!fs.lstatSync(p).isDirectory()) continue;
+                if (await pgState.importSessionDir(entry.slice(8), p)) ids.add(entry.slice(8));
+            }
+        } catch (_) {}
+        let n = 0;
+        for (const sid of ids) {
+            const meta = db.sessionMeta[sid] || { owner: config.OWNER_ID, type: "public" };
+            await stagger(sid, meta);
+            n++;
+        }
+        console.log(`✅ [WA] Restored ${n} auto-saved nodes (Postgres).`);
+        return;
+    }
+
+    // File mode (no DATABASE_URL): legacy behaviour — read session folders.
     let entries = [];
     try { entries = fs.readdirSync(config.DATA_ROOT); } catch (e) { console.error(`⚠️ [WA] Cannot read data dir: ${e.message}`); }
     for (const entry of entries) {
         if (!entry.startsWith("session_") || !fs.lstatSync(path.join(config.DATA_ROOT, entry)).isDirectory()) continue;
         const sid = entry.replace("session_", "");
         const meta = db.sessionMeta[sid] || { owner: config.OWNER_ID, type: "public" };
-        
-        await startSession(sid, "Saved", { id: meta.owner, name: "System" }, meta.type, bot, true);
-        await new Promise(r => setTimeout(r, 1500)); // Stagger starts
+        await stagger(sid, meta);
     }
     console.log(`✅ [WA] Restored auto-saved nodes.`);
 }

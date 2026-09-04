@@ -23,10 +23,22 @@ class FakePool {
             this.tables.set("app_state", table);
             return { rows: [], rowCount: 1 };
         }
-        if (/SELECT data FROM app_state/i.test(text)) {
+        if (/SELECT data FROM app_state WHERE schema_key = \$1/i.test(text)) {
             const table = this.tables.get("app_state") || new Map();
             const value = table.get(params[0]);
             return { rows: value ? [{ data: value }] : [] };
+        }
+        if (/SELECT schema_key, data FROM app_state WHERE schema_key LIKE \$1/i.test(text)) {
+            const table = this.tables.get("app_state") || new Map();
+            const prefix = params[0].replace(/%$/, "");
+            const rows = [];
+            for (const key of table.keys()) if (key.startsWith(prefix)) rows.push({ schema_key: key, data: table.get(key) });
+            return { rows };
+        }
+        if (/DELETE FROM app_state/i.test(text)) {
+            const table = this.tables.get("app_state") || new Map();
+            table.delete(params[0]);
+            return { rows: [], rowCount: 1 };
         }
         throw new Error("FakePool: unhandled SQL -> " + text);
     }

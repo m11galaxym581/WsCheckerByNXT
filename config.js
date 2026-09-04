@@ -156,6 +156,11 @@ const config = {
             const current = this.dynamic;
             const updated = { ...current, ...newSettings };
             fs.writeFileSync(DYN_CONFIG_PATH, JSON.stringify(updated, null, 2), "utf-8");
+            // Mirror into Postgres (fire-and-forget) so force-join channels,
+            // limits and modes survive Railway redeploys even without a volume.
+            try {
+                require("./pg_state").saveDynamic(updated);
+            } catch (e) { /* pg_state unavailable — file copy already written */ }
             return true;
         } catch (e) {
             return false;

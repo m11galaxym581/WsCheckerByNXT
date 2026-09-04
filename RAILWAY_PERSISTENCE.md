@@ -1,31 +1,27 @@
-# Railway persistence (do this once — REQUIRED)
+# Railway persistence — save ALL data in Railway PostgreSQL (recommended)
 
-Railway's filesystem is **ephemeral**: every redeploy/restart wipes anything the
-app writes to disk unless it is inside an attached **Volume** (or Postgres).
+Railway's filesystem is **ephemeral**: every redeploy wipes anything the app
+writes to disk. This app can persist **everything** — bot AND web — in
+**Railway PostgreSQL**, no volume needed:
 
-Without persistent storage the following are lost on every deploy — on the bot
-AND on the web dashboard:
-
-- Users + PRO/VIP tiers, vouchers, scan history
-- **WhatsApp node sessions** (nodes must be re-paired every time!)
-- **Force-join channels** and system/limits settings (`dynamic_config.json`)
-- Job state, proxy list (`proxies.txt`), backups
+- Users, PRO/VIP tiers, vouchers, scan history
+- **WhatsApp node sessions** (creds + signal keys live in Postgres rows —
+  nodes stay connected across redeploys, no re-pairing)
+- **Force-join channels**, system modes, limits, proxy flags
+- Job/resume state and the proxy list
 
 ---
 
-## Fix — attach a Volume (recommended, covers everything)
+## Setup (one time, ~2 minutes)
 
-1. Open your project on https://railway.app → your **WS CHECKER service**.
-2. Go to the **Volumes** tab → **New Volume**.
-3. Mount path: **`/data`**  (this is the app's data root on Railway — see `config.js`).
-4. Deploy/restart the service once (any new push or **Redeploy**).
+1. On Railway: **New → Database → PostgreSQL** (add to the same project as the
+   WS CHECKER service). Railway automatically injects `DATABASE_URL` into the
+   service and redeploys it.
+2. Done. On boot the app creates its table, imports any existing data and
+   starts writing every piece of state into Postgres.
 
-That's it. From now on `users.json`, the `session_*` WhatsApp credentials,
-force-join config, proxies and backups all live on the volume and survive
-redeploys.
-
-> If a `DATA_DIR` variable is set on the service, the volume must be mounted at
-> that path instead (or delete `DATA_DIR` and use the default `/data`).
+> Optional extra durability: a Volume mounted at `/data` still works as a
+> second copy (and keeps backups locally). Not required for Postgres mode.
 
 ### Verify
 
@@ -36,39 +32,67 @@ curl https://wschecker.up.railway.app/api/public-status
 Look for:
 
 ```json
-"storage": { "backend": "file", "volumeMounted": true, "dataRootDurable": true }
+"storage": { "backend": "postgres", "volumeMounted": false,
+             "pgConnected": true, "dataRootDurable": false,
+             "durable": true }
 ```
 
-`dataRootDurable: true` = everything persists. You can also open the dashboard
-**Status** tab → PUBLIC STATUS and see the same fields.
+`"backend": "postgres"` + `"durable": true` = everything (users, sessions,
+force-join, jobs) survives redeploys. The dashboard Status tab → PUBLIC STATUS
+shows the same JSON.
 
 ---
 
-## Optional extra — Postgres for the database document
+## What the app stores in Postgres (implementation notes)
 
-Attach a Railway **PostgreSQL** service to the project; Railway injects
-`DATABASE_URL`. On next boot the whole DB document (users, subscriptions,
-vouchers, history, session metadata, stats, maintenance state) is imported into
-a `app_state` table and kept there.
+One `app_state` table, JSONB rows:
 
-Postgres alone is **not enough**: WhatsApp node credentials, force-join
-channels and job state are still plain files, so **also attach the Volume
-above**. Recommended setup: Volume at `/data` **plus** Postgres.
+| Row key          | Contents                                              |
+|------------------|-------------------------------------------------------|
+| `db`             | the whole database document (users, tiers, vouchers, history, session metadata, stats, maintenance, web login devices) |
+| `dynamic`        | full dynamic config = force-join channels, FREE/PRO/VIP limits, system mode, proxy settings (`dynamic_config.json` mirrored) |
+| `wa:<sessionId>` | one WhatsApp node per row: creds + all signal keys (Baileys auth state, debounced flush) |
+| `job:<uid>`      | resume state of a user's last job (`job_state/` mirrored) |
+| `file:proxies.txt` | proxy list content mirror                           |
+
+Flow per redeploy:
+
+1. `initDB()` connects Postgres and loads the `db` row.
+2. `pg_state.bootRestore()` rehydrates force-join config, proxies and jobs.
+3. WhatsApp nodes are restored from their `wa:<id>` rows — same credentials,
+   no QR re-pairing.
+4. Every force-join / node / setting change is mirrored to Postgres live;
+   on shutdown all pending session writes are flushed.
+
+When `DATABASE_URL` is not set (local dev / offline), the app silently uses
+the legacy file layout (`users.json`, `session_*` folders) — nothing changes
+locally.
+
+## One-time migration notes
+
+- Already using file storage with a volume? Your `users.json`, session folders
+  and force-join config are imported automatically on first Postgres boot
+  (session folders under `/data` are imported into `wa:` rows).
+- On Railway without a volume the files are already gone each deploy — the
+  first Postgres boot simply starts clean. Re-add any nodes once; from then on
+  they persist forever.
+
+## Checking a test redeploy
+
+1. Logs on boot: `🗄️ [PG] PostgreSQL store ready …`, `💾 [DB] Persistent
+   storage OK — Postgres`, then `✅ [WA] Restored N auto-saved nodes (Postgres).`
+2. A connected WhatsApp node survives redeploy without re-pairing.
+3. Force-join channels still listed under Force Join settings.
+4. `users.json` count unchanged (check the dashboard Users/Admin screen).
+
+If instead the logs print `[STORAGE] DATA IS NOT PERSISTENT…`, `DATABASE_URL`
+is not reaching the service — check Railway Variables / restart the service,
+or fall back to the Volume option at the end of this file.
 
 ---
 
-## What to check after a test redeploy
+## Alternative: Volume at /data
 
-1. Logs show: `💾 [DB] Persistent storage OK — data root on Volume`.
-2. A connected WhatsApp node survives redeploy (Sessions page still shows it
-   Connected without re-pairing).
-3. Force-join channels are still listed under Force Join settings.
-4. `users.json` + `session_*` folders exist under the data root.
-
-If instead you see the boot warning
-
-```
-[STORAGE] DATA IS NOT PERSISTENT — EVERY REDEPLOY WIPES ALL DATA
-```
-
-the volume is not mounted at the data root yet — re-check the mount path.
+If you prefer not to use Postgres, attach a Volume mounted at `/data`
+(service → Volumes → New Volume → Mount path `/data`). File mode then
+persists everything as plain files.

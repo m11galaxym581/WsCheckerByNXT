@@ -147,8 +147,10 @@ async function initDB() {
             const { changed } = repairDB(live);
             if (changed) pgStore.saveToPG(live);
         }
+        warnStorageIfEphemeral();
         return "postgres";
     }
+    warnStorageIfEphemeral();
     return "file";
 }
 
@@ -164,55 +166,59 @@ function dbBackend() {
 }
 
 // One-stop storage-health summary (used by boot guard + /api endpoints).
-// Railway's filesystem is ephemeral: the file backend (users.json AND the
-// WhatsApp session_* folders, dynamic_config.json force-join channels, job
-// state, proxies.txt, backups) only survives redeploys when the data root is
-// mounted on a Railway Volume (RAILWAY_VOLUME_MOUNT_PATH auto-injected when a
-// volume is attached). Postgres makes the DB *document* durable, but the
-// session/force-join/job files still need the volume.
+// Railway's filesystem is ephemeral: data only survives redeploys when at
+// least ONE durable layer is configured:
+//   * Railway Volume (RAILWAY_VOLUME_MOUNT_PATH) — covers the file backend
+//     AND the session folders; or
+//   * PostgreSQL (DATABASE_URL) — the whole app state lives in Postgres:
+//     DB document (users/tiers/vouchers/history/sessionMeta…), WhatsApp
+//     node auth (wa:<id> rows), force-join channels + limits (dynamic),
+//     job state, proxies.txt mirror — no files needed at all.
 function storageInfo() {
     const volumeMounted = !!String(process.env.RAILWAY_VOLUME_MOUNT_PATH || "").trim();
+    const pgConnected = pgStore.enabled && pgStore.ready;
     const dataRoot = config.DATA_ROOT;
     return {
         backend: dbBackend(),          // "postgres" | "file"
         dataRoot,
         volumeMounted,                 // Railway volume env detected
+        pgConnected,                   // Postgres connected at boot
         dataRootDurable: volumeMounted || !config.isRailway,
+        durable: volumeMounted || pgConnected || !config.isRailway,
     };
 }
 
-// ── Boot-time durability guard ──────────────────────────────────
+// ── Durability guard (run after every PG init attempt) ─────────
 // Shout clearly (logs + public status API) when a Railway deploy has no
 // persistent layer configured, so an operator notices BEFORE the next
 // redeploy silently wipes users/sessions/force-join/vouchers again.
-if (config.isRailway) {
+function warnStorageIfEphemeral() {
+    if (!config.isRailway) return;
     const sInfo = storageInfo();
-    if (!sInfo.dataRootDurable) {
-        const bar = "=".repeat(70);
-        console.warn(`\n${bar}`);
-        console.warn("[STORAGE] DATA IS NOT PERSISTENT — EVERY REDEPLOY WIPES ALL DATA");
-        console.warn(bar);
-        console.warn(`Backend: ${sInfo.backend} | Data root: ${sInfo.dataRoot} | Volume: NOT detected | Postgres env: ${pgStore.enabled ? "set" : "not set"}`);
-        console.warn("");
-        console.warn("Railway's filesystem is ephemeral. Restarts/redeploys currently destroy:");
-        console.warn("users + PRO/VIP tiers, vouchers, history, WhatsApp node sessions,");
-        console.warn("force-join channels, job state, proxy file and backups — web AND bot.");
-        console.warn("");
-        console.warn("FIX (recommended): attach a Volume to this service and mount it at:");
-        console.warn(`    ${sInfo.dataRoot}`);
-        console.warn("    Railway → your service → Volumes → New Volume → Mount path = " + sInfo.dataRoot);
-        console.warn("    Then redeploy once. Verify: GET /api/public-status → \"storage\"");
-        console.warn('    shows "dataRootDurable": true. Existing data now survives redeploys.');
-        if (pgStore.enabled) {
-            console.warn("");
-            console.warn("Note: DATABASE_URL is set, so the DB document already survives in");
-            console.warn("Postgres — but WhatsApp node sessions, force-join channels and job");
-            console.warn("state are still files and STILL need the Volume above.");
-        }
-        console.warn(bar + "\n");
-    } else {
-        console.log(`💾 [DB] Persistent storage OK — data root on Volume${pgStore.enabled ? " + Postgres" : ""}.`);
+    if (sInfo.durable) {
+        console.log(`💾 [DB] Persistent storage OK — Postgres${sInfo.volumeMounted ? " + Volume" : ""}.`);
+        return;
     }
+    const bar = "=".repeat(70);
+    console.warn(`\n${bar}`);
+    console.warn("[STORAGE] DATA IS NOT PERSISTENT — EVERY REDEPLOY WIPES ALL DATA");
+    console.warn(bar);
+    console.warn(`Backend: ${sInfo.backend} | Data root: ${sInfo.dataRoot} | Volume: not detected | Postgres: not connected`);
+    console.warn("");
+    console.warn("Railway's filesystem is ephemeral. Restarts/redeploys currently destroy:");
+    console.warn("users + PRO/VIP tiers, vouchers, history, WhatsApp node sessions,");
+    console.warn("force-join channels, job state, proxy file and backups — web AND bot.");
+    console.warn("");
+    console.warn("FIX — do one of these:");
+    console.warn("  A) Attach Railway PostgreSQL to this project (recommended): Railway");
+    console.warn("     auto-injects DATABASE_URL. The app then stores EVERYTHING in");
+    console.warn("     Postgres — users, sessions, force-join, jobs — no volume needed.");
+    console.warn("  B) Attach a Volume to this service and mount it at: " + sInfo.dataRoot);
+    console.warn("     Railway → your service → Volumes → New Volume → Mount path = " + sInfo.dataRoot);
+    console.warn("");
+    console.warn("Verify after deploying: GET /api/public-status → \"storage\" shows");
+    console.warn('"durable": true.');
+    console.warn(bar + "\n");
 }
 
 // Restore a full DB document (admin backup-restore). Works on both backends.
@@ -447,5 +453,5 @@ module.exports = {
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
-    initDB, syncDB, dbBackend, storageInfo, restoreDatabase
+    initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };
