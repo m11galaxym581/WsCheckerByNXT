@@ -148,6 +148,7 @@ async function startSession(sessionId, displayName, requesterInfo, sessionType =
                 } else {
                     _cleanupSession(sessionId);
                     deleteSessionMeta(sessionId);
+                    if (usePG) pgState.dropWA(sessionId).catch(() => {}); // dead creds must not be restored next boot
 
                     if (!silent) {
                         await notifyAdmins(bot,
@@ -236,7 +237,8 @@ async function loadSavedSessions(bot) {
         // Known ids come from sessionMeta (Postgres-backed DB doc) plus any
         // wa:* rows that still exist.
         const ids = new Set(Object.keys(db.sessionMeta || {}));
-        try { for (const sid of await pgState.listWASessions()) ids.add(sid); } catch (_) {}
+        const credIds = new Set();
+        try { for (const sid of await pgState.listWASessions()) { ids.add(sid); credIds.add(sid); } } catch (_) {}
         // One-time migration: legacy session_* folders still on disk (volume /
         // local dev) that have no PG row yet are imported into Postgres first.
         try {
@@ -246,14 +248,18 @@ async function loadSavedSessions(bot) {
                 if (!entry.startsWith("session_") || rows.has(entry.slice(8))) continue;
                 const p = path.join(config.DATA_ROOT, entry);
                 if (!fs.lstatSync(p).isDirectory()) continue;
-                if (await pgState.importSessionDir(entry.slice(8), p)) ids.add(entry.slice(8));
+                if (await pgState.importSessionDir(entry.slice(8), p)) { ids.add(entry.slice(8)); credIds.add(entry.slice(8)); }
             }
         } catch (_) {}
-        let n = 0;
+        let n = 0, skipped = 0;
         for (const sid of ids) {
+            if (!credIds.has(sid)) { skipped++; continue; } // no credentials stored — cannot restore
             const meta = db.sessionMeta[sid] || { owner: config.OWNER_ID, type: "public" };
             await stagger(sid, meta);
             n++;
+        }
+        if (skipped > 0) {
+            console.warn(`⚠️ [WA] ${skipped} saved node(s) have no stored credentials (they were lost in an older redeploy before Postgres storage existed). Re-add them once via /start → Add Node — they will now persist forever.`);
         }
         console.log(`✅ [WA] Restored ${n} auto-saved nodes (Postgres).`);
         return;
