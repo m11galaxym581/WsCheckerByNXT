@@ -430,7 +430,7 @@ function startServer(bot) {
         }));
         const isAdm = req.user && db.admins.includes(Number(req.user.uid));
         const sInfo = storageInfo();
-        const storage = { backend: sInfo.backend, volumeMounted: sInfo.volumeMounted, dataRootDurable: sInfo.dataRootDurable };
+        const storage = { backend: sInfo.backend, volumeMounted: sInfo.volumeMounted, pgConnected: sInfo.pgConnected, dataRootDurable: sInfo.dataRootDurable, durable: sInfo.durable };
         if (isAdm) storage.dataRoot = sInfo.dataRoot;
         res.json({ 
             ok: true, 
@@ -932,7 +932,7 @@ function startServer(bot) {
         res.json({ ok: true, users: db.users, admins: db.admins, subs: db.subscribers, vips: db.vips, banned: db.banned || [] }); 
     });
     
-    app.get("/api/public-status", (req,res)=>{ const db=getDB(); const sInfo=storageInfo(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime(), storage:{backend:sInfo.backend, volumeMounted:sInfo.volumeMounted, dataRootDurable:sInfo.dataRootDurable}}); });
+    app.get("/api/public-status", (req,res)=>{ const db=getDB(); const sInfo=storageInfo(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime(), storage:{backend:sInfo.backend, volumeMounted:sInfo.volumeMounted, pgConnected:sInfo.pgConnected, dataRootDurable:sInfo.dataRootDurable, durable:sInfo.durable}}); });
 
     // ── ⚙️ AUTO-SETUP STATUS (public, no secrets) ──────────────
     // Shows what the server configured automatically and whether the
