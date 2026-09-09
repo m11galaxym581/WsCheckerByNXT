@@ -2251,13 +2251,25 @@ function showStarsShop(plans){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
   const box=document.createElement('div');
   box.style.cssText='background:#0b0f17;border:1px solid var(--border,#26324a);border-radius:16px;padding:20px;max-width:420px;width:100%;color:var(--text,#e7ecf5);font-family:Space Mono,monospace;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.6);';
-  let rows='<div style="text-align:center;font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:1px">⭐ STARS UPGRADE</div>'
-    +'<div style="font-size:11px;opacity:.7;margin-bottom:12px;text-align:center">Instant, auto-delivered after payment. Renewals stack.</div>';
+  let rows='<div style="text-align:center;font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:1px">💳 UPGRADE PLAN</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-bottom:12px;text-align:center">Tap a pack to pay with ⭐ Stars (instant) — or use Binance/USDT below.</div>';
   for(const p of plans){
     rows+=`<button onclick="buyStarsPlan('${escAttr(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin:6px 0;padding:12px 14px;background:#101627;border:1px solid #22304a;border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;font-size:13px"><span>${p.tier==='VIP'?'🔥':'💎'} ${esc(p.tier)} &middot; ${p.days}d</span><span style="color:#ffd34d">${p.stars} ⭐</span></button>`;
   }
+  rows+='<div style="margin:14px 0 2px;text-align:center;font-size:10px;opacity:.55">— or pay by another method —</div>'
+    +'<button onclick="altOwnerContact()" style="display:block;width:100%;padding:11px 14px;background:#101627;border:1px solid #2a3a5c;border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;font-size:13px">💠 Pay via Binance / USDT / other → contact Owner</button>';
   rows+='<div style="text-align:center;margin-top:12px"><button onclick="removeStarsModal()" style="padding:8px 22px;border-radius:8px;background:transparent;border:1px solid #22304a;cursor:pointer;color:inherit;font-family:inherit">Close</button></div>';
   box.innerHTML=rows; overlay.appendChild(box); document.body.appendChild(overlay);
+}
+async function altOwnerContact(){
+  let username='';
+  try{ const r=await apiFetch('/api/stars/support'); const d=await r.json(); if(d.ok) username=d.username||''; }catch(e){}
+  if(username){
+    const msg=encodeURIComponent(`Hi! I'd like to upgrade my plan and pay via Binance / USDT (or another network). My Telegram ID: ${USER_ID}. Please share payment details.`);
+    window.open(`https://t.me/${username}?text=${msg}`,'_blank');
+  }
+  removeStarsModal();
+  toast(username?('Opening owner chat to arrange payment…'):'Message the owner from the bot chat —💎 Upgrade','info');
 }
 async function openStarsShop(){
   if(!USER_ID) return toast('Login required','error');

@@ -124,6 +124,10 @@ const config = {
     WEB_SECRET: env("WEB_SECRET", env("TG_TOKEN", "change-me-web-secret")),
     DASHBOARD_URL: env("DASHBOARD_URL", process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${env("PORT", "9812")}`),
     OWNER_ID: Number(env("OWNER_ID", "8708907310")),
+    // Owner/Support Telegram username (no @) used for the "pay via Binance /
+    // crypto" deep-link to the owner DM. When empty, the bot auto-derives it
+    // from the owner's registered profile (falls back to no deep link).
+    SUPPORT_USERNAME: String(env("SUPPORT_USERNAME", "")).replace(/^@/, "").trim(),
     PORT: (() => { const p = Number(env("PORT", "9812")); return Number.isFinite(p) && p > 0 ? p : 9812; })(),
     MAX_HISTORY: 50, // Increased history storage
     DB_FILE: env("DB_FILE", "users.json"),

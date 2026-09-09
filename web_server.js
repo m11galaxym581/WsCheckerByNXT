@@ -24,6 +24,7 @@ const {
 const { warmupNodes, deleteSession, startSession, requestPairingCode, listUserSessions, listAllSessions } = require("./whatsapp");
 const state = require("./state");
 const proxyManager = require("./proxy_manager");
+const starsMod = require("./stars"); // owner handle + plan title helpers (no side effects)
 
 // ── Telegram Mini App initData verifier (auto-login) ─────────
 // Validates initData signed by Telegram using the bot token.
@@ -861,6 +862,11 @@ function startServer(bot) {
             console.error("❌ [Stars] create-invoice error:", e.message);
             res.status(500).json({ ok: false, error: "Could not create Stars invoice." });
         }
+    });
+    // Owner/Support handle (no @) for "pay via Binance/crypto — contact owner".
+    app.get("/api/stars/support", requireAuth, (req, res) => {
+        const username = starsMod.ownerHandle ? starsMod.ownerHandle() : config.SUPPORT_USERNAME || "";
+        res.json({ ok: true, username });
     });
     // Owner/Admin: view + edit the Stars catalog live.
     app.get("/api/admin/stars", requireAdmin, (req, res) => {

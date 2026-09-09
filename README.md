@@ -791,10 +791,20 @@ zero manual approval — the plan is granted automatically the moment Telegram
 confirms the payment.
 
 ### How users buy
-- **Bot:** main menu → `💎 Upgrade` → pick a pack → `Pay ⭐ …`. Telegram's native
-  Stars checkout opens in the chat.
+- **Bot:** main menu → `💎 Upgrade` → pick a pack → choose a payment method.
 - **Web / Mini App:** the profile `UPGRADE TIER ⭐` button opens the pack list;
   inside Telegram it calls `Telegram.WebApp.openInvoice()` for a seamless pay.
+
+### Payment methods
+- **⭐ Telegram Stars — automatic.** Pick a pack → `Pay ⭐ …` → Telegram's native
+  Stars checkout opens in the chat. The tier is granted instantly on payment.
+- **💠 Binance Pay / 🪙 USDT (TRC20) / ⛓️ other networks — routed to the owner.**
+  Pick a non-Star method → a "Message Owner to Pay" deep link opens the owner's
+  chat pre-filled with the plan + network. After the buyer has paid they tap
+  `✅ I've Paid — Notify Owner`, which DMs the owner a request with a one-tap
+  `Approve {tier} {days}d` button that grants the exact pack. (No gateway
+  credentials are wired — the owner confirms receipt out-of-band.)
+- Manual `/addpro`, `/addvip` and vouchers remain available as an admin fallback.
 
 ### Behaviour
 - **Instant & automatic.** On `successful_payment` the tier is granted with no
