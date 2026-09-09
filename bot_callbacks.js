@@ -8,7 +8,8 @@
 const {
     getDB, saveDB, isAdmin, isSub, isVIP, isOwner, isBanned, getUserLang, setUserLang,
     addAdmin, removeAdmin, addSubscriber, removeSubscriber, addVIP, removeVIP,
-    banUser, unbanUser, generateWebPass, generateApiKey, createVoucher, getStats
+    banUser, unbanUser, generateWebPass, generateApiKey, createVoucher, getStats,
+    openSupport, closeSupport
 } = require("./database");
 const { warmupNodes, deleteSession, listUserSessions, listAllSessions, startSession } = require("./whatsapp");
 const config = require("./config");
@@ -157,7 +158,7 @@ module.exports = (bot) => {
         // ============================================================
         if (data === "back_main") {
             state.clearUserStep(uid);
-            state.clearSupportSession(uid);
+            closeSupport(uid);
             let statusBadge = isOwner(uid) ? "⚡ OWNER" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
             const brandTag = `${config.BRAND_NAME} ${config.BRAND_VER}`;
             return safeEdit(`╭━━━━━━[ ✅ *${brandTag}* ]━━━━━━╮\n┣ 👤 *Welcome back, ${q.from.first_name}!*\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
@@ -336,7 +337,7 @@ module.exports = (bot) => {
         }
 
         if (data === "support_chat") {
-            state.setSupportSession(uid);
+            openSupport(uid);
             return safeEdit(
                 `╭━━━[ 💬 *𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗗𝗘𝗦𝗞* ]━━━╮\n` +
                 `┣ You are connected to Support.\n` +
@@ -348,14 +349,14 @@ module.exports = (bot) => {
                 `┣ 🔚 Press *End Chat* (or send /cancel) to close.\n` +
                 `╰━━━━━━━━━━━━━━━━━━━━━━━╯`,
                 { inline_keyboard: [
-                    [{ text: "🔚 End Chat", callback_data: "support_end" }],
+                    [{ text: "🔚 End Chat", callback_data: "support_end", style: "danger" }],
                     [{ text: "🔙 Back", callback_data: "back_main" }],
                 ] }
             );
         }
 
         if (data === "support_end") {
-            state.clearSupportSession(uid);
+            closeSupport(uid);
             return safeEdit("✅ *Support chat closed.*\n\nYou are back on the main menu.", mainMenu(uid));
         }
 

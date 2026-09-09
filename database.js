@@ -260,6 +260,36 @@ function registerUser(from) {
     return db;
 }
 
+// ── Support Desk Session (opt-in, persisted per user) ───────
+// Records whether the user has an *open* support chat so that a
+// redeploy/restart between tapping 💬 Support and typing a message
+// never drops the user back to the generic handler.
+function openSupport(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) db.users[uid] = { id: uid, username: "User", name: "User", count: 0, banned: false, lang: "en", joinedAt: new Date().toISOString() };
+    db.users[uid].supportOpen = true;
+    _cancelPendingSave(); // drop any older snapshot that could overwrite this
+    saveDB(db); // sync — getDB() re-reads the store, so flush immediately
+    return true;
+}
+function _cancelPendingSave() {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    _pendingDB = null;
+}
+function isSupportOpen(uid) {
+    const u = getDB().users[Number(uid)];
+    return !!(u && u.supportOpen);
+}
+function closeSupport(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (db.users[uid] && db.users[uid].supportOpen) {
+        delete db.users[uid].supportOpen;
+        _cancelPendingSave(); // drop any older snapshot that could overwrite this
+        saveDB(db); // sync flush
+    }
+    return true;
+}
+
 // ── Webhook Management ──────────────────────────────────────
 function setWebhook(uid, url) {
     const db = getDB(); uid = Number(uid);
@@ -529,7 +559,7 @@ module.exports = {
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
-    ensureUserRow, extendPlanStack,
+    ensureUserRow, extendPlanStack, openSupport, isSupportOpen, closeSupport,
     logStarsPayment, getStarsPayment, listStarsPayments, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };

@@ -119,14 +119,6 @@ const state = {
     setUserStep(uid, step) { this.userState[uid] = step; },
     getUserStep(uid) { return this.userState[uid]; },
     clearUserStep(uid) { delete this.userState[uid]; },
-
-    // ── Support Desk (opt-in, isolated session) ──
-    // A user is only routed to the help desk AFTER they explicitly open
-    // it (💬 Support button). Ordinary / stray messages are never captured.
-    supportActive: {},
-    setSupportSession(uid)  { this.supportActive[Number(uid)] = true; },
-    isSupportSession(uid)   { return !!this.supportActive[Number(uid)]; },
-    clearSupportSession(uid){ delete this.supportActive[Number(uid)]; },
 };
 
 module.exports = Object.assign(state, {

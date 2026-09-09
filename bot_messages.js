@@ -9,7 +9,7 @@ const {
     getDB, isAdmin, isSub, isVIP, isBanned, isOwner, getUserLang, 
     registerUser, addAdmin, removeAdmin, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
-    banUser, unbanUser 
+    banUser, unbanUser, isSupportOpen, closeSupport 
 } = require("./database");
 const { sendBroadcastReport, parseNumbers } = require("./utils");
 const { startSession, requestPairingCode }  = require("./whatsapp");
@@ -164,7 +164,7 @@ module.exports = (bot) => {
         if (numbers.length === 0) {
             // ── Support messages are ONLY captured inside an explicit
             //    support session that the user opened with 💬 Support ──
-            if (state.isSupportSession(uid)) {
+            if (isSupportOpen(uid)) {
                 if (!state.chats[uid]) state.chats[uid] = [];
                 state.chats[uid].push({
                     sender: 'user',
@@ -195,7 +195,7 @@ module.exports = (bot) => {
 
         // Phone numbers are present → this is a real check, so close any
         // open support session and hand off to the checker engine.
-        if (state.isSupportSession(uid)) state.clearSupportSession(uid);
+        if (isSupportOpen(uid)) closeSupport(uid);
 
         // ── 2. Number Checker Engine ──
         

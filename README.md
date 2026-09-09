@@ -870,3 +870,9 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   is open reach the desk (🔚 End Chat / /cancel / /start / back button all
   close it). Typing a plain voucher code (e.g. `BLAZEVIP-E24FBA70`) no longer
   triggers Support — it now tells the user to run `/redeem <code>`.
+- **Support session now persists (DB-backed)** — the "Support is open" flag is
+  stored on the user record and flushed synchronously, so tapping 💬 Support
+  reliably routes the user's next messages to the desk even across a restart /
+  redeploy (no more falling back to the generic handler after opening support).
+  End Chat / /cancel / /start / Back button / starting a check all close it.
+- **🔚 End Chat button is styled red (danger)**.

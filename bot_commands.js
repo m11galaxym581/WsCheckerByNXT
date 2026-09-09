@@ -10,7 +10,7 @@ const {
     registerUser, getStats, redeemVoucher, createVoucher, getUserLang, setUserLang, 
     setWebhook, generateApiKey, addAdmin, removeAdmin, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
-    banUser, unbanUser, setMaintenance 
+    banUser, unbanUser, setMaintenance, closeSupport 
 } = require("./database");
 const { sendBroadcastReport } = require("./utils");
 const { warmupNodes, listAllSessions } = require("./whatsapp");
@@ -157,7 +157,7 @@ module.exports = (bot) => {
     bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from.id;
         registerUser(msg.from);
-        state.clearSupportSession(uid); // leaving support back to main
+        closeSupport(uid); // leaving support back to main
         const fj = await checkForceJoin(uid, bot);
         if (!fj.ok) return bot.sendMessage(uid, `🔒 Please join required channels to use this bot.${forceJoinNote(fj.missing)}`, { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
         
@@ -414,7 +414,7 @@ module.exports = (bot) => {
         
         state.removeProcessing(uid);
         state.clearUserStep(uid);
-        state.clearSupportSession(uid); // closing any open support session
+        closeSupport(uid); // closing any open support session
         if (global.webState?.[uid]) global.webState[uid].status = "Cancelled";
         return bot.sendMessage(uid, `╭━━━[ 🔄 *𝗔𝗖𝗧𝗜𝗢𝗡 𝗖𝗔𝗡𝗖𝗘𝗟𝗟𝗘𝗗* ]━━━╮\n┣ ✅ Your session has been reset.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
     });
