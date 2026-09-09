@@ -11,6 +11,7 @@
 "use strict";
 
 const { colorInlineKeyboard } = require("./utils");
+const { hasMarkup, markdownToHtml } = require("./md_html");
 
 function colorizeOptions(opts) {
     if (opts && typeof opts === "object" && opts.reply_markup && opts.reply_markup.inline_keyboard) {
@@ -27,6 +28,14 @@ function colorizeOptions(opts) {
 function installSendMessageColors(bot) {
     const origSend = bot.sendMessage.bind(bot);
     bot.sendMessage = async function (chatId, text, options) {
+        options = options || {};
+        // The whole bot sends *bold* / `code` text under legacy Markdown.
+        // Telegram HTML mode is more reliable and never leaks stray `*`,
+        // so render with HTML whenever the message carries markup.
+        if (typeof text === "string" && hasMarkup(text)) {
+            options = { ...options, parse_mode: "HTML" };
+            text = markdownToHtml(text);
+        }
         return origSend(chatId, text, colorizeOptions(options));
     };
     return bot;

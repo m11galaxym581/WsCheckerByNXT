@@ -858,3 +858,9 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   favour of “VIP” and “OWNER”.
 - **My History summary** now shows all four counters (reg / biz / unreg / failed).
 - Cleaned up minor copy (support desk, redeem prompt, owner panel).
+- **HTML rendering for every bot message** — fixed asterisks (`*bold*`), backticks
+  (`code`) and underscores (`_italic_`) leaking through literally on the bot.
+  Added a Markdown→HTML converter (`md_html.js`) wired into `sendMessage` /
+  `editMessageText`, so messages render via Telegram HTML mode (`parse_mode:
+  "HTML"`) and the markup characters never appear raw. & < > are escaped so
+  Telegram never fails to parse a message.
