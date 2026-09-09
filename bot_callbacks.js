@@ -157,6 +157,7 @@ module.exports = (bot) => {
         // ============================================================
         if (data === "back_main") {
             state.clearUserStep(uid);
+            state.clearSupportSession(uid);
             let statusBadge = isOwner(uid) ? "⚡ OWNER" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
             const brandTag = `${config.BRAND_NAME} ${config.BRAND_VER}`;
             return safeEdit(`╭━━━━━━[ ✅ *${brandTag}* ]━━━━━━╮\n┣ 👤 *Welcome back, ${q.from.first_name}!*\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
@@ -335,11 +336,31 @@ module.exports = (bot) => {
         }
 
         if (data === "support_chat") {
-            return safeEdit(`╭━━━[ 💬 *𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗗𝗘𝗦𝗞* ]━━━╮\n┣ Type your message directly in chat.\n┣ (Do not include phone numbers)\n┣ An admin will reply here shortly.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
+            state.setSupportSession(uid);
+            return safeEdit(
+                `╭━━━[ 💬 *𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗗𝗘𝗦𝗞* ]━━━╮\n` +
+                `┣ You are connected to Support.\n` +
+                `┣ Type your question below and press send —\n` +
+                `┣    it is delivered to our team and answered\n` +
+                `┣    right here in this chat.\n` +
+                `┣━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `┣ 📌 Only messages you send *now* go to Support.\n` +
+                `┣ 🔚 Press *End Chat* (or send /cancel) to close.\n` +
+                `╰━━━━━━━━━━━━━━━━━━━━━━━╯`,
+                { inline_keyboard: [
+                    [{ text: "🔚 End Chat", callback_data: "support_end" }],
+                    [{ text: "🔙 Back", callback_data: "back_main" }],
+                ] }
+            );
+        }
+
+        if (data === "support_end") {
+            state.clearSupportSession(uid);
+            return safeEdit("✅ *Support chat closed.*\n\nYou are back on the main menu.", mainMenu(uid));
         }
 
         if (data === "redeem_prompt") {
-            return safeEdit(`╭━━━[ 🎁 *𝗥𝗘𝗗𝗘𝗘𝗠 𝗩𝗢𝗨𝗖𝗛𝗘𝗥* ]━━━╮\n┣ Send a promo code like:\n┣ \`/redeem BLAZEPRO-XXXXXXXX\`\n┣ or tap the 🎟️ Redeem flow from a voucher you were given.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
+            return safeEdit(`╭━━━[ 🎁 *𝗥𝗘𝗗𝗘𝗘𝗠 𝗩𝗢𝗨𝗖𝗛𝗘𝗥* ]━━━╮\n┣ To claim a voucher, send the code as:\n┣ \`/redeem BLAZEPRO-XXXXXXXX\`\n┣\n┣ Example:\n┣ /redeem BLAZEVIP-E24FBA70\n┣\n┣ ⚠️ Just typing the code (without /redeem)\n┣    will not redeem it.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
         }
 
         // ── API & Webhooks ──

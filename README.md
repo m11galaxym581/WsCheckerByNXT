@@ -864,3 +864,9 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   `editMessageText`, so messages render via Telegram HTML mode (`parse_mode:
   "HTML"`) and the markup characters never appear raw. & < > are escaped so
   Telegram never fails to parse a message.
+- **Support Desk is now fully isolated (opt-in)** — the bot no longer captures
+  every unrecognised message as a support ticket. A user must explicitly open
+  Support via the 💬 Support button, and only messages sent while that session
+  is open reach the desk (🔚 End Chat / /cancel / /start / back button all
+  close it). Typing a plain voucher code (e.g. `BLAZEVIP-E24FBA70`) no longer
+  triggers Support — it now tells the user to run `/redeem <code>`.
