@@ -26,6 +26,7 @@ function defaultDB() {
         banned: [],
         dailyStats: {},
         vouchers: {},
+        starsPayments: {},    // Telegram Stars ledger: chargeId -> payment record
         meta: { 
             version: 4, 
             maintenance: false, 
@@ -48,6 +49,7 @@ function repairDB(db) {
     if (!db.history) { db.history = {}; changed = true; }
     if (!db.banned) { db.banned = []; changed = true; }
     if (!db.vouchers) { db.vouchers = {}; changed = true; }
+    if (!db.starsPayments) { db.starsPayments = {}; changed = true; }
     if (!db.dailyStats) { db.dailyStats = {}; changed = true; }
     if (!db.meta) { db.meta = {}; changed = true; }
     if (db.meta.maintenance === undefined) { db.meta.maintenance = false; changed = true; }
@@ -359,6 +361,80 @@ function removeVIP(uid) {
     if(db.users[uid]) db.users[uid].vipExpiry = null; saveDB(db);
 }
 
+// Ensure a numeric uid exists in db.users (minimal record). Returns the user
+// row AND persists, so it is safe to use standalone (single getDB under the hood).
+// For multi-field mutations prefer extendPlanStack (self-contained on one db).
+function ensureUserRow(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) {
+        db.users[uid] = {
+            id: uid, username: "NoUser", name: "User", count: 0, banned: false,
+            web_pass: "", apiKey: null, webhookUrl: null, lang: "en",
+            proExpiry: null, vipExpiry: null,
+            joinedAt: new Date().toISOString(), lastSeen: new Date().toISOString()
+        };
+        saveDB(db);
+    }
+    return db.users[uid];
+}
+
+// ⭐ Stars plan activation with STACKING: if the user already has an active
+// expiry on the same tier, the purchased days are added on top of it instead of
+// resetting the clock. tier = "PRO" | "VIP". Returns the new expiry timestamp.
+// Self-contained on ONE db snapshot so all mutations land in the same save.
+function extendPlanStack(uid, tier, days) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) {
+        db.users[uid] = {
+            id: uid, username: "NoUser", name: "User", count: 0, banned: false,
+            web_pass: "", apiKey: null, webhookUrl: null, lang: "en",
+            proExpiry: null, vipExpiry: null,
+            joinedAt: new Date().toISOString(), lastSeen: new Date().toISOString()
+        };
+    }
+    const u = db.users[uid];
+    const ms = Number(days) * 86400000;
+    const now = Date.now();
+    let expiry;
+    if (String(tier).toUpperCase() === "VIP") {
+        const base = (u.vipExpiry && Number(u.vipExpiry) > now) ? Number(u.vipExpiry) : now;
+        expiry = base + ms;
+        u.vipExpiry = expiry;
+        if (!db.vips.includes(uid)) db.vips.push(uid);
+    } else {
+        const base = (u.proExpiry && Number(u.proExpiry) > now) ? Number(u.proExpiry) : now;
+        expiry = base + ms;
+        u.proExpiry = expiry;
+        if (!db.subscribers.includes(uid)) db.subscribers.push(uid);
+    }
+    saveDB(db);
+    return expiry;
+}
+
+// ⭐ Telegram Stars payment ledger (chargeId keyed — needed for refunds).
+function logStarsPayment(rec) {
+    const db = getDB(); if (!db.starsPayments) db.starsPayments = {};
+    const cid = rec && rec.chargeId;
+    if (!cid) return null;
+    db.starsPayments[cid] = { ...rec, chargeId: cid, at: rec.at || new Date().toISOString() };
+    saveDB(db);
+    return db.starsPayments[cid];
+}
+function getStarsPayment(chargeId) {
+    const db = getDB(); return (db.starsPayments || {})[chargeId] || null;
+}
+function listStarsPayments() {
+    const db = getDB();
+    return Object.values(db.starsPayments || {})
+        .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+function removeStarsPayment(chargeId) {
+    const db = getDB(); if (db.starsPayments && db.starsPayments[chargeId]) {
+        delete db.starsPayments[chargeId]; saveDB(db); return true;
+    }
+    return false;
+}
+
 function banUser(uid) { const db = getDB(); uid = Number(uid); if (db.users[uid]) db.users[uid].banned = true; if (!db.banned.includes(uid)) db.banned.push(uid); saveDB(db); }
 function unbanUser(uid) { const db = getDB(); uid = Number(uid); if (db.users[uid]) db.users[uid].banned = false; db.banned = db.banned.filter(i => i !== uid); saveDB(db); }
 
@@ -453,5 +529,7 @@ module.exports = {
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
+    ensureUserRow, extendPlanStack,
+    logStarsPayment, getStarsPayment, listStarsPayments, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };

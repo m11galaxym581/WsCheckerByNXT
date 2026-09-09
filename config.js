@@ -94,7 +94,22 @@ const defaultDynamicConfig = {
     WA_MAX_RECONNECT_TRIES: 9,          // reconnect attempts before giving up + notifying
     ENABLE_WEBHOOKS: true,     // Allow POSTing results to external servers
     FORCE_JOIN_ENABLED: false,
-    FORCE_JOIN_CHANNELS: []    // [{ title:"Channel", chatId:"@channel", url:"https://t.me/channel" }]
+    FORCE_JOIN_CHANNELS: [],   // [{ title:"Channel", chatId:"@channel", url:"https://t.me/channel" }]
+
+    // ── ⭐ Telegram Stars Plan Shop ───────────────────────────
+    // Sell PRO / VIP plan upgrades for Telegram Stars (currency "XTR").
+    // Each entry: { id, tier:"PRO"|"VIP", days, stars } — `stars` is the
+    // whole-number price in Stars. Re-purchases stack on the active expiry.
+    // Toggle the whole shop here, or live from the admin console.
+    STARS_ENABLED: true,
+    STARS_PLANS: [
+        { id: "pro_7",  tier: "PRO", days: 7,  stars: 40 },
+        { id: "pro_15", tier: "PRO", days: 15, stars: 75 },
+        { id: "pro_30", tier: "PRO", days: 30, stars: 130 },
+        { id: "vip_7",  tier: "VIP", days: 7,  stars: 70 },
+        { id: "vip_15", tier: "VIP", days: 15, stars: 130 },
+        { id: "vip_30", tier: "VIP", days: 30, stars: 240 }
+    ]
 };
 
 // ── Auto-Create Dynamic Config File ─────────────────────────

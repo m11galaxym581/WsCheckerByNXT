@@ -51,7 +51,7 @@ module.exports = (bot) => {
             [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
             [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
             [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
-            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            [{ text: "💎 Upgrade", callback_data: "stars_shop" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);

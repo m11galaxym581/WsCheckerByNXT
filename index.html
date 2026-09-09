@@ -1111,7 +1111,7 @@ h3 .ic{ vertical-align:-0.16em; }
           </div>
         </div>
         <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
-            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="buyPrem()" data-i18n="upgrade_tier" data-ic="gem"> UPGRADE TIER</button>
+            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="openStarsShop()" data-i18n="upgrade_tier" data-ic="gem"> UPGRADE TIER ⭐</button>
             <button class="btn btn-danger" style="flex:1; min-width:140px;" onclick="cmdReset()" data-i18n="reset_engine" data-ic="reload"> RESET ENGINE</button>
         </div>
         <div style="border-top:1px solid var(--border); padding-top:25px;">
@@ -2243,7 +2243,45 @@ async function reMyNode(sid){
     }catch(e){ toast('Network Error','error'); }
 }
 
-async function buyPrem(){ try{await apiFetch('/api/premium-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Request Sent','success'); }
+// ⭐ Telegram Stars plan shop (profile UPGRADE TIER button / Mini App)
+function removeStarsModal(){ const o=document.getElementById('stars-overlay'); if(o) o.remove(); }
+function showStarsShop(plans){
+  removeStarsModal();
+  const overlay=document.createElement('div'); overlay.id='stars-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:#0b0f17;border:1px solid var(--border,#26324a);border-radius:16px;padding:20px;max-width:420px;width:100%;color:var(--text,#e7ecf5);font-family:Space Mono,monospace;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.6);';
+  let rows='<div style="text-align:center;font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:1px">⭐ STARS UPGRADE</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-bottom:12px;text-align:center">Instant, auto-delivered after payment. Renewals stack.</div>';
+  for(const p of plans){
+    rows+=`<button onclick="buyStarsPlan('${escAttr(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin:6px 0;padding:12px 14px;background:#101627;border:1px solid #22304a;border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;font-size:13px"><span>${p.tier==='VIP'?'🔥':'💎'} ${esc(p.tier)} &middot; ${p.days}d</span><span style="color:#ffd34d">${p.stars} ⭐</span></button>`;
+  }
+  rows+='<div style="text-align:center;margin-top:12px"><button onclick="removeStarsModal()" style="padding:8px 22px;border-radius:8px;background:transparent;border:1px solid #22304a;cursor:pointer;color:inherit;font-family:inherit">Close</button></div>';
+  box.innerHTML=rows; overlay.appendChild(box); document.body.appendChild(overlay);
+}
+async function openStarsShop(){
+  if(!USER_ID) return toast('Login required','error');
+  try{
+    const r=await apiFetch('/api/stars/plans'); const d=await r.json();
+    if(!d.ok||!d.enabled||!d.plans||!d.plans.length) return toast('Stars shop is currently disabled','error');
+    showStarsShop(d.plans);
+  }catch(e){ toast('Failed to load plans','error'); }
+}
+async function buyStarsPlan(planId){
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if(!tg || typeof tg.openInvoice !== 'function'){ toast('Open the ⭐ Upgrade menu inside the bot chat to pay with Stars','error'); removeStarsModal(); return; }
+  let invoiceUrl;
+  try{
+    const r=await apiFetch('/api/stars/create-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({planId})});
+    const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed to create invoice'); invoiceUrl=d.invoiceUrl;
+  }catch(e){ return toast(e.message||'Could not create Stars invoice','error'); }
+  try{
+    tg.openInvoice(invoiceUrl, function(status){
+      if(status==='paid'){ toast('Payment received — upgrading now…','success'); removeStarsModal(); setTimeout(function(){ window.location.reload(); },1500); }
+      else if(status==='cancelled'){ toast('Payment cancelled','info'); }
+    });
+  }catch(e){ toast('Could not open payment. Try the bot chat ⭐ Upgrade menu.','error'); }
+}
 async function cmdReset(){ try{await apiFetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Engine Reset','success'); }
 
 async function fetchApiUsage(){

@@ -827,6 +827,54 @@ function startServer(bot) {
     });
 
     // ============================================================
+    // ⭐ TELEGRAM STARS PLAN SHOP — API (used by the web / Mini App)
+    // ============================================================
+    function starPlansPublic() {
+        const d = config.dynamic || {};
+        const list = Array.isArray(d.STARS_PLANS) ? d.STARS_PLANS : [];
+        return list
+            .filter(p => p && p.id && p.tier && Number(p.days) && Number(p.stars))
+            .map(p => ({ id: p.id, tier: String(p.tier).toUpperCase(), days: Number(p.days), stars: Number(p.stars) }));
+    }
+    // List the Stars catalog for the shop UI (auth required).
+    app.get("/api/stars/plans", requireAuth, (req, res) => {
+        res.json({ ok: true, enabled: !!config.dynamic.STARS_ENABLED, plans: starPlansPublic() });
+    });
+    // Create a Stars invoice link for the logged-in user (Mini App purchase).
+    app.post("/api/stars/create-invoice", requireAuth, async (req, res) => {
+        try {
+            if (!config.dynamic.STARS_ENABLED) return res.status(400).json({ ok: false, error: "Stars shop is disabled." });
+            const planId = String((req.body && req.body.planId) || "");
+            const plan = starPlansPublic().find(p => p.id === planId);
+            if (!plan) return res.status(400).json({ ok: false, error: "Invalid plan." });
+            const uid = Number(req.user.uid);
+            const payload = `${plan.id}:${uid}:${Date.now()}`;
+            const title = `${plan.tier} — ${plan.days} Day${plan.days > 1 ? "s" : ""}`;
+            const description = `WS CHECKER ${plan.tier} upgrade. ${plan.days} day${plan.days > 1 ? "s" : ""}. Auto-activated instantly on payment.`;
+            const link = await bot.createInvoiceLink(
+                title, description, payload, "",
+                "XTR", [{ label: `${plan.tier} ${plan.days} Day${plan.days > 1 ? "s" : ""}`, amount: plan.stars }]
+            );
+            audit(req.user.uid, "stars_invoice", planId, { stars: plan.stars });
+            res.json({ ok: true, invoiceUrl: link, plan, title, description });
+        } catch (e) {
+            console.error("❌ [Stars] create-invoice error:", e.message);
+            res.status(500).json({ ok: false, error: "Could not create Stars invoice." });
+        }
+    });
+    // Owner/Admin: view + edit the Stars catalog live.
+    app.get("/api/admin/stars", requireAdmin, (req, res) => {
+        res.json({ ok: true, enabled: !!config.dynamic.STARS_ENABLED, plans: config.dynamic.STARS_PLANS || [] });
+    });
+    app.post("/api/admin/stars", requireOwner, (req, res) => {
+        const enabled = req.body && typeof req.body.enabled === "boolean" ? req.body.enabled : !!config.dynamic.STARS_ENABLED;
+        const plans = Array.isArray(req.body && req.body.plans) ? req.body.plans : (config.dynamic.STARS_PLANS || []);
+        const ok = config.setDynamicConfig({ STARS_ENABLED: enabled, STARS_PLANS: plans });
+        if (ok) audit(req.user.uid, "stars_config", "shop", { enabled, plans });
+        res.json({ ok, enabled, plans });
+    });
+
+    // ============================================================
     // 👑 ADMIN APIS (V4.0 Advanced Features)
     // ============================================================
     

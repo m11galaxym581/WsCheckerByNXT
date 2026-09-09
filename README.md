@@ -783,3 +783,46 @@ Changes:
 - Mobile checker layout fixed for result tabs and copy buttons.
 - Sidebar navigation cleaned and grouped.
 - Bot menu simplified and cleaned.
+
+## 22. ⭐ Telegram Stars Plan Shop (automatic upgrades)
+
+Sell PRO / VIP plan upgrades for **Telegram Stars** (`currency: "XTR"`) with
+zero manual approval — the plan is granted automatically the moment Telegram
+confirms the payment.
+
+### How users buy
+- **Bot:** main menu → `💎 Upgrade` → pick a pack → `Pay ⭐ …`. Telegram's native
+  Stars checkout opens in the chat.
+- **Web / Mini App:** the profile `UPGRADE TIER ⭐` button opens the pack list;
+  inside Telegram it calls `Telegram.WebApp.openInvoice()` for a seamless pay.
+
+### Behaviour
+- **Instant & automatic.** On `successful_payment` the tier is granted with no
+  admin in the loop (old "premium request → admin approves" flow is bypassed).
+- **Stacking renewals.** Buying while the same tier is still active extends the
+  expiry by the purchased days on top of the remaining time (not reset).
+- Every payment is logged by `telegram_payment_charge_id` in `db.starsPayments`
+  (file or Postgres), ready for support/refunds.
+
+### Owner command
+```
+/refundstars <charge_id>     # refund the Stars and revoke the granted days
+```
+
+### Configuring prices / packs (live, no restart)
+Defaults are in `config.js` (`STARS_ENABLED`, `STARS_PLANS`) and can be edited
+live via the admin API:
+
+```txt
+GET  /api/admin/stars            # view enabled + packs (admin)
+POST /api/admin/stars            # owner: set { enabled, plans }
+GET  /api/stars/plans            # catalog for the shop UI (auth)
+POST /api/stars/create-invoice   # create a Stars invoice link (auth)
+```
+
+Default packs: PRO 7/15/30d (40/75/130 ⭐) and VIP 7/15/30d (70/130/240 ⭐).
+Edit `STARS_PLANS` to change them (whole-number Star amounts).
+
+> **Setup note:** Telegram Stars are enabled for every bot by default — no payment
+> provider token is needed (`provider_token` is left empty). Payments require a
+> real bot token; test with a private chat between the bot and the buyer.

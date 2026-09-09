@@ -118,6 +118,10 @@ async function main() {
     require("./bot_callbacks")(bot);
     require("./bot_messages")(bot);
 
+    // ── ⭐ TELEGRAM STARS PLAN SHOP (automated upgrades) ──────
+    try { require("./stars").installStars(bot); }
+    catch (err) { console.error("❌ [Stars] Shop init failed:", err.message); }
+
     // ── ⚙️ AUTO-SETUP (zero-touch server-side configuration) ──
     // Bot name, description, command menu and the Mini App button are all
     // applied automatically from the Bot API token. Re-runnable anytime via
