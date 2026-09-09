@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | bot_messages.js
+//   WS CHECKER v6 | bot_messages.js
 //   Message Handler: Multi-Step Prompts, Checker, Support Chat
 // ============================================================
 
@@ -125,9 +125,11 @@ module.exports = (bot) => {
             if (!num || num.length < 7) return send(`❌ *Invalid number format.* Send digits only.`);
             
             state.clearUserStep(uid);
-            const sessionType = isAdmin(uid) ? "public" : "private";
+            // Type chosen on the "Add Node" screen (🔒 Private / 🌍 Public).
+            // Private = runs only this user's checks; Public = shared pool.
+            const sessionType = step && step.type === "public" ? "public" : "private";
             
-            await send(`⏳ *Generating Pairing Code...*\nRequesting WA Server for \`+${num}\``);
+            await send(`⏳ *Preparing ${sessionType.toUpperCase()} Pairing...*\nSetting up secure pairing for \`+${num}\``);
             
             try {
                 await startSession(slot, msg.from.first_name, { id: uid, name: msg.from.first_name, username: msg.from.username || "N/A" }, sessionType, bot);
@@ -139,12 +141,14 @@ module.exports = (bot) => {
                 
                 const code = await requestPairingCode(slot, num);
                 return send(
-                    `╭━━━━[ 📡 *𝗣𝗔𝗜𝗥𝗜𝗡𝗚 𝗖𝗢𝗗𝗘* ]━━━━╮\n` +
+                    `╭━━━━[ 📡 *${config.PAIRING_BRAND} PAIRING* ]━━━━╮\n` +
                     `┣ 📱 *Number:* \`+${num}\`\n` +
+                    `┣ 🎖️ *Type:* ${sessionType === "public" ? "🌍 PUBLIC (shared pool)" : "🔒 PRIVATE (your checks only)"}\n` +
                     `┣ 🔑 *Code:* \`${code}\`\n` +
                     `┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
                     `┣ ⏳ *Expires in:* 30 seconds\n` +
-                    `┣ 📲 Open WA → Linked Devices\n` +
+                    `┣ 📲 Open WhatsApp → Linked Devices\n` +
+                    `┣ 📝 Type *${code}* exactly on the phone\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`
                 );
             } catch (err) {

@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 MASTER BEAST | checker.js
+//   WS CHECKER v6 | checker.js
 //   Anti-Ban WhatsApp Scraper & Load-Balanced Engine
 // ============================================================
 
@@ -40,19 +40,21 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 function saveJobState(uid, data) {
     try {
-        const dir = path.join(__dirname, "job_state");
+        const dir = path.join(config.DATA_ROOT, "job_state");
         fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(path.join(dir, `${uid}.json`), JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
+        // Mirror into Postgres so resume-state survives Railway redeploys.
+        try { require("./pg_state").saveJob(uid, { ...data, updatedAt: new Date().toISOString() }); } catch (_) {}
     } catch (_) {}
 }
 
 // ── Telegram Result Delivery Helper ───────────────────────────
 async function sendTelegramResultFiles(bot, uid, reg, unreg, failed, meta) {
-    const dir = path.join(__dirname, "tmp_results");
+    const dir = path.join(config.DATA_ROOT, "tmp_results");
     fs.mkdirSync(dir, { recursive: true });
     const stamp = Date.now();
-    const txtPath = path.join(dir, `BlazeNXT_${uid}_${stamp}.txt`);
-    const csvPath = path.join(dir, `BlazeNXT_${uid}_${stamp}.csv`);
+    const txtPath = path.join(dir, `WSCheck_${uid}_${stamp}.txt`);
+    const csvPath = path.join(dir, `WSCheck_${uid}_${stamp}.csv`);
     try {
         fs.writeFileSync(txtPath, buildResultText(reg, unreg, { ...meta, failed }), "utf8");
         fs.writeFileSync(csvPath, buildResultCSV(reg, unreg, failed), "utf8");

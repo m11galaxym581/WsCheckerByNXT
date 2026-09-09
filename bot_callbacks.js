@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE (MEGABEAST) | bot_callbacks.js
+//   WS CHECKER v6 | bot_callbacks.js
 //   Inline Button Callbacks — Auto-Edit, Deep Navigation & Roles
 // ============================================================
 
@@ -10,7 +10,7 @@ const {
     addAdmin, removeAdmin, addSubscriber, removeSubscriber, addVIP, removeVIP,
     banUser, unbanUser, generateWebPass, generateApiKey, createVoucher, getStats
 } = require("./database");
-const { warmupNodes, deleteSession } = require("./whatsapp");
+const { warmupNodes, deleteSession, listUserSessions, listAllSessions, startSession } = require("./whatsapp");
 const config = require("./config");
 const state  = require("./state");
 const { tr, langKeyboard, normalizeLang } = require("./i18n");
@@ -19,22 +19,21 @@ const path   = require("path");
 
 module.exports = (bot) => {
 
-    async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            try { const m = await bot.getChatMember(chatId, uid); if (["left", "kicked"].includes(m.status)) missing.push(ch); }
-            catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
-    }
+    const { checkForceJoin, missingReasonLine } = require("./force_join");
+
     function forceJoinMarkup(missing) {
-        const kb = missing.map(ch => [{ text: `Join ${ch.title || ch.chatId || 'Channel'}`, url: ch.url || `https://t.me/${String(ch.chatId||'').replace('@','')}` }]);
+        const kb = missing.map(m => {
+            const ch = m.channel || m;
+            const uname = (ch.username || (ch.chatId && String(ch.chatId).startsWith("@") ? ch.chatId : "") || "").replace(/^@/, "");
+            const link = ch.url || (uname ? `https://t.me/${uname}` : null);
+            return [{ text: `Join ${m.title || "Channel"}`, ...(link ? { url: link } : { callback_data: "verify_join" }) }];
+        });
         kb.push([{ text: "✅ Verify Join", callback_data: "verify_join" }]);
         return { inline_keyboard: kb };
+    }
+    function forceJoinNote(missing) {
+        if (!missing || !missing.length) return "";
+        return "\n\n" + missing.map(m => missingReasonLine(m)).join("\n") + "\n\nThen press ✅ Verify Join.";
     }
 
     // ============================================================
@@ -45,11 +44,11 @@ module.exports = (bot) => {
         const L = getUserLang(uid);
         const btns = [
             [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
-            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📱 Add Node", callback_data: "add_sess_req" }],
-            [{ text: "📜 History", callback_data: "my_history" }, { text: "🌐 Language", callback_data: "language_menu" }],
-            [{ text: "⚙️ API & Webhooks", callback_data: "api_menu" }, { text: "ℹ️ System Info", callback_data: "show_info" }],
-            [{ text: "💬 Support", callback_data: "support_chat" }, { text: "💎 Upgrade", callback_data: "buy_prem_req" }],
-            [{ text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            [{ text: "📱 Add Node", callback_data: "add_sess_req" }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
+            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
+            [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
+            [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
+            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);
@@ -149,8 +148,8 @@ module.exports = (bot) => {
 
 
         if (data === "verify_join") {
-            const fj = await checkForceJoin(uid);
-            if (!fj.ok) return safeEdit("🔒 Please join all required channels first.", forceJoinMarkup(fj.missing));
+            const fj = await checkForceJoin(uid, bot);
+            if (!fj.ok) return safeEdit(`🔒 Please join all required channels first.${forceJoinNote(fj.missing)}`, forceJoinMarkup(fj.missing));
             return safeEdit("✅ Verified successfully!", mainMenu(uid));
         }
 
@@ -160,7 +159,7 @@ module.exports = (bot) => {
         if (data === "back_main") {
             state.clearUserStep(uid);
             let statusBadge = isOwner(uid) ? "⚡ GOD (OWNER)" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
-            return safeEdit(`╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  v5.0.59* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
+            return safeEdit(`╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
         }
 
 
@@ -227,7 +226,8 @@ module.exports = (bot) => {
 
         if (data === "gen_web_pass") {
             const pass = generateWebPass(uid);
-            return safeEdit(`╭━━━━[ 🔐 *𝗪𝗘𝗕 𝗗𝗔𝗦𝗛𝗕𝗢𝗔𝗥𝗗* ]━━━━╮\n┣ 🆔 *User ID:* \`${uid}\`\n┣ 🔑 *Password:* \`${pass}\`\n┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n┣ 💡 Login at the Web URL to use Drag & Drop.\n┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main", "🔙 Back"));
+            const miniApp = state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}?startapp` : config.DASHBOARD_URL;
+            return safeEdit(`╭━━━━[ 🔐 *𝗪𝗘𝗕 𝗗𝗔𝗦𝗛𝗕𝗢𝗔𝗥𝗗* ]━━━━╮\n┣ 🆔 *User ID:* \`${uid}\`\n┣ 🔑 *Password:* \`${pass}\`\n┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n┣ 💡 Login at the Web URL to use Drag & Drop.\n┣ 🛜 *Auto-Login (inside Telegram):*\n┣    ${miniApp}\n┣    No password needed when opened from Telegram\n┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main", "🔙 Back"));
         }
 
         if (data === "buy_prem_req") {
@@ -263,8 +263,81 @@ module.exports = (bot) => {
 
         if (data === "add_sess_req") {
             const slot = `s_${uid}_${Date.now()}`;
-            state.setUserStep(uid, { step: "wait_num", slot });
-            return safeEdit(`╭━━━[ 📡 *𝗖𝗢𝗡𝗡𝗘𝗖𝗧 𝗡𝗢𝗗𝗘* ]━━━╮\n┣ Send your WhatsApp number.\n┣ Format: digits only, no + sign.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
+            state.setUserStep(uid, { step: "wait_type", slot });
+            return safeEdit(
+                `╭━━━━[ 📡 *𝗔𝗗𝗗 𝗡𝗢𝗗𝗘* ]━━━━╮\n` +
+                `┣ Choose the node type:\n` +
+                `┣━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `┣ 🔒 *Private* — your own number,\n` +
+                `┣    runs only YOUR checks.\n` +
+                `┣    (Recommended)\n` +
+                `┣━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `┣ 🌍 *Public* — shared pool. The\n` +
+                `┣    system routes other users'\n` +
+                `┣    checks through it too. Higher\n` +
+                `┣    traffic = higher ban risk.\n` +
+                `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`,
+                { inline_keyboard: [
+                    [{ text: "🔒 Private Node", callback_data: "sess_type_private" }],
+                    [{ text: "🌍 Public Node", callback_data: "sess_type_public" }],
+                    [{ text: "🔙 Cancel", callback_data: "back_main" }],
+                ] }
+            );
+        }
+
+        if (data === "sess_type_private" || data === "sess_type_public") {
+            const step = state.getUserStep(uid);
+            if (!step || step.step !== "wait_type" || !step.slot) {
+                return safeEdit(`⏳ Session expired — press *📱 Add Node* again.`, backBtn("back_main"));
+            }
+            const type = data.replace("sess_type_", "");
+            state.setUserStep(uid, { step: "wait_num", slot: step.slot, type });
+            return safeEdit(
+                `╭━━━[ 📡 *𝗖𝗢𝗡𝗡𝗘𝗖𝗧 ${type.toUpperCase()} 𝗡𝗢𝗗𝗘* ]━━━╮\n` +
+                `┣ ${type === "public" ? "🌍 Shared pool selected." : "🔒 Private node selected."}\n` +
+                `┣ Send your WhatsApp number.\n` +
+                `┣ Format: digits only, no + sign.\n` +
+                `╰━━━━━━━━━━━━━━━━━━━━━━╯`,
+                backBtn("back_main", "🔙 Cancel")
+            );
+        }
+
+        // ── My Nodes — self-service session management ─────────
+        if (data === "my_nodes") {
+            const rows = listUserSessions(uid);
+            if (!rows.length) {
+                return safeEdit(`🗄️ *My Nodes*\n\nYou have no nodes yet.\n\nPress *📱 Add Node* to connect your first WhatsApp number — your checks then run through your own number at full speed.`, backBtn("back_main"));
+            }
+            const icons = { Connected: "🟢", Connecting: "🟡", Offline: "🔴", Blocked: "🚫" };
+            const lines = rows.map(r => {
+                const metaType = r.type === "public" ? "🌍 PUBLIC" : "🔒 PRIVATE";
+                const when = r.connectedAt ? ` • ${new Date(r.connectedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short" })}` : "";
+                return `${icons[r.status] || "⚪"} \`${r.sid}\`\n   ${metaType} • ${r.status.toUpperCase()}${when}${r.banFlag ? "\n   ⚠️ Blocked by WhatsApp — delete this node" : ""}`;
+            }).join("\n");
+            const kb = rows.map(r => {
+                const row = [{ text: "🗑️ Delete", callback_data: `my_del_${r.sid}` }];
+                if (r.status === "Offline" && !r.banFlag) row.push({ text: "🔄 Reconnect", callback_data: `my_re_${r.sid}` });
+                return row;
+            });
+            kb.push([{ text: "🔙 Back to Main", callback_data: "back_main" }]);
+            return safeEdit(`╭━━━━[ 🗄️ *𝗠𝗬 𝗡𝗢𝗗𝗘𝗦* ]━━━━╮\n${lines}\n\n${rows.length} node${rows.length > 1 ? "s" : ""} on your account.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { inline_keyboard: kb });
+        }
+
+        if (data.startsWith("my_del_")) {
+            const sid = data.replace("my_del_", "");
+            const mine = listUserSessions(uid).some(r => r.sid === sid);
+            if (!mine && !isAdmin(uid)) return safeEdit(`🚫 You can only delete your own nodes.`, backBtn("my_nodes", "🔙 Back to My Nodes"));
+            await deleteSession(sid).catch(() => {});
+            return safeEdit(`✅ Node \`${sid}\` removed.\n\nWhatsApp session cleaned up. You can add a new node anytime from the menu.`, backBtn("my_nodes", "🔙 Back to My Nodes"));
+        }
+
+        if (data.startsWith("my_re_")) {
+            const sid = data.replace("my_re_", "");
+            const mine = listUserSessions(uid).some(r => r.sid === sid);
+            if (!mine && !isAdmin(uid)) return safeEdit(`🚫 You can only reconnect your own nodes.`, backBtn("my_nodes", "🔙 Back to My Nodes"));
+            const meta = (getDB().sessionMeta || {})[sid] || {};
+            await startSession(sid, "User", { id: uid, name: "User" }, meta.type || "private", bot, false).catch(() => {});
+            return safeEdit(`🔄 Reconnecting \`${sid}\`…\n\nThe node will come online in a few seconds (check status again shortly).`, backBtn("my_nodes", "🔙 Back to My Nodes"));
         }
 
         if (data === "my_history") {
@@ -320,11 +393,13 @@ module.exports = (bot) => {
         }
 
         if (data === "m_sessions") {
-            const keys = Object.keys(state.sessions);
-            if (!keys.length) return safeEdit("❌ No active sessions.", backBtn("open_admin_panel"));
-            const kb = keys.map(k => [{ text: `🗑️ Delete: ${k.substring(0,10)}...`, callback_data: `del_sess_${k}` }]);
+            const rows = listAllSessions();
+            if (!rows.length) return safeEdit("❌ No sessions found (online or saved).", backBtn("open_admin_panel"));
+            const icons = { Connected: "🟢", Connecting: "🟡", Offline: "🔴", Blocked: "🚫" };
+            const lines = rows.map(r => `${icons[r.status] || "⚪"} \`${r.sid}\` — ${r.type.toUpperCase()} — Owner \`${r.owner}\` — ${r.status.toUpperCase()}`).join("\n");
+            const kb = rows.map(r => [{ text: `🗑️ Delete: ${r.sid.slice(0, 18)}…`, callback_data: `del_sess_${r.sid}` }]);
             kb.push([{ text: "🔙 Back", callback_data: "open_admin_panel" }]);
-            return safeEdit(`🗄️ *Active Sessions (${keys.length}):*`, { inline_keyboard: kb });
+            return safeEdit(`🗄️ *All Sessions (${rows.length}):*\n\n${lines}`, { inline_keyboard: kb });
         }
 
         if (data.startsWith("del_sess_")) {
@@ -420,8 +495,12 @@ ${mode === 'free' ? 'All users can use premium system features.' : 'Subscription
         }
 
         if (data === "force_backup") {
-            const dbPath = path.resolve(__dirname, config.DB_FILE);
-            try { fs.copyFileSync(dbPath, dbPath + '.bak_manual'); return safeEdit("💾 *Manual Backup Created Successfully!*", backBtn("open_owner_panel")); }
+            try {
+                const dbPath = config.dataPath(config.DB_FILE);
+                if (fs.existsSync(dbPath)) fs.copyFileSync(dbPath, dbPath + '.bak_manual');
+                else fs.writeFileSync(dbPath + '.bak_manual', JSON.stringify(require('./database').getDB(), null, 2));
+                return safeEdit("💾 *Manual Backup Created Successfully!*", backBtn("open_owner_panel"));
+            }
             catch(e) { return safeEdit("❌ Backup Failed.", backBtn("open_owner_panel")); }
         }
 

@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 ULTRA BEAST | index.js
+//   WS CHECKER v6 | index.js
 //   Main Entry Point — Indestructible Core & Memory Watchdog
 // ============================================================
 
@@ -8,15 +8,15 @@
 // Increase max listeners to prevent memory leak warnings on high load
 require("events").EventEmitter.defaultMaxListeners = 100;
 
-const TelegramBot = require("node-telegram-bot-api");
 const fs          = require("fs");
-const path        = require("path");
 
 const config      = require("./config");
-const { getDB }   = require("./database");
+const { initDB, syncDB } = require("./database");
 const { loadSavedSessions } = require("./whatsapp");
 const { startServer }       = require("./web_server");
 const state                 = require("./state");
+
+let bot = null; // created inside main() after the DB layer is ready
 
 // ── 🚀 Boot Banner ────────────────────────────────────────────
 console.log(`
@@ -27,7 +27,7 @@ console.log(`
 ██████╔╝███████╗██║  ██║███████╗███████╗    ██║ ╚████║██╔╝ ██╗   ██║   
 ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝   
                                             
-      🔥 V5.0 ULTRA BEAST MODE INITIALIZED 🔥
+      🔥 WS CHECKER v6.0.0 — READY
       Owner: @firstoget | Port: ${config.PORT}
 `);
 
@@ -54,108 +54,150 @@ setInterval(() => {
     }
 }, 15 * 60 * 1000); // Check every 15 minutes
 
-// ── 🤖 TELEGRAM BOT INITIALIZATION ────────────────────────────
-const bot = new TelegramBot(config.TG_TOKEN, {
-    polling: {
-        interval: 300,
-        autoStart: true,
-        params: { timeout: 10 },
-    },
-    request: {
-        agentOptions: { keepAlive: true },
-    },
-});
+// ── 🚀 MAIN BOOT SEQUENCE ─────────────────────────────────────
+async function main() {
+    // 0. DB layer first: connect PostgreSQL when DATABASE_URL is set,
+    //    otherwise fall back to file storage (users.json). The whole app
+    //    (bot handlers + web API) starts only after this resolves.
+    const backend = await initDB();
+    console.log(`🗄️  [DB] Storage backend: ${backend}`);
 
-// Fetch & Store Bot Profile
-bot.getMe()
-    .then(info => {
-        state.BOT_INFO = info;
-        console.log(`✅ [Telegram] Link Established: @${info.username} (${info.first_name})`);
-    })
-    .catch(err => {
-        console.error("❌ [Telegram] Failed to fetch bot info:", err.message);
+    // Restore Postgres-backed state that a redeploy wiped from disk:
+    // force-join channels/limits (dynamic config), WhatsApp session rows,
+    // job state, proxies.txt mirror. Runs before the server + nodes start.
+    if (backend === "postgres") {
+        try { await require("./pg_state").bootRestore(); }
+        catch (err) { console.error("❌ [PG] Boot restore failed:", err.message); }
+    }
+
+    // ── 🤖 TELEGRAM BOT INITIALIZATION ────────────────────────
+    bot = new (require("node-telegram-bot-api"))(config.TG_TOKEN, {
+        polling: {
+            interval: 300,
+            autoStart: true,
+            params: { timeout: 10 },
+        },
+        request: {
+            agentOptions: { keepAlive: true },
+        },
     });
 
-// Telegram Error Handling
-bot.on("polling_error", (err) => {
-    if (err.code === "ETELEGRAM" && err.message?.includes("409")) {
-        console.warn("⚠️ [Telegram] 409 Conflict — Another instance might be running!");
-    } else {
-        console.error("❌ [Telegram] Polling error:", err.message);
-    }
-});
-bot.on("error", (err) => { console.error("❌ [Telegram] General error:", err.message); });
+    // Fetch & Store Bot Profile
+    bot.getMe()
+        .then(info => {
+            state.BOT_INFO = info;
+            console.log(`✅ [Telegram] Link Established: @${info.username} (${info.first_name})`);
+        })
+        .catch(err => {
+            console.error("❌ [Telegram] Failed to fetch bot info:", err.message);
+        });
 
-// ── 🌐 START WEB SERVER ───────────────────────────────────────
-startServer(bot);
+    // Telegram Error Handling
+    bot.on("polling_error", (err) => {
+        if (err.code === "ETELEGRAM" && err.message?.includes("409")) {
+            console.warn("⚠️ [Telegram] 409 Conflict — Another instance might be running!");
+        } else {
+            console.error("❌ [Telegram] Polling error:", err.message);
+        }
+    });
+    bot.on("error", (err) => { console.error("❌ [Telegram] General error:", err.message); });
 
-// ── 🔌 RESTORE WHATSAPP SESSIONS ──────────────────────────────
-(async () => {
+    // ── 🌐 START WEB SERVER ───────────────────────────────────
+    startServer(bot);
+
+    // ── 🔌 RESTORE WHATSAPP SESSIONS ──────────────────────────
     try {
         console.log("⏳ [WhatsApp] Restoring saved nodes...");
         await loadSavedSessions(bot);
     } catch (err) {
         console.error("❌ [WhatsApp] Node restore failed:", err.message);
     }
-})();
 
-// ── 🪝 ATTACH BOT HANDLERS ────────────────────────────────────
-require("./bot_commands")(bot);
-require("./bot_callbacks")(bot);
-require("./bot_messages")(bot);
+    // ── 🪝 ATTACH BOT HANDLERS ────────────────────────────────
+    require("./bot_commands")(bot);
+    require("./bot_callbacks")(bot);
+    require("./bot_messages")(bot);
 
-// ── 🔄 LIVE PROGRESS HOOK (Sync Telegram Edits to Web) ────────
-const _origEdit = bot.editMessageText.bind(bot);
-bot.editMessageText = async function (text, options) {
-    if (typeof text === "string" && (text.includes("𝗟𝗜𝗩𝗘 𝗘𝗡𝗚𝗜𝗡𝗘") || text.includes("𝗚𝗢𝗗 𝗠𝗢𝗗𝗘"))) {
-        const uid = options?.chat_id;
-        const progMatch = text.match(/Progress:\s*(\d+)\/(\d+)/);
-        if (progMatch && uid) {
-            // Failsafe sync in case Web polling misses a beat
-            state.updateWebState(uid, {
-                current: parseInt(progMatch[1]),
-                total: parseInt(progMatch[2]),
-                status: "Checking",
-            });
-        }
+    // ── ⚙️ AUTO-SETUP (zero-touch server-side configuration) ──
+    // Bot name, description, command menu and the Mini App button are all
+    // applied automatically from the Bot API token. Re-runnable anytime via
+    // /autosetup (owner) or POST /api/admin/auto-setup.
+    if (config.AUTO_SETUP) {
+        try { await require("./auto_setup").runAutoSetup(bot); } catch (err) { console.error("❌ [AutoSetup] Failed:", err.message); }
     }
-    return _origEdit(text, options).catch(() => {}); // Catch 429 Too Many Requests silently
-};
 
-// ── 🛑 GRACEFUL SHUTDOWN SEQUENCE ─────────────────────────────
-async function shutdown(signal) {
-    console.log(`\n🛑 [${signal}] Initiating Ultra Beast Shutdown Sequence...`);
-    try {
-        // 1. Stop Telegram Polling
-        bot.stopPolling();
-        console.log("✅ [Shutdown] Telegram connection terminated.");
+    // ── 🔄 LIVE PROGRESS HOOK (Sync Telegram Edits to Web) ────
+    const { colorizeOptions } = require("./tg_colors");
+    const _origEdit = bot.editMessageText.bind(bot);
+    bot.editMessageText = async function (text, options) {
+        options = colorizeOptions(options);
+        if (typeof text === "string" && (text.includes("𝗟𝗜𝗩𝗘 𝗘𝗡𝗚𝗜𝗡𝗘") || text.includes("𝗚𝗢𝗗 𝗠𝗢𝗗𝗘"))) {
+            const uid = options?.chat_id;
+            const progMatch = text.match(/Progress:\s*(\d+)\/(\d+)/);
+            if (progMatch && uid) {
+                // Failsafe sync in case Web polling misses a beat
+                state.updateWebState(uid, {
+                    current: parseInt(progMatch[1]),
+                    total: parseInt(progMatch[2]),
+                    status: "Checking",
+                });
+            }
+        }
+        return _origEdit(text, options).catch(() => {}); // Catch 429 Too Many Requests silently
+    };
 
-        // 2. Force a final database backup
-        const dbPath = path.resolve(__dirname, config.DB_FILE);
-        if (fs.existsSync(dbPath)) {
-            fs.copyFileSync(dbPath, dbPath + '.bak_shutdown');
-            console.log("✅ [Shutdown] Final DB Backup created (.bak_shutdown).");
+    // ── 🎨 BOT API 9.4 — COLORED BUTTONS ON EVERY KEYBOARD ────
+    require("./tg_colors").installSendMessageColors(bot);
+
+    // ── 🛑 GRACEFUL SHUTDOWN SEQUENCE ─────────────────────────
+    async function shutdown(signal) {
+        console.log(`\n🛑 [${signal}] Initiating WS CHECKER shutdown sequence...`);
+
+        // Failsafe: never block a restart/redeploy longer than 8s
+        // (Telegram API may be unreachable while the process is being stopped).
+        setTimeout(() => { console.log("⚡ [Shutdown] Failsafe — forcing exit."); process.exit(0); }, 8000).unref();
+
+        try {
+            // 1. Stop Telegram Polling
+            await bot.stopPolling().catch(() => {});
+            console.log("✅ [Shutdown] Telegram connection terminated.");
+
+            // 2. Force a final database backup / flush
+            const dbPath = config.dataPath(config.DB_FILE);
+            if (fs.existsSync(dbPath)) {
+                fs.copyFileSync(dbPath, dbPath + '.bak_shutdown');
+                console.log("✅ [Shutdown] Final DB Backup created (.bak_shutdown).");
+            }
+            await syncDB();
+            console.log("✅ [Shutdown] Database writes flushed.");
+            await require("./pg_state").flushAll();
+            console.log("✅ [Shutdown] WhatsApp session state flushed to Postgres.");
+
+            // 3. Alert Owner
+            await bot.sendMessage(config.OWNER_ID,
+                `╭━━━[ 🛑 *𝗦𝗬𝗦𝗧𝗘𝗠 𝗢𝗙𝗙𝗟𝗜𝗡𝗘* ]━━━╮\n` +
+                `┣ The Engine has been shut down.\n` +
+                `┣ ⚙️ Signal: \`${signal}\`\n` +
+                `┣ 💾 Database backed up successfully.\n` +
+                `╰━━━━━━━━━━━━━━━━━━━━━━╯`,
+                { parse_mode: "Markdown" }
+            ).catch(() => {});
+
+        } catch (err) {
+            console.error("❌ [Shutdown] Error during shutdown:", err.message);
         }
 
-        // 3. Alert Owner
-        await bot.sendMessage(config.OWNER_ID, 
-            `╭━━━[ 🛑 *𝗦𝗬𝗦𝗧𝗘𝗠 𝗢𝗙𝗙𝗟𝗜𝗡𝗘* ]━━━╮\n` +
-            `┣ The Engine has been shut down.\n` +
-            `┣ ⚙️ Signal: \`${signal}\`\n` +
-            `┣ 💾 Database backed up successfully.\n` +
-            `╰━━━━━━━━━━━━━━━━━━━━━━╯`, 
-            { parse_mode: "Markdown" }
-        ).catch(() => {});
-
-    } catch (err) {
-        console.error("❌ [Shutdown] Error during shutdown:", err.message);
+        console.log("⚡ [Shutdown] Goodbye.");
+        process.exit(0);
     }
-    
-    console.log("⚡ [Shutdown] Goodbye.");
-    process.exit(0);
+
+    process.on("SIGINT",  () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+    console.log("✅ [Core] All modules online. WS CHECKER v6 is ready.");
 }
 
-process.on("SIGINT",  () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
-
-console.log("✅ [Core] All modules online. Ultra Beast is ready to hunt!");
+main().catch(err => {
+    console.error("❌ [Core] Fatal boot error:", err);
+    process.exit(1);
+});

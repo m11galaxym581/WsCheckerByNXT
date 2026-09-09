@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | web_server.js
+//   WS CHECKER v6 | web_server.js
 //   Express REST API — Dashboard Engine & Webhooks
 // ============================================================
 
@@ -14,22 +14,62 @@ const crypto  = require("crypto");
 const config = require("./config");
 const { OWNER_ID, PORT, WEB_SECRET } = config;
 const { 
-    getDB, saveDB, isAdmin, isVIP, isSub, isBanned, verifyWebPass, setWebhook, setUserLang, 
+    getDB, saveDB, registerUser, isAdmin, isVIP, isSub, isBanned, verifyWebPass, setWebhook, setUserLang, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
     banUser, unbanUser, addAdmin, removeAdmin, 
     getStats, generateApiKey, getUidByApiKey, 
-    setMaintenance, createVoucher 
+    setMaintenance, createVoucher, storageInfo, restoreDatabase 
 } = require("./database");
 
-const { warmupNodes, deleteSession, startSession, requestPairingCode } = require("./whatsapp");
+const { warmupNodes, deleteSession, startSession, requestPairingCode, listUserSessions, listAllSessions } = require("./whatsapp");
 const state = require("./state");
 const proxyManager = require("./proxy_manager");
 
+// ── Telegram Mini App initData verifier (auto-login) ─────────
+// Validates initData signed by Telegram using the bot token.
+// Docs: https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+function verifyTelegramInitData(initData, botToken) {
+    try {
+        const params = new URLSearchParams(String(initData || ""));
+        const hash = params.get("hash");
+        if (!hash) return null;
+        params.delete("hash");
+        const checkString = [...params.entries()]
+            .map(([k, v]) => `${k}=${v}`)
+            .sort()
+            .join("\n");
+        const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+        const calcHash = crypto.createHmac("sha256", secretKey).update(checkString).digest("hex");
+        const a = Buffer.from(calcHash, "hex");
+        const b = Buffer.from(hash, "hex");
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+        // Reject stale payloads (older than 24h) to prevent replays
+        const authDate = Number(params.get("auth_date") || 0);
+        if (!authDate || (Date.now() / 1000) - authDate > 86400) return null;
+        const rawUser = params.get("user");
+        if (!rawUser) return null;
+        const user = JSON.parse(rawUser);
+        if (!user || !Number(user.id)) return null;
+        return user;
+    } catch (_) { return null; }
+}
+
 function startServer(bot) {
     const app = express(); 
+    // Behind a reverse proxy (Railway, nginx, Cloudflare) trust the first hop so
+    // req.ip / rate-limits / login-lockouts see real client IPs, not the proxy's.
+    if (process.env.TRUST_PROXY === "true" || config.isRailway) app.set("trust proxy", 1);
     app.use(cors()); 
     app.use(express.json({ limit: "15mb" })); // Increased limit for massive DB exports
     app.get('/manifest.json', (req,res)=>res.sendFile(path.join(__dirname,'manifest.json')));
+    // Static app assets (logo, PWA icons, favicon) — whitelisted filenames only.
+    app.get('/assets/:file', (req, res) => {
+        const f = String(req.params.file||'');
+        if (!/^[a-z0-9._-]+\.(png|svg|ico|jpg|jpeg|webp)$/i.test(f)) return res.status(400).end();
+        res.type(path.extname(f).slice(1)).sendFile(path.join(__dirname, 'assets', f), (err) => {
+            if (err && !res.headersSent) res.status(404).end();
+        });
+    });
     app.get('/sw.js', (req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'sw.js')));
     // Do NOT serve the project root. It may contain users.json, sessions, source files, etc.
     app.get(["/", "/login", "/signup", "/dashboard", "/checker", "/history", "/sessions", "/profile", "/api", "/webhooks", "/jobs", "/lists", "/templates", "/files", "/proxies", "/audit", "/plans", "/vouchers", "/branding", "/force-join", "/security", "/help", "/status", "/changelog", "/system", "/docs", "/settings", "/support", "/admin", "/share/:id"], (req, res) => res.sendFile(path.join(__dirname, "index.html")));
@@ -109,6 +149,26 @@ function startServer(bot) {
     function sign(data) { return crypto.createHmac("sha256", WEB_SECRET || config.TG_TOKEN).update(data).digest("base64url"); }
     const revokedSids = new Set();
     const deviceSessions = new Map();
+    // Hydrate web login sessions from the DB document so that logged-in
+    // devices (and their "log out all devices" state) survive redeploys.
+    try {
+        const _db = getDB();
+        if (_db.meta && typeof _db.meta.webSessions === "object") {
+            for (const uid of Object.keys(_db.meta.webSessions)) {
+                const arr = _db.meta.webSessions[uid];
+                if (Array.isArray(arr)) deviceSessions.set(Number(uid), arr);
+            }
+        }
+    } catch (_) {}
+    function persistDeviceSessions(uid) {
+        try {
+            const db = getDB();
+            if (!db.meta) db.meta = {};
+            db.meta.webSessions = db.meta.webSessions || {};
+            db.meta.webSessions[String(uid)] = deviceSessions.get(uid) || [];
+            saveDB(db);
+        } catch (_) {}
+    }
     function createToken(uid, sid = crypto.randomBytes(12).toString("base64url")) {
         const payload = { uid: Number(uid), sid, exp: Date.now() + TOKEN_TTL_MS, iat: Date.now() };
         const body = b64url(payload);
@@ -150,8 +210,8 @@ function startServer(bot) {
     }
     function requireCsrf(req, res, next) {
         const original = req.originalUrl || req.url || "";
-        // Login and public API-key endpoints must work before a CSRF cookie exists.
-        if (original.startsWith("/api/login") || original.startsWith("/api/v1") || original.startsWith("/api/human-challenge")) return next();
+        // Login-like endpoints must work before a CSRF cookie exists.
+        if (original.startsWith("/api/login") || original.startsWith("/api/tg-auth") || original.startsWith("/api/v1") || original.startsWith("/api/human-challenge")) return next();
         if (["GET", "HEAD", "OPTIONS"].includes(req.method)) return next();
         const cookies = parseCookies(req);
         const sent = req.headers['x-csrf-token'] || req.body?.csrfToken;
@@ -207,7 +267,7 @@ function startServer(bot) {
         if (!db.meta.auditLogs) db.meta.auditLogs = [];
         if (!db.meta.plans) db.meta.plans = { Free:{limit:config.dynamic.FREE_LIMIT}, PRO:{limit:config.dynamic.PRO_LIMIT}, VIP:{limit:config.dynamic.VIP_LIMIT} };
         if (!db.meta.webhookLogs) db.meta.webhookLogs = {};
-        if (!db.meta.whiteLabel) db.meta.whiteLabel = { appName:"WS CHECKER", poweredBy:"Powered by BlazeNXT", support:"@FORURSUPPORT" };
+        if (!db.meta.whiteLabel) db.meta.whiteLabel = { appName:"WS CHECKER", poweredBy:"Powered by WS CHECKER", support:"@FORURSUPPORT" };
         if (!db.meta.security) db.meta.security = { sessionTtlDays: 7 };
         if (!db.meta.shares) db.meta.shares = {};
         return db;
@@ -229,20 +289,11 @@ function startServer(bot) {
         if (!u.apiKeys) u.apiKeys = [];
         return { db, u, id };
     }
+    // Shared force-join engine (same logic as the bot commands/callbacks):
+    // resolves usernames/ids/invite links, reports bot-permission problems
+    // honestly and never silently bypasses private invite-link channels.
     async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            if (!chatId) continue;
-            try {
-                const m = await bot.getChatMember(chatId, uid);
-                if (["left", "kicked"].includes(m.status)) missing.push(ch);
-            } catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
+        return require("./force_join").checkForceJoin(uid, bot);
     }
 
     if (!state.jobQueue) state.jobQueue = [];
@@ -273,7 +324,7 @@ function startServer(bot) {
     // ── 🚧 MAINTENANCE MIDDLEWARE ───────────────────────────────────
     app.use((req, res, next) => {
         const db = getDB();
-        const publicDuringMaintenance = req.path === "/" || req.path.includes('/api/login') || req.path.includes('/api/status') || req.path.includes('/api/sysinfo');
+        const publicDuringMaintenance = req.path === "/" || req.path.includes('/api/login') || req.path.includes('/api/tg-auth') || req.path.includes('/api/status') || req.path.includes('/api/sysinfo');
         if (db.meta?.maintenance && !publicDuringMaintenance && !req.path.includes('/api/admin')) {
             const user = verifyToken(readToken(req));
             if (!user || !db.admins.includes(Number(user.uid))) {
@@ -378,31 +429,24 @@ function startServer(bot) {
             proxyId: state.sessions[k].proxyId || (db.sessionMeta[k] || {}).proxyId || null
         }));
         const isAdm = req.user && db.admins.includes(Number(req.user.uid));
+        const sInfo = storageInfo();
+        const storage = { backend: sInfo.backend, volumeMounted: sInfo.volumeMounted, pgConnected: sInfo.pgConnected, dataRootDurable: sInfo.dataRootDurable, durable: sInfo.durable };
+        if (isAdm) storage.dataRoot = sInfo.dataRoot;
         res.json({ 
             ok: true, 
             botInfo: state.BOT_INFO, 
             sessions: isAdm ? sess : sess.map(s => ({ status: s.status, type: s.type })), 
             activeTasks: state.processingUsers.size,
             systemMode: String(config.dynamic.SYSTEM_MODE || "subscription").toLowerCase(), 
-            maintenance: db.meta?.maintenance 
+            maintenance: db.meta?.maintenance,
+            storage
         });
     });
 
-    app.post("/api/login", async (req, res) => {
-        const { uid, password } = req.body; 
-        const db = getDB(); 
-        const nUid = Number(uid);
-        const locked = isLoginLocked(req, nUid);
-        if (locked) return res.status(429).json({ ok: false, message: `Too many login attempts. Try after ${locked}s.` });
-        const user = db.users[nUid];
-        
-        if (!user || !user.web_pass || !password || !verifyWebPass(user.web_pass, password) || user.banned) {
-            recordLoginFailure(req, nUid);
-            return res.json({ ok: false, message: "Invalid credentials or Banned." });
-        }
-        const fj = await checkForceJoin(nUid);
-        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
-        clearLoginFailures(req, nUid);
+    // Shared "session issued" handler for every successful login path.
+    // Sets the auth+CSRF cookies, records the device session and returns the
+    // full user payload the web UI expects.
+    function finalizeAuth(req, res, db, nUid, user) {
         const sid = crypto.randomBytes(12).toString("base64url");
         const token = createToken(nUid, sid);
         const csrfToken = crypto.randomBytes(16).toString("base64url");
@@ -410,9 +454,11 @@ function startServer(bot) {
         const sessions = deviceSessions.get(nUid) || [];
         sessions.unshift({ sid, ip: req.ip || req.socket.remoteAddress, ua: req.headers['user-agent'] || 'Unknown', lastLogin: new Date().toISOString() });
         deviceSessions.set(nUid, sessions.slice(0, 10));
-        
+        persistDeviceSessions(nUid);
+
         res.json({ 
             ok: true, 
+            authMode: req.authMode || "password",
             csrfToken,
             user: { 
                 id: nUid, 
@@ -431,6 +477,59 @@ function startServer(bot) {
             isAdmin: db.admins.includes(nUid),
             isOwner: nUid === OWNER_ID
         });
+    }
+
+    app.post("/api/login", async (req, res) => {
+        const { uid, password } = req.body; 
+        const db = getDB(); 
+        const nUid = Number(uid);
+        const locked = isLoginLocked(req, nUid);
+        if (locked) return res.status(429).json({ ok: false, message: `Too many login attempts. Try after ${locked}s.` });
+        const user = db.users[nUid];
+        
+        if (!user || !user.web_pass || !password || !verifyWebPass(user.web_pass, password) || user.banned) {
+            recordLoginFailure(req, nUid);
+            return res.json({ ok: false, message: "Invalid credentials or Banned." });
+        }
+        const fj = await checkForceJoin(nUid);
+        if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
+        clearLoginFailures(req, nUid);
+        req.authMode = "password";
+        finalizeAuth(req, res, db, nUid, user);
+    });
+
+    // ── 🛜 TELEGRAM MINI APP AUTO-LOGIN ─────────────────────────
+    // When the dashboard is opened inside Telegram (Mini App), Telegram sends
+    // signed initData (user + auth_date + hash). We verify the HMAC-SHA256
+    // signature with the bot token, auto-register the user and issue a normal
+    // web session — no web password needed inside Telegram.
+    app.post("/api/tg-auth", async (req, res) => {
+        try {
+            const initData = req.body?.initData || req.body?.tg_init_data || "";
+            const tgUser = verifyTelegramInitData(initData, config.TG_TOKEN);
+            if (!tgUser) return res.status(401).json({ ok: false, message: "Telegram verification failed. Open the dashboard from the bot's Mini App." });
+
+            const nUid = Number(tgUser.id);
+            const db = getDB();
+            if (db.users[nUid]?.banned) return res.status(403).json({ ok: false, message: "Access denied." });
+
+            registerUser({
+                id: nUid,
+                first_name: tgUser.first_name || tgUser.firstName || "Telegram User",
+                username: tgUser.username || "NoUser",
+            });
+            const user = getDB().users[nUid];
+
+            const fj = await checkForceJoin(nUid);
+            if (!fj.ok) return res.status(403).json({ ok: false, message: "Please join required channels first.", forceJoin: fj.missing });
+
+            if (state.pushUserNotification) state.pushUserNotification(nUid, "🛜 Logged in via Telegram Mini App", "info");
+            req.authMode = "telegram";
+            finalizeAuth(req, res, getDB(), nUid, user);
+        } catch (err) {
+            console.error("❌ [tg-auth] Auto-login failed:", err.message);
+            res.status(500).json({ ok: false, message: "Auto-login service error. Please use the ID + web password from the bot.", error: err.message });
+        }
     });
 
 
@@ -469,11 +568,18 @@ function startServer(bot) {
         const sessions = deviceSessions.get(req.user.uid) || [];
         sessions.forEach(s => revokedSids.add(s.sid));
         deviceSessions.set(req.user.uid, []);
+        persistDeviceSessions(req.user.uid);
         clearAuthCookies(res);
         res.json({ ok:true });
     });
 
-    app.post("/api/logout", requireAuth, (req, res) => { if (req.user.sid) revokedSids.add(req.user.sid); clearAuthCookies(res); res.json({ ok:true }); });
+    app.post("/api/logout", requireAuth, (req, res) => { 
+        if (req.user.sid) revokedSids.add(req.user.sid);
+        const arr = (deviceSessions.get(req.user.uid) || []).filter(s => s.sid !== req.user.sid);
+        deviceSessions.set(req.user.uid, arr);
+        persistDeviceSessions(req.user.uid);
+        clearAuthCookies(res); res.json({ ok:true });
+    });
 
     app.get("/api/user/api-usage", requireAuth, (req, res) => {
         const db = getDB(); const u = db.users[req.user.uid] || {};
@@ -497,21 +603,23 @@ function startServer(bot) {
     });
 
     // ── Session Pairing via Web ──
+    // type = "private" (runs only this user's checks — default) or "public"
+    // (shared pool that other users without their own node can also use).
     app.post("/api/add-session", requireAuth, async (req, res) => {
         try {
-            const { uid, phone } = req.body;
+            const { uid, phone, type } = req.body;
             if (!uid || !phone) return res.status(400).json({ ok: false, error: "Missing parameters." });
             if (!assertSelfOrAdmin(req, res, uid)) return;
 
             const num = String(phone).replace(/[^0-9]/g, "");
             const db = getDB();
             const u = db.users[Number(uid)]?.name || uid;
+            const sessionType = String(type || "").toLowerCase() === "public" ? "public" : "private";
             
             // Notify Admin Bell
-            state.pushNotification(`📱 Session Pairing Requested by ${u}`, 'info');
+            state.pushNotification(`📱 Session Pairing Requested by ${u} (${sessionType})`, 'info');
             
             const slot = `s_${uid}_${Date.now()}`;
-            const sessionType = isAdmin(Number(uid)) ? "public" : "private";
             
             // Start Socket Process
             await startSession(slot, u, { id: Number(uid), name: u, username: "N/A" }, sessionType, bot);
@@ -524,17 +632,51 @@ function startServer(bot) {
             const code = await requestPairingCode(slot, num);
             
             // Backup code to Telegram
-            bot.sendMessage(uid, `🔑 *Web Pairing Code:* \`${code}\`\nExpires in 30s.`, { parse_mode: "Markdown" }).catch(()=>{});
+            bot.sendMessage(uid, `🔑 *${config.PAIRING_BRAND} Pairing Code:* \`${code}\`\n🎖️ Type: ${sessionType === "public" ? "🌍 PUBLIC (shared pool)" : "🔒 PRIVATE (your checks only)"}\n⏳ Expires in 30s — WhatsApp → Linked Devices → Pair. Type the code exactly.`, { parse_mode: "Markdown" }).catch(()=>{});
             
-            res.json({ ok: true, code });
+            res.json({ ok: true, code, type: sessionType, brand: config.PAIRING_BRAND });
         } catch (e) { 
             res.status(500).json({ ok: false, error: e.message || "Failed to generate code." }); 
         }
     });
 
+    // ── My Sessions — user self-service (list / delete / reconnect) ──
+    app.get("/api/my-sessions", requireAuth, (req, res) => {
+        const target = req.query.uid ? Number(req.query.uid) : req.user.uid;
+        if (target !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "Not allowed." });
+        res.json({ ok: true, sessions: listUserSessions(target) });
+    });
+
+    app.delete("/api/session/:sid", requireAuth, async (req, res) => {
+        const sid = String(req.params.sid || "");
+        const row = listAllSessions().find(r => r.sid === sid);
+        if (!row) return res.status(404).json({ ok: false, error: "Session not found." });
+        if (row.owner !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "You can only remove your own sessions." });
+        try {
+            await deleteSession(sid);
+            res.json({ ok: true, sid });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message || "Failed to remove session." });
+        }
+    });
+
+    app.post("/api/session/:sid/reconnect", requireAuth, async (req, res) => {
+        const sid = String(req.params.sid || "");
+        const row = listAllSessions().find(r => r.sid === sid);
+        if (!row) return res.status(404).json({ ok: false, error: "Session not found." });
+        if (row.owner !== req.user.uid && !isAdmin(req.user.uid)) return res.status(403).json({ ok: false, error: "You can only reconnect your own sessions." });
+        if (row.status === "Blocked") return res.status(400).json({ ok: false, error: "This node is blocked by WhatsApp — remove it and re-add after the block lifts." });
+        try {
+            await startSession(sid, "User", { id: row.owner, name: "User" }, row.type, bot, false);
+            res.json({ ok: true, sid });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message || "Failed to reconnect." });
+        }
+    });
+
     app.get("/api/sysinfo", (req, res) => {
         const cpFile = path.join(__dirname, "COPYRIGHT.txt");
-        const text = fs.existsSync(cpFile) ? fs.readFileSync(cpFile, "utf-8") : "© 2026 BLAZE NXT — V5.0 GOD MODE\nOwner: @firstoget";
+        const text = fs.existsSync(cpFile) ? fs.readFileSync(cpFile, "utf-8") : "© 2026 WS CHECKER v6\nOwner: @firstoget";
         res.json({ ok: true, text });
     });
 
@@ -595,7 +737,7 @@ function startServer(bot) {
 
     app.get("/api/resume-info/:uid", requireAuth, (req, res) => {
         if (!assertSelfOrAdmin(req, res, req.params.uid)) return;
-        const file = path.join(__dirname, "job_state", `${Number(req.params.uid)}.json`);
+        const file = path.join(config.DATA_ROOT, "job_state", `${Number(req.params.uid)}.json`);
         if (!fs.existsSync(file)) return res.json({ ok:true, job:null });
         try { res.json({ ok:true, job: JSON.parse(fs.readFileSync(file, "utf8")) }); }
         catch (_) { res.json({ ok:true, job:null }); }
@@ -604,7 +746,7 @@ function startServer(bot) {
     app.post("/api/resume-job", requireAuth, (req, res) => {
         const uid = Number(req.body.uid || req.user.uid);
         if (!assertSelfOrAdmin(req, res, uid)) return;
-        const file = path.join(__dirname, "job_state", `${uid}.json`);
+        const file = path.join(config.DATA_ROOT, "job_state", `${uid}.json`);
         if (!fs.existsSync(file)) return res.status(404).json({ ok:false, error:"No resumable job" });
         let job; try { job = JSON.parse(fs.readFileSync(file, "utf8")); } catch (_) {}
         const numbers = (job?.remaining || []).map(n => String(n).replace(/[^0-9]/g, "")).filter(n => n.length >= 7 && n.length <= 15);
@@ -617,7 +759,7 @@ function startServer(bot) {
 
     // ── Feature Pack: Jobs, Lists, Templates, Audit, Plans, Webhooks, Shares ──
     app.get("/api/jobs", requireAuth, (req, res) => {
-        const dir = path.join(__dirname, "job_state");
+        const dir = path.join(config.DATA_ROOT, "job_state");
         const jobs = [];
         try { if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir)) {
             if (!f.endsWith('.json')) continue; const uid = Number(f.replace('.json',''));
@@ -706,9 +848,9 @@ function startServer(bot) {
     app.get("/api/admin/abuse", requireAdmin, (req,res)=>{ const db=getDB(); const suspects=Object.values(db.users||{}).filter(u=>u.banned||u.count>100000).map(u=>({id:u.id,name:u.name,banned:u.banned,count:u.count||0})); res.json({ok:true,suspects}); });
     app.get("/api/admin/feature-flags", requireAdmin, (req,res)=>{ const db=ensureFeatureDB(getDB()); if(!db.meta.featureFlags) db.meta.featureFlags={api:true,batchApi:true,webhooks:true,publicShare:true,proxyPool:true,pwa:true}; res.json({ok:true,features:db.meta.featureFlags}); });
     app.post("/api/admin/feature-flags", requireOwner, (req,res)=>{ const db=ensureFeatureDB(getDB()); db.meta.featureFlags={...(db.meta.featureFlags||{}),...(req.body.features||{})}; saveDB(db); audit(req.user.uid,'feature_flags','system',db.meta.featureFlags); res.json({ok:true,features:db.meta.featureFlags}); });
-    app.post("/api/admin/backup-encrypted", requireOwner, (req,res)=>{ try{ const raw=fs.readFileSync(path.join(__dirname, config.DB_FILE)); const iv=crypto.randomBytes(12); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const cipher=crypto.createCipheriv('aes-256-gcm',key,iv); const enc=Buffer.concat([cipher.update(raw),cipher.final()]); const tag=cipher.getAuthTag(); const out=Buffer.concat([iv,tag,enc]); const file=path.join(__dirname,`backup_${Date.now()}.enc`); fs.writeFileSync(file,out); audit(req.user.uid,'encrypted_backup','db',{file:path.basename(file)}); res.json({ok:true,file:path.basename(file)}); }catch(e){res.status(500).json({ok:false,error:e.message});} });
+    app.post("/api/admin/backup-encrypted", requireOwner, (req,res)=>{ try{ const raw=Buffer.from(JSON.stringify(getDB())); const iv=crypto.randomBytes(12); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const cipher=crypto.createCipheriv('aes-256-gcm',key,iv); const enc=Buffer.concat([cipher.update(raw),cipher.final()]); const tag=cipher.getAuthTag(); const out=Buffer.concat([iv,tag,enc]); const file=path.join(config.DATA_ROOT,`backup_${Date.now()}.enc`); fs.writeFileSync(file,out); audit(req.user.uid,'encrypted_backup','db',{file:path.basename(file)}); res.json({ok:true,file:path.basename(file)}); }catch(e){res.status(500).json({ok:false,error:e.message});} });
     app.post("/api/admin/backup-schedule", requireOwner, (req,res)=>{ const db=ensureFeatureDB(getDB()); db.meta.backupSchedule={enabled:!!req.body.enabled, intervalHours:Number(req.body.intervalHours||6), keep:Number(req.body.keep||10)}; saveDB(db); audit(req.user.uid,'backup_schedule','db',db.meta.backupSchedule); res.json({ok:true,schedule:db.meta.backupSchedule}); });
-    app.post("/api/admin/backup-restore", requireOwner, (req,res)=>{ try{ const buf=Buffer.from(String(req.body.data||''),'base64'); const iv=buf.subarray(0,12), tag=buf.subarray(12,28), enc=buf.subarray(28); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const dec=crypto.createDecipheriv('aes-256-gcm',key,iv); dec.setAuthTag(tag); const raw=Buffer.concat([dec.update(enc),dec.final()]); JSON.parse(raw.toString('utf8')); fs.writeFileSync(path.join(__dirname, config.DB_FILE), raw); audit(req.user.uid,'backup_restore','db'); res.json({ok:true}); }catch(e){res.status(400).json({ok:false,error:e.message});} });
+    app.post("/api/admin/backup-restore", requireOwner, (req,res)=>{ try{ const buf=Buffer.from(String(req.body.data||''),'base64'); const iv=buf.subarray(0,12), tag=buf.subarray(12,28), enc=buf.subarray(28); const key=crypto.createHash('sha256').update(WEB_SECRET||config.TG_TOKEN).digest(); const dec=crypto.createDecipheriv('aes-256-gcm',key,iv); dec.setAuthTag(tag); const raw=Buffer.concat([dec.update(enc),dec.final()]); const parsed=JSON.parse(raw.toString('utf8')); restoreDatabase(parsed); audit(req.user.uid,'backup_restore','db'); res.json({ok:true}); }catch(e){res.status(400).json({ok:false,error:e.message});} });
 
     // ── Proxy Pool Management ──
     app.get("/api/admin/proxies", requireAdmin, (req, res) => {
@@ -819,7 +961,7 @@ function startServer(bot) {
         let sent = 0;
         for (const id of uids) { 
             try {
-                await bot.sendMessage(id, `📢 *𝗪𝗘𝗕 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${req.body.text}\n\n⚡ _BLAZE NXT_`, { parse_mode: "Markdown" }); 
+                await bot.sendMessage(id, `📢 *𝗪𝗘𝗕 𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${req.body.text}\n\n✅ _WS CHECKER v6_`, { parse_mode: "Markdown" }); 
                 sent++;
             } catch(e){}
         }
@@ -831,7 +973,50 @@ function startServer(bot) {
         res.json({ ok: true, users: db.users, admins: db.admins, subs: db.subscribers, vips: db.vips, banned: db.banned || [] }); 
     });
     
-    app.get("/api/public-status", (req,res)=>{ const db=getDB(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime()}); });
+    app.get("/api/public-status", (req,res)=>{ const db=getDB(); const sInfo=storageInfo(); res.json({ok:true, botInfo:state.BOT_INFO, sessions:Object.values(state.sessions).filter(s=>s.status==='Connected').length, queue:(state.jobQueue||[]).length, maintenance:db.meta?.maintenance, uptime:process.uptime(), storage:{backend:sInfo.backend, volumeMounted:sInfo.volumeMounted, pgConnected:sInfo.pgConnected, dataRootDurable:sInfo.dataRootDurable, durable:sInfo.durable}}); });
+
+    // ── ⚙️ AUTO-SETUP STATUS (public, no secrets) ──────────────
+    // Shows what the server configured automatically and whether the
+    // one-time @BotFather domain whitelist is still pending.
+    app.get("/api/setup-status", (req, res) => {
+        const s = state.autoSetup || {};
+        res.json({
+            ok: true,
+            autoSetupEnabled: config.AUTO_SETUP,
+            botUsername: state.BOT_INFO?.username || null,
+            appUrl: s.appUrl || config.MENU_BUTTON_URL || config.DASHBOARD_URL,
+            appLink: s.appLink || null,
+            directAppReady: !!(s.directAppReady),
+            miniAppLink: (state.BOT_INFO?.username)
+                ? (s.directAppReady
+                    ? `https://t.me/${state.BOT_INFO.username}/${s.directSlug || "app"}`
+                    : `https://t.me/${state.BOT_INFO.username}?startapp`)
+                : null,
+            directMiniAppLink: state.BOT_INFO?.username ? `https://t.me/${state.BOT_INFO.username}/${(s && s.directSlug) || "app"}` : null,
+            lastRunAt: s.at || null,
+            menuButtonActive: !!s.menuButtonActive,
+            whitelistPending: !!s.whitelistPending,
+            summary: s.summary || "Auto-setup has not run yet.",
+            menuButtonError: s.menuButtonError || null,
+            menuButtonStored: s.menuButtonStored || null,
+            profilePhotoActive: !!s.profilePhotoActive,
+            storedName: s.storedName || null,
+            backend: (typeof require("./database").dbBackend === "function") ? require("./database").dbBackend() : "file",
+            platform: config.isRailway ? "railway" : "other",
+        });
+    });
+
+    // ── ⚙️ RE-RUN AUTO-SETUP (owner only) ─────────────────────
+    // Use after whitelisting the domain in @BotFather — no redeploy needed.
+    app.post("/api/admin/auto-setup", requireOwner, async (req, res) => {
+        try {
+            const r = await require("./auto_setup").runAutoSetup(bot);
+            audit(req.user.uid, 'auto_setup', 'bot', { menuButtonActive: !!r.menuButtonActive, whitelistPending: !!r.whitelistPending });
+            res.json({ ok: true, ...r });
+        } catch (e) {
+            res.status(500).json({ ok: false, error: e.message });
+        }
+    });
 
     // ── Safety Fallbacks ──
     app.use((req, res) => res.status(404).json({ ok: false, error: "Route not found." }));
@@ -840,7 +1025,7 @@ function startServer(bot) {
         res.status(500).json({ ok: false, error: "Internal Server Error" });
     });
 
-    app.listen(PORT, "0.0.0.0", () => console.log(`\n⚡ BLAZE NXT B3AST V4.0 — GOD MODE API Live on Port ${PORT}!`));
+    app.listen(PORT, "0.0.0.0", () => console.log(`\nWS CHECKER v6 API live on port ${PORT}!`));
 }
 
 module.exports = { startServer };

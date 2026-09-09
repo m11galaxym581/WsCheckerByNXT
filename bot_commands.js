@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE (MEGABEAST) | bot_commands.js
+//   WS CHECKER v6 | bot_commands.js
 //   Telegram Bot Commands — Role-Based Routing & Rich Menus
 // ============================================================
 
@@ -13,29 +13,28 @@ const {
     banUser, unbanUser, setMaintenance 
 } = require("./database");
 const { sendBroadcastReport } = require("./utils");
-const { warmupNodes }         = require("./whatsapp");
+const { warmupNodes, listAllSessions } = require("./whatsapp");
 const config                  = require("./config");
 const state                   = require("./state");
 const { tr, langKeyboard }    = require("./i18n");
 
 module.exports = (bot) => {
 
-    async function checkForceJoin(uid) {
-        const dyn = config.dynamic;
-        const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        if (!dyn.FORCE_JOIN_ENABLED || !channels.length || isAdmin(uid)) return { ok: true, missing: [] };
-        const missing = [];
-        for (const ch of channels) {
-            const chatId = ch.chatId || ch.username || ch.url;
-            try { const m = await bot.getChatMember(chatId, uid); if (["left", "kicked"].includes(m.status)) missing.push(ch); }
-            catch (_) { missing.push(ch); }
-        }
-        return { ok: missing.length === 0, missing };
-    }
+    const { checkForceJoin, missingReasonLine, matchJoinRequestChannel } = require("./force_join");
+
     function forceJoinMarkup(missing) {
-        const kb = missing.map(ch => [{ text: `Join ${ch.title || ch.chatId || 'Channel'}`, url: ch.url || `https://t.me/${String(ch.chatId||'').replace('@','')}` }]);
+        const kb = missing.map(m => {
+            const ch = m.channel || m;
+            const uname = (ch.username || (ch.chatId && String(ch.chatId).startsWith("@") ? ch.chatId : "") || "").replace(/^@/, "");
+            const link = ch.url || (uname ? `https://t.me/${uname}` : null);
+            return [{ text: `Join ${m.title || "Channel"}`, ...(link ? { url: link } : { callback_data: "verify_join" }) }];
+        });
         kb.push([{ text: "✅ Verify Join", callback_data: "verify_join" }]);
         return { reply_markup: { inline_keyboard: kb } };
+    }
+    function forceJoinNote(missing) {
+        if (!missing || !missing.length) return "";
+        return "\n\n" + missing.map(m => missingReasonLine(m)).join("\n") + "\n\nThen press ✅ Verify Join.";
     }
 
     // ============================================================
@@ -46,12 +45,13 @@ module.exports = (bot) => {
     function mainMenu(uid) {
         const L = getUserLang(uid);
         const btns = [
+            [{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }],
             [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
-            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📱 Add Node", callback_data: "add_sess_req" }],
-            [{ text: "📜 History", callback_data: "my_history" }, { text: "🌐 Language", callback_data: "language_menu" }],
-            [{ text: "⚙️ API & Webhooks", callback_data: "api_menu" }, { text: "ℹ️ System Info", callback_data: "show_info" }],
-            [{ text: "💬 Support", callback_data: "support_chat" }, { text: "💎 Upgrade", callback_data: "buy_prem_req" }],
-            [{ text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            [{ text: "📱 Add Node", callback_data: "add_sess_req" }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
+            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
+            [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
+            [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
+            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);
@@ -117,12 +117,48 @@ module.exports = (bot) => {
     // 👤 GLOBAL USER COMMANDS (Accessible to everyone)
     // ============================================================
 
+    // ── Safe web_app button sender ─────────────────────────────
+    // Telegram rejects web_app buttons at send-time while the domain is not
+    // allow-listed in @BotFather. Instead of failing the whole message we
+    // auto-fallback: the same menu with web_app buttons replaced by normal
+    // URL buttons pointing at the dashboard itself (opens in Telegram's
+    // built-in browser, where ID+password login still works).
+    const isWhitelistBlock = (e) => /whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(String((e && (e.description || e.message)) || e || ""));
+    const dashboardUrl = () => config.MENU_BUTTON_URL || config.DASHBOARD_URL;
+    // ── Deep link helpers ─────────────────────────────────────
+    // The direct t.me/<bot>/app link is advertised only after auto_setup has
+    // probed Telegram and confirmed the Mini App is registered (appname=app
+    // on the landing page). Registered direct links open the Mini App with
+    // NO "start the bot first" step; the ?startapp form is the fallback.
+    const miniAppDeepLink = () => {
+        const uname = state.BOT_INFO?.username;
+        if (!uname) return dashboardUrl();
+        if (state.autoSetup && state.autoSetup.directAppReady) {
+            return `https://t.me/${uname}/${state.autoSetup.directSlug || "app"}`;
+        }
+        return `https://t.me/${uname}?startapp`;
+    };
+    const withoutWebApp = (rows) => rows.map(row => row.map(b => (b && b.web_app) ? { text: "🌐 Open Dashboard", url: dashboardUrl() } : b));
+
+    async function sendWithWebApp(uid, text, opts, rows) {
+        const kb = rows || [[{ text: "🛜 Open Web App", web_app: { url: dashboardUrl() } }]];
+        try {
+            return await bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: kb } });
+        } catch (e) {
+            if (isWhitelistBlock(e)) {
+                console.warn("⚠️ [Bot] web_app button blocked (domain whitelist pending) — fell back to dashboard URL.");
+                return bot.sendMessage(uid, text, { ...opts, reply_markup: { inline_keyboard: withoutWebApp(kb) } });
+            }
+            throw e;
+        }
+    }
+
     // ── /start ────────────────────────────────────────────────
     bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from.id;
         registerUser(msg.from);
-        const fj = await checkForceJoin(uid);
-        if (!fj.ok) return bot.sendMessage(uid, "🔒 Please join required channels to use this bot.", { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
+        const fj = await checkForceJoin(uid, bot);
+        if (!fj.ok) return bot.sendMessage(uid, `🔒 Please join required channels to use this bot.${forceJoinNote(fj.missing)}`, { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
         
         if (isBanned(uid) && !isOwner(uid)) {
             return bot.sendMessage(uid, `🚫 *𝗔𝗖𝗖𝗘𝗦𝗦 𝗗𝗘𝗡𝗜𝗘𝗗*\nYou are permanently banned from this engine.`, { parse_mode: "Markdown" });
@@ -146,9 +182,17 @@ module.exports = (bot) => {
 
         // Optional: Auto-delete previous message logic if requested (requires tracking msg IDs)
         // This is typically handled purely in callback_query, but text commands send new messages.
-        
-        return bot.sendMessage(uid,
-            `╭━━━━━━[ ⚡ *𝗕𝗟𝗔𝗭𝗘 𝗡𝗫𝗧  V4.0* ]━━━━━━╮\n` +
+
+        // Mini App entry point: the direct link is shown only after
+        // auto_setup probed Telegram and confirmed the registered Mini App
+        // (it then opens with no Start needed); otherwise point at the
+        // 🛜 Open Web App button below the menu, which always works.
+        const miniAppLine = (state.autoSetup && state.autoSetup.directAppReady && state.BOT_INFO?.username)
+            ? `┣ 🛜 *Mini App:* ${miniAppDeepLink()}\n`
+            : "┣ 🛜 *Mini App:* tap *Open Web App* below ⤵\n";
+
+        const welcomeText =
+            `╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n` +
             `┣ 👤 *Welcome,* ${msg.from.first_name}!\n` +
             `┣ 🆔 *Your ID:* \`${uid}\`\n` +
             `┣ 🎖️ *Status:* ${statusBadge}\n` +
@@ -157,10 +201,147 @@ module.exports = (bot) => {
             `┣ 🌐 *System Mode:* ${freeMode ? 'FREE' : 'SUBSCRIPTION'}\n` +
             `┣ 🚀 *Engine Mode:* 0-Delay Multi-Thread\n` +
             `┣ 🛡️ *Security:* Proxied Anti-Ban\n` +
+            miniAppLine +
              `┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL} \n` +
-            `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`,
-            { parse_mode: "Markdown", ...mainMenu(uid) }
+            `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
+
+        return sendWithWebApp(uid, welcomeText, { parse_mode: "Markdown" }, mainMenu(uid).reply_markup.inline_keyboard);
+    });
+
+    // ── /app — Open the Mini App / Web App ────────────────────
+    bot.onText(/\/app/, async (msg) => {
+        const uid = msg.from.id;
+        const url = dashboardUrl();
+        let uname = state.BOT_INFO?.username;
+        if (!uname) { try { uname = (await bot.getMe()).username; state.BOT_INFO = state.BOT_INFO || {}; state.BOT_INFO.username = uname; } catch (_) {} }
+        const ready = !!(state.autoSetup && state.autoSetup.webAppReady !== false && state.autoSetup.menuButtonActive);
+        const body = ready
+            ? "Tap *Open Web App* below, or press *🚀 Open App* under the chat box — you are logged in *automatically* (no password needed)."
+            : "The Mini App only launches *inside the Telegram app* — and the menu button is applied only after this bot's domain is allow-listed:\n\n@BotFather → /mybots → select this bot → Bot Settings → *Domain* → add `" + new URL(url).host + "`\n\nThen send /autosetup. Until then, use the button below (falls back to 🔐 Web Login → ID + password).";
+        let note = "";
+        if (uname) {
+            const slug = (state.autoSetup && state.autoSetup.directSlug) || "app";
+            if (state.autoSetup && state.autoSetup.directAppReady) {
+                note = `\n\n🔗 *Mini App link (verified — opens directly, no Start needed):* ${miniAppDeepLink()}`;
+            } else if (uid === config.OWNER_ID || isAdmin(uid)) {
+                note = `\n\n⚠️ The direct link https://t.me/${uname}/${slug} is *not registered* in @BotFather yet — Telegram still opens this chat for it.\n\nFix (1 minute): @BotFather → /newapp → select this bot → title → URL: ${url} → short name: *${slug}*\n\nThen send /autosetup — the server verifies Telegram-side automatically. Meanwhile the button below (and https://t.me/${uname}?startapp) both work; the startapp link needs the bot started once.`;
+            } else {
+                note = `\n\n🔗 Deep link (inside Telegram): https://t.me/${uname}?startapp`;
+            }
+        }
+        return sendWithWebApp(uid,
+            `🛜 *Open the Mini App*\n\n${body}${note}`,
+            { parse_mode: "Markdown" },
+            [[{ text: "🚀 Open Web App", web_app: { url } }]]
         );
+    });
+
+    // ── /appcheck — Mini App diagnostics (owner/admin) ────────
+    bot.onText(/\/appcheck/, async (msg) => {
+        const uid = msg.from.id;
+        if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
+        const url = dashboardUrl();
+        let domain = url;
+        try { domain = new URL(url).host; } catch (_) {}
+        const send = (txt) => bot.sendMessage(uid, txt, { parse_mode: "Markdown" }).catch(() => {});
+        const L = [];
+        L.push(`🌐 *Mini App Diagnostics*`);
+        L.push(`1️⃣ *Configured URL:* \`${url}\``);
+        L.push(`   Domain to whitelist: \`${domain}\``);
+
+        // 2️⃣ Try applying the menu button live
+        try {
+            await bot.setChatMenuButton({ menu_button: { type: "web_app", text: config.MENU_BUTTON_TEXT, url } });
+            L.push(`2️⃣ *Apply menu button:* ✅ done`);
+        } catch (e) {
+            const err = String(e.description || e.message || "");
+            L.push(`2️⃣ *Apply menu button:* ❌ ${err.slice(0, 180)}`);
+            if (/whitelist|BUTTON_URL_INVALID|WEBAPP_URL|allowed domain/i.test(err)) {
+                L.push(`   👉 THIS IS THE PROBLEM — @BotFather → /mybots → Bot Settings → *Domain* → add \`${domain}\`, then run /autosetup`);
+            }
+        }
+
+        // 3️⃣ Read back and verify what Telegram actually stored
+        // (Telegram can apply the change asynchronously, so retry briefly)
+        try {
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            let btn = null, readErr = null;
+            for (let i = 0; i < 4; i++) {
+                try {
+                    const mb = await bot.getChatMenuButton();
+                    btn = (mb && (mb.menu_button || mb)) || null;
+                    if (btn && btn.type === "web_app") break;
+                } catch (e) { readErr = e; }
+                if (i < 3) await sleep(1500);
+            }
+            if (btn && btn.type === "web_app") {
+                L.push(`3️⃣ *Verify:* ✅ web_app stored → ${(btn.web_app && (btn.web_app.url || btn.url)) || "?"}`);
+            } else {
+                L.push(readErr
+                    ? `3️⃣ *Verify:* read failed — ${readErr.description || readErr.message}`
+                    : `3️⃣ *Verify:* ❌ still type = "${(btn && btn.type) || "none"}" — Telegram did not keep web_app. Usually the domain is not allow-listed yet or the button was changed manually — add \`${domain}\` in @BotFather → /mybots → Bot Settings → *Domain*, then run /autosetup again`);
+            }
+        } catch (e) { L.push(`3️⃣ *Verify:* read failed — ${e.description || e.message}`); }
+
+        // 4️⃣ Is the dashboard itself reachable over HTTPS?
+        L.push(`4️⃣ *Site reachable:* checking…`);
+        const statusMsg = await send(L.join("\n"));
+        try {
+            const ctl = typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined;
+            const r = await fetch(url, { method: "GET", redirect: "follow", signal: ctl });
+            L.push(`4️⃣ *Site reachable:* ✅ HTTP ${r.status} (${(r.headers.get("content-type") || "").split(";")[0]})`);
+        } catch (e) {
+            const why = (e && (e.name === "TimeoutError" || e.name === "AbortError")) ? "timeout (12s)" : (e.cause && e.cause.message) || e.message || String(e);
+            L.push(`4️⃣ *Site reachable:* ❌ ${why}`);
+            L.push(`   👉 Railway URL is up? If you use a custom domain, check DNS/SSL settings.`);
+        }
+
+        let uname = state.BOT_INFO?.username;
+        if (!uname) { try { uname = (await bot.getMe()).username; } catch (_) {} }
+        const slug = (state.autoSetup && state.autoSetup.directSlug) || "app";
+        if (uname) {
+            // Live re-probe: Telegram's public landing page shows appname=<slug>
+            // only while the Mini App is registered — refresh right now so the
+            // owner sees the truth immediately after a /newapp registration.
+            let directOk = !!(state.autoSetup && state.autoSetup.directAppReady);
+            try {
+                const as = require("./auto_setup");
+                directOk = await as.probeDirectApp(uname, slug);
+            } catch (_) {}
+            state.autoSetup = state.autoSetup || {};
+            state.autoSetup.directAppReady = directOk;
+            state.autoSetup.directSlug = slug;
+            if (directOk) {
+                state.autoSetup.appLink = `https://t.me/${uname}/${slug}`;
+                L.push(`5️⃣ *Direct link:* ✅ https://t.me/${uname}/${slug} — Telegram confirms the Mini App is registered; it opens directly (no Start needed).`);
+            } else {
+                L.push(`5️⃣ *Direct link:* ❌ https://t.me/${uname}/${slug} — not registered yet; Telegram opens this chat for it.`);
+                L.push(`   👉 Register (1 minute): @BotFather → /newapp → select this bot → URL: ${url} → short name: *${slug}*`);
+                L.push(`   ⏳ Meanwhile: https://t.me/${uname}?startapp (works after the bot is started once).`);
+            }
+        } else {
+            L.push(`5️⃣ *App link:* username unknown`);
+        }
+        L.push(`6️⃣ *Deep link still opens the chat?* Open it inside the Telegram app (mobile, or a recent Telegram Desktop) — never in a browser. The 🚀 Open App button under the chat box and web_app buttons inside chats open the Mini App regardless of the direct link.`);
+        L.push(`\n💡 Mini Apps only open inside the *Telegram app* — not in a browser/web.`);
+        const finalText = L.join("\n");
+        if (statusMsg) bot.editMessageText(finalText, { chat_id: uid, message_id: statusMsg.message_id, parse_mode: "Markdown" }).catch(() => send(finalText));
+    });
+
+    // ── /autosetup — Re-run server-side auto-setup (owner) ────
+    bot.onText(/\/autosetup/, async (msg) => {
+        const uid = msg.from.id;
+        if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
+        const s = await bot.sendMessage(uid, "⚙️ Running auto-setup…").catch(() => {});
+        try {
+            const r = await require("./auto_setup").runAutoSetup(bot);
+            const status = r.whitelistPending
+                ? "🟡 *Menu button pending:* whitelist your domain in @BotFather (`/mybots` → Bot Settings → Domain), then send /autosetup again."
+                : (r.menuButtonActive ? "🟢 *All settings applied automatically.*" : "🟠 Done, with warnings (see log).");
+            if (s) bot.editMessageText(`⚙️ *AUTO-SETUP COMPLETE*\n\n${status}\n\n🛜 App: ${r.appLink || ""}`, { chat_id: uid, message_id: s.message_id, parse_mode: "Markdown" }).catch(() => {});
+        } catch (e) {
+            if (s) bot.editMessageText(`❌ Auto-setup failed: ${e.message}`, { chat_id: uid, message_id: s.message_id }).catch(() => {});
+        }
     });
 
     // ── /help ─────────────────────────────────────────────────
@@ -169,6 +350,7 @@ module.exports = (bot) => {
         const text = `
 ╭━━━[ 🛠️ *𝗛𝗘𝗟𝗣 & 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ]━━━╮
 ┣ /start - Open Main Menu
+┣ /app - Open Mini App (auto login)
 ┣ /reset - Clear active jobs & web state
 ┣ /redeem \`<code>\` - Claim Promo Voucher
 ┣ /setwebhook \`<url>\` - Set API Webhook
@@ -338,14 +520,11 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     // ── /sessions ─────────────────────────────────────────────
     bot.onText(/\/sessions/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
-        const keys = Object.keys(state.sessions);
-        if (!keys.length) return bot.sendMessage(msg.chat.id, "❌ No active sessions.");
-        const lines = keys.map(k => {
-            const s = state.sessions[k];
-            const icon = s.status === "Connected" ? "🟢" : "🔴";
-            return `${icon} \`${k}\` — ${s.type.toUpperCase()} — Owner: \`${s.owner}\``;
-        }).join("\n");
-        return bot.sendMessage(msg.chat.id, `╭━━━[ 🗄️ *𝗔𝗖𝗧𝗜𝗩𝗘 𝗡𝗢𝗗𝗘𝗦* ]━━━╮\n${lines}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
+        const rows = listAllSessions();
+        if (!rows.length) return bot.sendMessage(msg.chat.id, "❌ No sessions found.");
+        const icons = { Connected: "🟢", Connecting: "🟡", Offline: "🔴", Blocked: "🚫" };
+        const lines = rows.map(r => `${icons[r.status] || "⚪"} \`${r.sid}\` — ${r.type.toUpperCase()} — Owner: \`${r.owner}\` — ${r.status.toUpperCase()}`).join("\n");
+        return bot.sendMessage(msg.chat.id, `╭━━━[ 🗄️ *𝗔𝗟𝗟 𝗡𝗢𝗗𝗘𝗦* (${rows.length}) ]━━━╮\n${lines}\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
     });
 
     // ── /warmup ───────────────────────────────────────────────
@@ -382,7 +561,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addSubscriber(tid, days);
         bot.sendMessage(msg.chat.id, `✅ PRO activated for \`${tid}\` (${days} Days)`, { parse_mode: "Markdown" });
-        bot.sendMessage(tid, `✨ *Congratulations!* Your PRO subscription has been activated for ${days} days.\n⚡ BLAZE NXT`, { parse_mode: "Markdown" }).catch(() => {});
+        bot.sendMessage(tid, `✨ *Congratulations!* Your PRO subscription has been activated for ${days} days.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
     bot.onText(/\/rempro (\d+)/, async (msg, match) => {
@@ -395,7 +574,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addVIP(tid, days);
         bot.sendMessage(msg.chat.id, `🔥 VIP activated for \`${tid}\` (${days} Days)`, { parse_mode: "Markdown" });
-        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n⚡ BLAZE NXT`, { parse_mode: "Markdown" }).catch(() => {});
+        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
     bot.onText(/\/remvip (\d+)/, async (msg, match) => {
@@ -419,7 +598,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         const text = match[1]; const db = getDB(); const suc = [], fail = [];
         bot.sendMessage(msg.chat.id, "⏳ Broadcasting...");
         for (const id of Object.keys(db.users)) {
-            try { await bot.sendMessage(id, `📢 *𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${text}\n\n⚡ _BLAZE NXT_`, { parse_mode: "Markdown" }); suc.push(id); } 
+            try { await bot.sendMessage(id, `📢 *𝗕𝗥𝗢𝗔𝗗𝗖𝗔𝗦𝗧*\n\n${text}\n\n✅ _WS CHECKER v6_`, { parse_mode: "Markdown" }); suc.push(id); } 
             catch (_) { fail.push(id); }
         }
         await sendBroadcastReport(bot, config.OWNER_ID, suc, fail);
@@ -435,22 +614,80 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
     bot.onText(/\/forcejoin_add (.+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
-        const [title, chatId, url] = match[1].split('|').map(x=>x.trim());
+        const parts = match[1].split('|').map(x=>x.trim());
+        const title = parts[0];
+        const chatId = parts[1] || (parts[0] && !parts[0].startsWith("https") ? parts[0] : undefined);
+        const url = parts[2] || (parts[0] && parts[0].startsWith("https") ? parts[0] : undefined);
         const dyn = config.dynamic; const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
-        channels.push({ title: title || chatId, chatId, url });
+        if (!chatId && !url) return bot.sendMessage(msg.chat.id, "❌ Usage:\n/forcejoin_add Title|@channel\n/forcejoin_add Title|-100123456789\n/forcejoin_add Title|@channel|https://t.me/joinchat/xxxx\nPublic channels: username or t.me link works.\nPrivate channels: numeric chat id needed and the bot must be an admin of the channel.");
+        channels.push({ title, chatId, url });
         config.setDynamicConfig({ FORCE_JOIN_CHANNELS: channels });
-        bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId}`);
+        bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}\n\n📌 Make this bot an *admin* of the channel (private: enable *Invite users* too), then run /forcejoin_test.`, { parse_mode: 'Markdown' }).catch(() => bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}`));
     });
     bot.onText(/\/forcejoin_list/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
-        bot.sendMessage(msg.chat.id, `🔒 *Force Join* ${dyn.FORCE_JOIN_ENABLED?'ON':'OFF'}
-
-${channels.map((c,i)=>`${i+1}. ${c.title||c.chatId} | ${c.chatId}`).join('\n') || 'No channels'}`, { parse_mode:'Markdown' });
+        const auto = dyn.FORCE_JOIN_AUTO_APPROVE ? "ON (auto-approve join requests)" : "OFF";
+        const lines = channels.map((c,i)=>`${i+1}. ${c.title||c.chatId}\n   id: ${c.chatId || "-"} | user: ${c.username || "-"} | url: ${c.url || "-"}`);
+        bot.sendMessage(msg.chat.id, `🔒 *Force Join:* ${dyn.FORCE_JOIN_ENABLED?'ON':'OFF'} | Auto-approve: ${auto}\n\n${lines.join('\n') || 'No channels'}\n\n📌 The bot must be an *admin* of every channel (for private channels also give it *Invite users*), otherwise membership can never be verified.\n\n/forcejoin_test - check the channels from the bot side`, { parse_mode:'Markdown' });
     });
 
     // ============================================================
-    // ⚡ OWNER COMMANDS (Only Owner Can Use)
+    // Auto-approve join requests for force-join channels (needs bot admin with Invite users right).
+    bot.onText(/\/forcejoin_auto (on|off)/i, async (msg, match) => {
+        if (!isAdmin(msg.from.id)) return;
+        const enabled = match[1].toLowerCase() === 'on';
+        config.setDynamicConfig({ FORCE_JOIN_AUTO_APPROVE: enabled });
+        bot.sendMessage(msg.chat.id, `🔓 Force-join auto-approve: *${enabled ? 'ON' : 'OFF'}*`, { parse_mode:'Markdown' });
+    });
+    // Live diagnostic: resolves every channel and reports bot-side verification state.
+    bot.onText(/\/forcejoin_test/, async (msg) => {
+        if (!isAdmin(msg.from.id)) return;
+        const { probeChannel, channelLabel } = require("./force_join");
+        const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
+        if (!channels.length) return bot.sendMessage(msg.chat.id, "No force-join channels configured yet. Use /forcejoin_add.");
+        const out = [`🔍 *Force-join channel test* (as @${(state.BOT_INFO||{}).username || "bot"})\n`];
+        for (const ch of channels) {
+            const p = await probeChannel(bot, ch, msg.from.id).catch(() => null);
+            if (!p) { out.push(`❌ ${channelLabel(ch)} — probe crashed`); continue; }
+            if (p.joined) out.push(`✅ ${p.label} — bot CAN verify members (you are ${p.status || "a member"})`);
+            else if (p.reason === "not_joined") out.push(`✅ ${p.label} — bot CAN verify (you are not joined yet; probe succeeded)`);
+            else if (p.reason === "unverifiable") out.push(`⚠️ ${p.label} — invite link only: impossible to verify. Make the bot an admin and store the numeric chat id.`);
+            else out.push(`❌ ${p.label} — ${p.reason === "bot_setup" ? "bot is not an admin of this channel" : (p.detail || "unknown error")}`);
+        }
+        out.push(`\nTip: add the bot as channel admin, then run this again.`);
+        bot.sendMessage(msg.chat.id, out.join("\n"), { parse_mode:'Markdown' }).catch(() => bot.sendMessage(msg.chat.id, out.join("\n")));
+    });
+
+    // ── 🔔 Chat join request (private force-join channels) ────
+    // Fires when a user asks to join a channel and this bot is an admin with
+    // the "Invite users" right there. Without this event the bot can never
+    // "see" join requests — getChatMember only reflects approved members.
+    bot.on("chat_join_request", async (req) => {
+        try {
+            const dyn = config.dynamic;
+            const channels = Array.isArray(dyn.FORCE_JOIN_CHANNELS) ? dyn.FORCE_JOIN_CHANNELS : [];
+            if (!dyn.FORCE_JOIN_ENABLED || !channels.length) return;
+            const match = matchJoinRequestChannel(req, channels);
+            if (!match) return;
+            const uid = Number(req.from && req.from.id);
+            if (!uid) return;
+            const title = match.channel.title || req.chat.title || (req.chat.username ? "@" + req.chat.username : "channel");
+            if (dyn.FORCE_JOIN_AUTO_APPROVE) {
+                try {
+                    await bot.approveChatJoinRequest(req.chat.id, uid);
+                    return bot.sendMessage(uid, `✅ Auto-approved! You are now a member of ${title}. Open the bot and press /start to continue.`).catch(() => {});
+                } catch (e) {
+                    console.warn("⚠️ [ForceJoin] Auto-approve failed:", e.description || e.message);
+                }
+            }
+            bot.sendMessage(uid, `✅ Your request to join ${title} was received. Once an admin approves it, open the bot again and press ✅ Verify Join (or send /start).`).catch(() => {});
+        } catch (e) {
+            console.error("❌ [ForceJoin] chat_join_request handler error:", e.message);
+        }
+    });
+
+    // 👑 OWNER COMMANDS (Only Owner Can Use)
     // ============================================================
 
     // ── /owner ────────────────────────────────────────────────

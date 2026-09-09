@@ -1,0 +1,18 @@
+# ============================================================
+#   Railway (Nixpacks) build configuration
+#   Used automatically when deploying this repo on Railway.
+#   Reference: https://nixpacks.com/docs/configuration/file
+# ============================================================
+
+[variables]
+# Pin the Node.js major version used to build AND run the app.
+# (You can also set NIXPACKS_NODE_VERSION=22 as a Railway service variable.)
+NODE_ENV = "production"
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.install]
+# Lockfile is committed — install the exact dependency tree.
+cmds = ["npm ci"]
+
+[start]
+cmd = "npm start"

@@ -8,7 +8,9 @@ const { getDB, saveDB } = require("./database");
 
 function proxyFilePath() {
     const dyn = config.dynamic;
-    return path.resolve(__dirname, process.env.PROXY_FILE || dyn.PROXY_FILE || "proxies.txt");
+    // Rooted at the persistent data dir (Railway Volume) so the proxy list
+    // survives redeploys; absolute PROXY_FILE overrides are passed through.
+    return config.dataPath(process.env.PROXY_FILE || dyn.PROXY_FILE || "proxies.txt");
 }
 
 function loadProxyList() {

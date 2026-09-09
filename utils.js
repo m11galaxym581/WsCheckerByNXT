@@ -1,5 +1,5 @@
 // ============================================================
-//   ⚡ BLAZE NXT — V4.0 GOD MODE | utils.js
+//   WS CHECKER v6 | utils.js
 //   Advanced Utilities — Formatting, Sorters, Exporters
 // ============================================================
 
@@ -131,7 +131,7 @@ function buildResultText(reg, unreg, meta = {}) {
     const ts   = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
     const dur  = meta.duration ? `\n⏱  Duration   : ${fmtDuration(meta.duration)}` : "";
     
-    let txt = `${line}\n   ⚡ BLAZE NXT — V5.0 UPGRADED RESULTS\n${line}\n\n`;
+    let txt = `${line}\n   WS CHECKER v6 — RESULTS\n${line}\n\n`;
     txt += `📅 Date       : ${ts}\n📊 Total      : ${fmtNum(meta.total || reg.length + unreg.length + failed.length)}\n✅ Registered : ${fmtNum(reg.length)}\n❌ Unreg      : ${fmtNum(unreg.length)}\n⚠️ Failed     : ${fmtNum(failed.length)}${dur}\n\n${line}\n\n`;
 
     // Advanced Country Sorting
@@ -188,6 +188,27 @@ function buildResultCSV(reg, unreg, failed = []) {
     return csv;
 }
 
+// ── Telegram Bot API 9.4 button colors (inline keyboards) ────
+// Bot API 9.4 (Feb 2026) added the field `style` to InlineKeyboardButton /
+// KeyboardButton: "primary" (blue), "success" (green), "danger" (red).
+// Every button without an explicit style gets a color: destructive labels
+// turn red, positive/payment labels turn green, everything else is blue
+// (primary). Buttons already carrying a style are left untouched.
+const _STYLE_DANGER = /🚫|❌|🗑|➖|🛑|✖|remove|ban |delete|disable|logout|revoke|clear|reset|cancel|deny|kick|decline/i;
+const _STYLE_SUCCESS = /✅|🟢|💎|🎁|redeem|upgrade|premium|activate|approve|unban|success|paid|payment|verified/i;
+
+function colorInlineKeyboard(kb) {
+    if (!Array.isArray(kb)) return kb;
+    return kb.map(row => (Array.isArray(row) ? row : []).map(btn => {
+        if (!btn || typeof btn !== "object" || btn.style) return btn;
+        const t = String(btn.text || "");
+        let style = "primary";
+        if (_STYLE_DANGER.test(t)) style = "danger";
+        else if (_STYLE_SUCCESS.test(t)) style = "success";
+        return { ...btn, style };
+    }));
+}
+
 // ── Array & File Utils ────────────────────────────────────────
 
 function safeUnlink(filePath) {
@@ -221,4 +242,5 @@ module.exports = {
     safeUnlink,
     randomDelay,
     chunkArray,
+    colorInlineKeyboard,
 };

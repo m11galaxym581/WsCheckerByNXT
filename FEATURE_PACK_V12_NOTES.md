@@ -1,4 +1,4 @@
-# WS CHECKER v5.01.49 — Feature Pack v12
+# WS CHECKER v6.0.0 — Feature Pack v12
 
 Added professional UI/pages and backend APIs for:
 
