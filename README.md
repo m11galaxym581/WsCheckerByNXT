@@ -1,8 +1,8 @@
-# WS CHECKER v6.0.0
+# WS CHECKER v6.0.1
 
 A Telegram bot + web dashboard for WhatsApp number checking, sessions/nodes management, result exports, saved lists, jobs/queue, API keys, webhooks, proxy pool, and admin tools.
 
-> Current package/version: **v6.0.0**
+> Current package/version: **v6.0.1**
 
 ---
 
@@ -836,3 +836,25 @@ Edit `STARS_PLANS` to change them (whole-number Star amounts).
 > **Setup note:** Telegram Stars are enabled for every bot by default — no payment
 > provider token is needed (`provider_token` is left empty). Payments require a
 > real bot token; test with a private chat between the bot and the buyer.
+
+## 23. v6.0.1 — Telegram bot polish (this release)
+
+Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
+
+- **Version bumped to v6.0.1** (config `BRAND_VER`, `package.json`, boot banner).
+- **`/help` rewritten** to list only real commands (was referencing a non-existent
+  `/info`) and is now role-aware (Basics / Checker / Plans for users, plus Admin
+  and Owner sections when applicable).
+- **`/start` welcome cleaned up**: dynamic brand+version header, removed stray
+  spacing/`\u00A0`, condensed to key lines, and it now actually shows the
+  **🛜 Open Web App** button it used to reference (kept behind the existing
+  domain-whitelist auto-fallback).
+- **Menus made consistent between `/admin` & button panels** — the Owner panel
+  now includes the Free/Subscription mode toggles from both entry points.
+- **Standardised submenu "Back" labels** across both bot modules.
+- **Removed dead legacy "buy premium" flow** (hard-coded `@firstoget`/“BLAZE NXT”
+  promotion spam) — upgrades now route through the Stars / owner-DM flow.
+- **Consistent tier naming** — removed confusing “GOD TIER / GOD PANEL” wording in
+  favour of “VIP” and “OWNER”.
+- **My History summary** now shows all four counters (reg / biz / unreg / failed).
+- Cleaned up minor copy (support desk, redeem prompt, owner panel).

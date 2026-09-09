@@ -27,7 +27,7 @@ console.log(`
 ██████╔╝███████╗██║  ██║███████╗███████╗    ██║ ╚████║██╔╝ ██╗   ██║   
 ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝   
                                             
-      🔥 WS CHECKER v6.0.0 — READY
+      🔥 WS CHECKER v6.0.1 — READY
       Owner: @firstoget | Port: ${config.PORT}
 `);
 

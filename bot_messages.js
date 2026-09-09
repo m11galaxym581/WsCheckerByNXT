@@ -82,7 +82,7 @@ module.exports = (bot) => {
 
                     case "wait_vip_id":
                         addVIP(tid, 30); state.clearUserStep(uid);
-                        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account is now VIP. Enjoy maximum limits.`, { parse_mode: "Markdown" }).catch(() => {});
+                        bot.sendMessage(tid, `🔥 *VIP UNLOCKED!*\nYour account is now VIP. Enjoy maximum limits.`, { parse_mode: "Markdown" }).catch(() => {});
                         return send(`🔥 *VIP Granted* to \`${tid}\``);
                         
                     case "wait_rem_vip_id":

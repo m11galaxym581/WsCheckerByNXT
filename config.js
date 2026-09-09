@@ -132,7 +132,7 @@ const config = {
     MAX_HISTORY: 50, // Increased history storage
     DB_FILE: env("DB_FILE", "users.json"),
     BRAND_NAME: "WS CHECKER",
-    BRAND_VER: "v6.0.0",
+    BRAND_VER: "v6.0.1",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
 
     // ── Telegram Auto-Setup (zero-touch, runs on boot) ───────

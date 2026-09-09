@@ -1,6 +1,6 @@
 {
   "name": "blaze-nxt-pro",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "description": "WS CHECKER v6 \u2014 WhatsApp number checker with web dashboard, proxies and admin tools",
   "main": "index.js",
   "scripts": {
