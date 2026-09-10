@@ -403,7 +403,8 @@ module.exports = (bot) => {
             parts.push("┣  /maintenance on|off");
             parts.push("┣  /systemmode free|subscription");
             parts.push("┣  /autosetup — re-run auto config");
-            parts.push("┣  /refundstars <charge_id> — Stars refund");
+            parts.push("┣  /refundstars <charge_id|user_id> — Stars refund");
+            parts.push("┣  /starsbalance — bot Stars balance + txns");
         }
         parts.push("╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯");
         return bot.sendMessage(uid, parts.join("\n"), { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "back_main" }]] } });

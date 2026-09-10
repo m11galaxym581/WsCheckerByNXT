@@ -918,3 +918,19 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   quote or newline corrupted every following row), the file is written to the
   data dir instead of `__dirname`, and write/send/unlink failures no longer
   crash the handler.
+
+### Stars refund hardening (`/refundstars`, `/starsbalance`)
+
+- Refunds now go through a direct HTTPS JSON POST to `refundStarPayment`
+  (the exact shape from Telegram's docs) instead of the bot library's
+  form-encoded request, and Telegram's raw errors are translated into
+  actionable owner guidance (`CHARGE_ID_EMPTY`, `CHARGE_NOT_FOUND`,
+  `CHARGE_ALREADY_REFUNDED` — the last one self-heals the ledger).
+- `/refundstars` accepts the buyer's numeric user id as well as the full
+  charge id (it refunds their most recent unrefunded payment), strips
+  pasted code ticks, and refuses to call Telegram with an empty id.
+- New owner command `/starsbalance` shows the bot's real Stars balance
+  held by Telegram plus recent Telegram-side transaction ids, so there is
+  always a ground-truth id to refund with. Stars revenue itself lives on
+  Telegram's side (our DB only keeps the payment ledger); withdrawals go
+  via Fragment (min 1,000 ⭐, 21-day hold per batch).

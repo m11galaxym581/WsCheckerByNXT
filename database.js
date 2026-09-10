@@ -514,6 +514,11 @@ function listStarsPayments() {
     return Object.values(db.starsPayments || {})
         .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
 }
+// Most-recent-first payments for one buyer (used by /refundstars <user_id>).
+function listStarsPaymentsByUid(uid) {
+    uid = Number(uid);
+    return listStarsPayments().filter(r => Number(r.uid) === uid);
+}
 function removeStarsPayment(chargeId) {
     const db = getDB(); if (db.starsPayments && db.starsPayments[chargeId]) {
         delete db.starsPayments[chargeId]; saveDB(db); return true;
@@ -617,6 +622,6 @@ module.exports = {
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
     ensureUserRow, extendPlanStack, revokePlanDays, openSupport, isSupportOpen, closeSupport,
     markTrialUsed, hasUsedTrial,
-    logStarsPayment, getStarsPayment, listStarsPayments, removeStarsPayment,
+    logStarsPayment, getStarsPayment, listStarsPayments, listStarsPaymentsByUid, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };

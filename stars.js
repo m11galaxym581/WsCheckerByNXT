@@ -25,9 +25,34 @@
 const config = require("./config");
 const {
     getDB, registerUser, extendPlanStack,
-    logStarsPayment, getStarsPayment, revokePlanDays,
+    logStarsPayment, getStarsPayment, listStarsPayments,
+    listStarsPaymentsByUid, revokePlanDays,
     isOwner, isAdmin, markTrialUsed, hasUsedTrial
 } = require("./database");
+
+// ── Direct Bot API calls (JSON POST) ──────────────────────────
+// Refunds / balance / transactions go through a direct HTTPS call with
+// the exact JSON shape every official guide uses, instead of the
+// node-telegram-bot-api wrapper's form-encoded request. This removes the
+// whole HTTP-form layer as a failure suspect and surfaces Telegram's raw
+// error description so the refund handler can translate it.
+async function tgApi(method, body) {
+    const token = config.TG_TOKEN || "";
+    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+    });
+    let data = null;
+    try { data = await res.json(); } catch (_) { /* non-JSON: proxy/network issue */ }
+    if (!data || data.ok !== true) {
+        const desc = (data && data.description) || `HTTP ${res.status} (no JSON body)`;
+        const err = new Error(desc);
+        err.code = data && data.error_code;
+        throw err;
+    }
+    return data.result;
+}
 
 const EMO = { PRO: "💎", VIP: "🔥" };
 
@@ -379,6 +404,9 @@ function installStars(bot) {
             const cid = pay.telegram_payment_charge_id;
             if (!cid) return;
             if (getStarsPayment(cid)) return; // already delivered (duplicate update)
+            // Kept for forensics: if a refund ever fails, comparing the two
+            // ids against /starsbalance tells us instantly which one is bad.
+            const pcid = pay.provider_payment_charge_id || "";
 
             const grantUid = (puidRaw && Number.isFinite(Number(puidRaw)) && Number(puidRaw) > 0) ? Number(puidRaw) : chatUid;
 
@@ -388,7 +416,8 @@ function installStars(bot) {
                 logStarsPayment({
                     chargeId: cid, uid: grantUid, tier: plan.tier, days: plan.days,
                     stars: plan.stars, currency: pay.currency || "XTR",
-                    planId: plan.id, refunded: false, duplicateTrial: true,
+                    planId: plan.id, providerChargeId: pcid,
+                    refunded: false, duplicateTrial: true,
                     at: new Date().toISOString(),
                 });
                 return;
@@ -402,7 +431,7 @@ function installStars(bot) {
             logStarsPayment({
                 chargeId: cid, uid: grantUid, tier: plan.tier, days: plan.days,
                 stars: plan.stars, currency: pay.currency || "XTR",
-                planId: plan.id, refunded: false,
+                planId: plan.id, providerChargeId: pcid, refunded: false,
                 at: new Date().toISOString(),
             });
 
@@ -412,11 +441,11 @@ function installStars(bot) {
                 (plan.trial ? `┣ ⏳ Enjoy your trial — the *1 ⭐* offer is now used up.\n` : "") +
                 `┣ ⭐ Paid: *${plan.stars} Stars*\n` +
                 `┣ 🗓️ New expiry: *${new Date(expiry).toLocaleDateString("en-GB")}*\n` +
-                `┣ 🧾 Charge: ${cid}\n` +
+                `┣ 🧾 Charge: \`${cid}\`\n` +
                 `╰━━━━━━━━━━━━━━━━━━━━╯`;
             sendText(grantUid, confirm);
             sendText(config.OWNER_ID,
-                `⭐ *Stars sale* — uid ${grantUid}\n📦 ${plan.tier} ${plan.days}d\n⭐ ${plan.stars} Stars\n🧾 ${cid}`);
+                `⭐ *Stars sale* — uid ${grantUid}\n📦 ${plan.tier} ${plan.days}d\n⭐ ${plan.stars} Stars\n🧾 \`${cid}\``);
             console.log(`⭐ [Stars] Paid ${plan.stars} XTR — ${plan.tier} ${plan.days}d for uid ${grantUid} (charge ${cid})`);
         } catch (e) {
             console.error("❌ [Stars] payment handler error:", e.message);
@@ -424,32 +453,132 @@ function installStars(bot) {
     });
 
     // ── 4. Owner refund ──────────────────────────────────────
-    bot.onText(/\/refundstars (.+)/, async (msg, match) => {
+    // Accepts the full charge id OR the buyer's numeric user id (resolves
+    // to their most recent unrefunded payment).
+    bot.onText(/\/refundstars(?:@\w+)?(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from && msg.from.id;
         if (!isOwner(uid)) return;
-        const cid = String(match[1] || "").trim();
-        if (!cid) return sendText(uid, "Usage: /refundstars <charge_id>");
-        const rec = getStarsPayment(cid);
-        if (!rec) return sendText(uid, `❌ No Stars payment record found for charge ${cid}.`);
-        if (rec.refunded) return sendText(uid, `⚠️ This payment (${cid}) was already refunded.`);
-        try {
-            await bot.refundStarPayment(Number(rec.uid), cid);
-            // Refunds remove ONLY the refunded pack, pro-rata: if the user paid
-            // for several stacked plans, the remaining time must survive.
-            // (Previously this called removeSubscriber/removeVIP, which nulled
-            // the expiry and wiped every other paid renewal too.)
-            const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
-            logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString() });
-            const stillActive = remaining && Number(remaining) > Date.now();
-            sendText(Number(rec.uid),
-                stillActive
-                    ? `⭐ *Refund processed.* Charge ${cid} was refunded. Your *${rec.tier}* access stays active until ${new Date(remaining).toLocaleDateString("en-GB")}.`
-                    : `⭐ *Refund processed.* Charge ${cid} was refunded and your ${rec.tier} access was revoked.`);
-            return sendText(uid, stillActive
-                ? `✅ Refunded *${rec.stars} Stars* for charge ${cid}. uid ${rec.uid} keeps *${rec.tier}* until ${new Date(remaining).toLocaleDateString("en-GB")} (other paid time untouched).`
-                : `✅ Refunded *${rec.stars} Stars* for charge ${cid} and revoked ${rec.tier} from uid ${rec.uid}.`);
-        } catch (e) {
-            return sendText(uid, `❌ Refund failed: ${e.message || e.description || "unknown"}`);
+        // Strip code ticks: the id is displayed in `code` so owners can tap
+        // to copy, and some clients include the ticks in the paste.
+        const arg = String((match && match[1]) || "").trim().replace(/^`+|`+$/g, "").trim();
+        if (!arg) return sendText(uid, "Usage: `/refundstars <charge_id>`\nor `/refundstars <buyer_user_id>`");
+        let rec = getStarsPayment(arg);
+        let resolvedByUid = false;
+        // Numeric input that is not a charge id -> treat as buyer uid.
+        if (!rec && /^\d+$/.test(arg)) {
+            const mine = listStarsPaymentsByUid(arg).filter(r => !r.refunded);
+            if (mine.length) {
+                rec = mine[0];
+                resolvedByUid = true;
+            }
         }
+        if (!rec) return sendText(uid,
+            `❌ No Stars payment record found for \`${arg}\`.\n\n` +
+            `Tip: use \`/starsbalance\` to list the real Telegram-side transactions and copy the exact charge id.`);
+        if (rec.refunded) return sendText(uid, `⚠️ This payment (${rec.chargeId}) was already refunded.`);
+        // Never call Telegram with an empty id — that is exactly what makes
+        // Telegram answer CHARGE_ID_EMPTY. Refuse loudly instead.
+        const cid = String(rec.chargeId || "").trim();
+        const payUid = Number(rec.uid);
+        if (!cid || !Number.isFinite(payUid) || payUid <= 0) {
+            console.error("❌ [Stars] refund refused — corrupt record:", JSON.stringify({ cidLen: cid.length, uid: rec.uid }));
+            return sendText(uid,
+                `❌ The stored payment record looks corrupt (empty charge id / bad user id) — nothing was sent to Telegram.\n\n` +
+                `Open \`/starsbalance\` for the real transaction id and retry with that.`);
+        }
+        console.log(`💸 [Stars] refunding charge ${cid} (len ${cid.length}, uid ${payUid}, ${rec.stars} ⭐)…`);
+        try {
+            // Direct JSON POST (see tgApi) — same shape as the official docs.
+            await tgApi("refundStarPayment", { user_id: payUid, telegram_payment_charge_id: cid });
+        } catch (e) {
+            const desc = String((e && e.message) || "unknown");
+            console.error(`❌ [Stars] refund failed for ${cid}:`, desc);
+            const flat = desc.replace(/[_\s]+/g, "").toUpperCase();
+            // Self-heal: Telegram says it was already refunded but our ledger
+            // disagrees -> sync the ledger + revoke, instead of just erroring.
+            if (flat.includes("CHARGEALREADYREFUNDED")) {
+                const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
+                logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString(), syncedAlreadyRefunded: true });
+                const stillActive = remaining && Number(remaining) > Date.now();
+                return sendText(uid,
+                    `⚠️ Telegram reports charge \`${cid}\` was *already refunded* earlier.\n` +
+                    `Ledger synced` +
+                    (stillActive
+                        ? ` — uid ${rec.uid} keeps *${rec.tier}* until ${new Date(remaining).toLocaleDateString("en-GB")}.`
+                        : ` and *${rec.tier}* access revoked from uid ${rec.uid}.`));
+            }
+            if (flat.includes("CHARGEIDEMPTY")) {
+                return sendText(uid,
+                    `❌ Telegram rejected the refund: it received an *empty* charge id.\n` +
+                    `Charge on file: \`${cid}\`\n\n` +
+                    `The stored id looks fine here, so it likely got mangled on the way. Please:\n` +
+                    `1. Open \`/starsbalance\` and copy the exact transaction id,\n` +
+                    `2. Retry \`/refundstars <that id>\`.\n` +
+                    `If it still fails, refund via @BotFather → your bot → Payments, or send Telegram support the charge id.`);
+            }
+            if (flat.includes("CHARGENOTFOUND") || flat.includes("CHARGEIDINVALID") || flat.includes("INVALIDCHARGE")) {
+                return sendText(uid,
+                    `❌ Telegram doesn't know charge \`${cid}\` (buyer uid ${payUid}).\n` +
+                    `Possible causes: paid to a different bot/token, test payment, or a mistyped id.\n` +
+                    `Use \`/starsbalance\` to list the real transaction ids on this bot.`);
+            }
+            return sendText(uid, `❌ Refund failed: ${desc}`);
+        }
+        // Refunds remove ONLY the refunded pack, pro-rata: if the user paid
+        // for several stacked plans, the remaining time must survive.
+        const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
+        logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString() });
+        const stillActive = remaining && Number(remaining) > Date.now();
+        sendText(Number(rec.uid),
+            stillActive
+                ? `⭐ *Refund processed.* Charge ${cid} was refunded. Your *${rec.tier}* access stays active until ${new Date(remaining).toLocaleDateString("en-GB")}.`
+                : `⭐ *Refund processed.* Charge ${cid} was refunded and your ${rec.tier} access was revoked.`);
+        const via = resolvedByUid ? `\n(Resolved from buyer uid \`${arg}\` → charge \`${cid}\`.)` : "";
+        return sendText(uid, (stillActive
+            ? `✅ Refunded *${rec.stars} Stars* for charge \`${cid}\`. uid ${rec.uid} keeps *${rec.tier}* until ${new Date(remaining).toLocaleDateString("en-GB")} (other paid time untouched).`
+            : `✅ Refunded *${rec.stars} Stars* for charge \`${cid}\` and revoked ${rec.tier} from uid ${rec.uid}.`) + via);
+    });
+
+    // ── 5. Owner: real Telegram-side Stars balance + transactions ──
+    // Stars paid by buyers sit on the BOT's Telegram balance (held by
+    // Telegram, not in our DB — our DB only keeps the payment ledger).
+    bot.onText(/\/starsbalance(?:@\w+)?(?:\s|$)/, async (msg) => {
+        const uid = msg.from && msg.from.id;
+        if (!isOwner(uid)) return;
+        let balText = "n/a", txnLines = [], warn = "";
+        try {
+            const bal = await tgApi("getMyStarBalance", {});
+            const amt = bal && typeof bal.amount === "number" ? bal.amount : bal;
+            balText = `${amt} ⭐`;
+        } catch (e) {
+            warn += `\n⚠️ Balance lookup failed: ${e.message}`;
+        }
+        try {
+            const tx = await tgApi("getStarTransactions", { limit: 10 });
+            const list = (tx && tx.transactions) || [];
+            txnLines = list.map((t) => {
+                const id = t && t.id ? String(t.id) : "?";
+                const amt = t && typeof t.amount === "number" ? t.amount : "?";
+                const dt = t && t.date ? new Date(Number(t.date) * 1000).toLocaleDateString("en-GB") : "?";
+                return `\`${id}\` — ${amt} ⭐ — ${dt}`;
+            });
+        } catch (e) {
+            warn += `\n⚠️ Transactions lookup failed: ${e.message}`;
+        }
+        const ledger = listStarsPayments();
+        const live = ledger.filter(r => !r.refunded);
+        const liveSum = live.reduce((s, r) => s + (Number(r.stars) || 0), 0);
+        const out =
+            `╭━━━[ ⭐ *BOT STARS BALANCE* ]━━━╮\n` +
+            `┣ 💰 Held by Telegram: *${balText}*\n` +
+            `┣ 📒 Ledger: ${live.length} live payments (${liveSum} ⭐ unrefunded)\n` +
+            (txnLines.length
+                ? `┣━━━━━━━━━━━━━━━━━━━━━━\n┣ 🧾 *Recent Telegram transactions:*\n` + txnLines.map(l => `┣ ${l}`).join("\n") + `\n`
+                : `┣ (no Telegram-side transactions returned)\n`) +
+            `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `┣ Refund: \`/refundstars <charge_id>\`\n` +
+            `┣ …or \`/refundstars <buyer_user_id>\`` +
+            (warn ? `\n${warn}` : "") + `\n╰━━━━━━━━━━━━━━━━━━━━╯`;
+        return sendText(uid, out);
     });
 }
