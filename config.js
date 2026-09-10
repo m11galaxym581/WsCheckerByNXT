@@ -103,7 +103,7 @@ const defaultDynamicConfig = {
     // Toggle the whole shop here, or live from the admin console.
     STARS_ENABLED: true,
     STARS_PLANS: [
-        { id: "pro_7",  tier: "PRO", days: 7,  stars: 40 },
+        { id: "pro_7",  tier: "PRO", days: 7,  stars: 1 },
         { id: "pro_15", tier: "PRO", days: 15, stars: 75 },
         { id: "pro_30", tier: "PRO", days: 30, stars: 130 },
         { id: "vip_7",  tier: "VIP", days: 7,  stars: 70 },
