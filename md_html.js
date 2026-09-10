@@ -13,6 +13,8 @@
 //     _italic_    → <i>…</i>
 //     `code`      → <code>…</code>
 //     [text](url) → <a href="url">…</a>
+//     >> quote    → <blockquote>…</blockquote>  (line start)
+//     >>> quote   → <blockquote expandable>…</blockquote>
 //   Plain text (including anything inside the tags above) is
 //   HTML-escaped so stray & < > can never break Telegram parsing.
 // ============================================================
@@ -36,14 +38,26 @@ function hasMarkup(text) {
         /\*[^*\n]+\*/.test(text) || // bold
         /`[^`\n]+`/.test(text) ||   // code
         /_[^_\n]+_/.test(text) ||   // italic
-        /\[[^\]\n]+\]\([^)\n]+\)/.test(text) // link
+        /\[[^\]\n]+\]\([^)\n]+\)/.test(text) || // link
+        /^ *>>+ .+/m.test(text) // blockquote
     );
 }
 
-function markdownToHtml(text) {
+function markdownToHtml(text, allowQuote = true) {
     if (typeof text !== "string") return text;
 
     const original = text;
+    // Blockquotes first (line-based). Inner content is processed
+    // recursively so inline markup (`code`, *bold*) works inside.
+    const quoteHoles = [];
+    const QH = "\u0000MDQUOTE";
+    if (allowQuote) {
+        text = text.replace(/^ *>>+( +)(.*)$/gm, (_m, _sp, inner) => {
+            const expandable = _m.trimStart().startsWith(">>>");
+            quoteHoles.push({ expandable, inner });
+            return QH + (quoteHoles.length - 1) + "\u0000";
+        });
+    }
     // Protect code spans first (code may sit inside bold), and let
     // us HTML-escape their content exactly once.
     const codeHoles = [];
@@ -71,6 +85,17 @@ function markdownToHtml(text) {
 
     // Restore code spans.
     text = text.replace(new RegExp(CODE + "(\\d+)\\u0000", "g"), (_m, i) => `<code>${codeHoles[Number(i)]}</code>`);
+
+    // Restore blockquotes (recursive inline pass, quotes disabled inside).
+    if (quoteHoles.length) {
+        text = text.replace(new RegExp(QH + "(\\d+)\\u0000", "g"), (_m, i) => {
+            const q = quoteHoles[Number(i)];
+            const inner = markdownToHtml(q.inner, false);
+            return q.expandable
+                ? `<blockquote expandable>${inner}</blockquote>`
+                : `<blockquote>${inner}</blockquote>`;
+        });
+    }
 
     if (text === escapeHtml(original) && !/<b>|<i>|<code>|<a /.test(text)) {
         // Nothing structurally changed (only & < > were escaped) — safe either way.

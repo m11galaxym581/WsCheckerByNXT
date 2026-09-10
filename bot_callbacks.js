@@ -104,6 +104,7 @@ module.exports = (bot) => {
                 [{ text: "👑 Add Admin",         callback_data: "add_adm_req"    }, { text: "🗑️ Remove Admin", callback_data: "rem_adm_list"   }],
                 [{ text: "🚧 Toggle Maintenance",callback_data: "toggle_maint"   }, { text: "💾 Force Backup", callback_data: "force_backup"   }],
                 [{ text: "🌍 Free Mode", callback_data: "mode_free" }, { text: "💎 Subscription Mode", callback_data: "mode_subscription" }],
+                [{ text: "⌨ All Commands", callback_data: "cmds" }],
                 [{ text: "🔙 Back", callback_data: "back_main"      }]
             ]
         };

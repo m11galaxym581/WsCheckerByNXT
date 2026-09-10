@@ -116,6 +116,13 @@ module.exports = (bot) => {
         }
 
         // ============================================================
+        // ⌨ GUIDED COMMAND FLOWS (cmd_flow prompts)
+        // ============================================================
+        if (step && typeof step === "object" && step.step === "cmdflow") {
+            return require("./cmd_flow").handleStep(bot, msg, send);
+        }
+
+        // ============================================================
         // 📡 NODE PAIRING WORKFLOW
         // ============================================================
         if (step && typeof step === "object" && step.step === "wait_num") {

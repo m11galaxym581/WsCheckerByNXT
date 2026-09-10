@@ -117,6 +117,7 @@ async function main() {
     require("./bot_commands")(bot);
     require("./bot_callbacks")(bot);
     require("./bot_messages")(bot);
+    require("./cmd_flow").installCmdFlows(bot);
 
     // ── ⭐ TELEGRAM STARS PLAN SHOP (automated upgrades) ──────
     try { require("./stars").installStars(bot); }

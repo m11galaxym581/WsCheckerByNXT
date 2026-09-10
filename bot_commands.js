@@ -407,7 +407,7 @@ module.exports = (bot) => {
             parts.push("┣  /starsbalance — bot Stars balance + txns");
         }
         parts.push("╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯");
-        return bot.sendMessage(uid, parts.join("\n"), { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "🔙 Back", callback_data: "back_main" }]] } });
+        return bot.sendMessage(uid, parts.join("\n"), { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "⌨ All Commands", callback_data: "cmds" }, { text: "🔙 Back", callback_data: "back_main" }]] } });
     });
 
 

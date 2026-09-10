@@ -181,7 +181,87 @@ function parseMethodPlan(data, prefix) {
     return { method: m || null, planId: rest.slice(i + 1) };
 }
 
-module.exports = { installStars, enabled, plans, findPlan, ownerHandle, planTitle };
+module.exports = { installStars, enabled, plans, findPlan, visiblePlans, ownerHandle, planTitle, refundStarsCharge, getStarsOverview };
+
+// ── Shared refund core (bot /refundstars + web admin use this) ──
+// Resolves a charge id OR buyer uid, pre-checks Telegram's own txn list
+// (payer auto-correction), calls refundStarPayment, then revokes only the
+// refunded pack pro-rata and marks the ledger row refunded.
+// Returns { ok:'refunded'|'synced', ... } or { ok:false, code, ... }.
+async function refundStarsCharge(arg) {
+    arg = String(arg || "").trim().replace(/^`+|`+$/g, "").trim();
+    if (!arg) return { ok: false, code: "empty" };
+    let rec = getStarsPayment(arg);
+    let resolvedByUid = false;
+    if (!rec && /^\d+$/.test(arg)) {
+        const mine = listStarsPaymentsByUid(arg).filter(r => !r.refunded);
+        if (mine.length) { rec = mine[0]; resolvedByUid = true; }
+    }
+    if (!rec) return { ok: false, code: "no_record", arg };
+    if (rec.refunded) return { ok: false, code: "already", rec };
+    const cid = String(rec.chargeId || "").trim();
+    const ledgerUid = Number(rec.uid);
+    if (!cid || !Number.isFinite(ledgerUid) || ledgerUid <= 0) {
+        console.error("❌ [Stars] refund refused — corrupt record:", JSON.stringify({ cidLen: cid.length, uid: rec.uid }));
+        return { ok: false, code: "corrupt", rec };
+    }
+    // Smart payer resolution: Telegram's payer wins on disagreement.
+    let payUid = ledgerUid, payerFixed = false, diag = "";
+    try {
+        const found = await findTelegramTxn(cid);
+        if (found.txn) {
+            const amt = typeof found.txn.amount === "number" ? found.txn.amount : "?";
+            diag = `Telegram txn: ${amt} ⭐` +
+                (found.payerUid ? ` from 👤 ${found.payerUid}` : ` (${found.srcType || "no source"})`);
+            if (found.payerUid && found.payerUid !== payUid) {
+                console.warn(`⚠️ [Stars] ledger uid ${payUid} != Telegram payer ${found.payerUid} for ${cid} — using Telegram's.`);
+                diag += ` — payer corrected`;
+                payUid = found.payerUid;
+                payerFixed = true;
+            }
+        } else {
+            diag = `charge NOT in last ${found.searched} Telegram txns`;
+            console.warn(`⚠️ [Stars] ${cid} not in recent Telegram txns (searched ${found.searched}) — trying ledger uid ${payUid}.`);
+        }
+    } catch (e) {
+        diag = `txn pre-check failed (${e.message})`;
+        console.warn("⚠️ [Stars] txn pre-check failed, using ledger uid:", e.message);
+    }
+    console.log(`💸 [Stars] refunding ${shortCid(cid)} (uid ${payUid}, ${rec.stars} ⭐). ${diag}`);
+    try {
+        await tgApi("refundStarPayment", { user_id: payUid, telegram_payment_charge_id: cid });
+    } catch (e) {
+        const desc = String((e && e.message) || "unknown");
+        console.error(`❌ [Stars] refund failed for ${cid}:`, desc);
+        const flat = desc.replace(/[_\s]+/g, "").toUpperCase();
+        // Self-heal: Telegram says already refunded but ledger disagrees.
+        if (flat.includes("CHARGEALREADYREFUNDED")) {
+            const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
+            logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString(), syncedAlreadyRefunded: true });
+            const stillActive = !!(remaining && Number(remaining) > Date.now());
+            return { ok: "synced", rec, cid, payUid, payerFixed, resolvedByUid, diag, remaining, stillActive };
+        }
+        return { ok: false, code: "telegram", rec, cid, payUid, payerFixed, resolvedByUid, diag, error: desc, flat };
+    }
+    const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
+    logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString() });
+    const stillActive = !!(remaining && Number(remaining) > Date.now());
+    return { ok: "refunded", rec, cid, payUid, payerFixed, resolvedByUid, diag, remaining, stillActive };
+}
+
+// Bot balance + recent transactions (powers /starsbalance + web admin).
+async function getStarsOverview(limit = 10) {
+    const out = { balance: null, balanceError: "", transactions: [], txnError: "" };
+    try {
+        const bal = await tgApi("getMyStarBalance", {});
+        out.balance = bal && typeof bal.amount === "number" ? bal.amount : bal;
+    } catch (e) { out.balanceError = e.message; }
+    try {
+        const tx = await tgApi("getStarTransactions", { limit });
+        out.transactions = (tx && tx.transactions) || [];
+    } catch (e) { out.txnError = e.message; }
+    return out;
+}
 
 // ── Wire all bot event handlers ────────────────────────────
 function installStars(bot) {
@@ -477,7 +557,7 @@ function installStars(bot) {
                 `╭━━━[ ${plan.trial ? "🎁 *TRIAL SALE*" : "⭐ *STARS SALE*"} ]━━━╮\n` +
                 `┣ 👤 \`${grantUid}\` · 📦 ${plan.tier} ${plan.days}d\n` +
                 `┣ 💰 ${starWord(plan.stars)} · 🧾 \`${shortCid(cid)}\`\n` +
-                `┣ \`${cid}\`\n` +
+                `>>> \`${cid}\`\n` +
                 `╰━━━━━━━━━━━━━━━━━━━━╯`);
             console.log(`⭐ [Stars] Paid ${plan.stars} XTR — ${plan.tier} ${plan.days}d for uid ${grantUid} (charge ${cid})`);
         } catch (e) {
@@ -495,110 +575,55 @@ function installStars(bot) {
         // to copy, and some clients include the ticks in the paste.
         const arg = String((match && match[1]) || "").trim().replace(/^`+|`+$/g, "").trim();
         if (!arg) return sendText(uid, "Usage: `/refundstars <charge_id>`\nor `/refundstars <buyer_user_id>`");
-        let rec = getStarsPayment(arg);
-        let resolvedByUid = false;
-        // Numeric input that is not a charge id -> treat as buyer uid.
-        if (!rec && /^\d+$/.test(arg)) {
-            const mine = listStarsPaymentsByUid(arg).filter(r => !r.refunded);
-            if (mine.length) {
-                rec = mine[0];
-                resolvedByUid = true;
-            }
-        }
-        if (!rec) return sendText(uid,
-            `❌ No Stars payment record found for \`${arg}\`.\n\n` +
-            `Tip: use \`/starsbalance\` to list the real Telegram-side transactions and copy the exact charge id.`);
-        if (rec.refunded) return sendText(uid, `⚠️ \`${shortCid(rec.chargeId)}\` was already refunded.`);
-        // Never call Telegram with an empty id — that is exactly what makes
-        // Telegram answer CHARGE_ID_EMPTY. Refuse loudly instead.
-        const cid = String(rec.chargeId || "").trim();
-        const ledgerUid = Number(rec.uid);
-        if (!cid || !Number.isFinite(ledgerUid) || ledgerUid <= 0) {
-            console.error("❌ [Stars] refund refused — corrupt record:", JSON.stringify({ cidLen: cid.length, uid: rec.uid }));
-            return sendText(uid,
-                `❌ The stored payment record looks corrupt (empty charge id / bad user id) — nothing was sent to Telegram.\n\n` +
+        // Shared core (same logic the web admin refund uses).
+        const r = await refundStarsCharge(arg);
+        if (!r.ok) {
+            if (r.code === "no_record") return sendText(uid,
+                `\u274c No Stars payment record found for \`${r.arg}\`.\n\n` +
+                `Tip: use \`/starsbalance\` to list the real Telegram-side transactions and copy the exact charge id.`);
+            if (r.code === "already") return sendText(uid, `\u26a0\ufe0f \`${shortCid(r.rec.chargeId)}\` was already refunded.`);
+            if (r.code === "corrupt") return sendText(uid,
+                `\u274c The stored payment record looks corrupt (empty charge id / bad user id) \u2014 nothing was sent to Telegram.\n\n` +
                 `Open \`/starsbalance\` for the real transaction id and retry with that.`);
-        }
-        // ── Smart payer resolution ──
-        // Ask Telegram who actually paid this charge. If our ledger uid ever
-        // disagrees (forwarded invoice, manual grant, stale record), the
-        // Telegram-side payer wins — a wrong user_id is a classic cause of
-        // cryptic refund rejections.
-        let payUid = ledgerUid, payerFixed = false, diag = "";
-        try {
-            const found = await findTelegramTxn(cid);
-            if (found.txn) {
-                const amt = typeof found.txn.amount === "number" ? found.txn.amount : "?";
-                diag = `Telegram txn: ${amt} ⭐` +
-                    (found.payerUid ? ` from 👤 ${found.payerUid}` : ` (${found.srcType || "no source"})`);
-                if (found.payerUid && found.payerUid !== payUid) {
-                    console.warn(`⚠️ [Stars] ledger uid ${payUid} != Telegram payer ${found.payerUid} for ${cid} — using Telegram's.`);
-                    diag += ` — payer corrected`;
-                    payUid = found.payerUid;
-                    payerFixed = true;
-                }
-            } else {
-                diag = `charge NOT in last ${found.searched} Telegram txns`;
-                console.warn(`⚠️ [Stars] ${cid} not in recent Telegram txns (searched ${found.searched}) — trying ledger uid ${payUid}.`);
-            }
-        } catch (e) {
-            diag = `txn pre-check failed (${e.message})`;
-            console.warn("⚠️ [Stars] txn pre-check failed, using ledger uid:", e.message);
-        }
-        console.log(`💸 [Stars] refunding ${shortCid(cid)} (uid ${payUid}, ${rec.stars} ⭐). ${diag}`);
-        try {
-            // Direct JSON POST (see tgApi) — same shape as the official docs.
-            await tgApi("refundStarPayment", { user_id: payUid, telegram_payment_charge_id: cid });
-        } catch (e) {
-            const desc = String((e && e.message) || "unknown");
-            console.error(`❌ [Stars] refund failed for ${cid}:`, desc);
-            const flat = desc.replace(/[_\s]+/g, "").toUpperCase();
-            // Self-heal: Telegram says it was already refunded but our ledger
-            // disagrees -> sync the ledger + revoke, instead of just erroring.
-            if (flat.includes("CHARGEALREADYREFUNDED")) {
-                const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
-                logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString(), syncedAlreadyRefunded: true });
-                const stillActive = remaining && Number(remaining) > Date.now();
-                return sendText(uid,
-                    `⚠️ Telegram already refunded \`${shortCid(cid)}\` earlier — ledger synced` +
-                    (stillActive
-                        ? `, uid ${rec.uid} keeps *${rec.tier}* till *${new Date(remaining).toLocaleDateString("en-GB")}*.`
-                        : `, *${rec.tier}* revoked from uid ${rec.uid}.`));
-            }
+            const { rec, cid, payUid, diag, error: desc, flat } = r;
             if (flat.includes("CHARGEIDEMPTY")) {
                 return sendText(uid,
-                    `╭━━━[ ❌ *REFUND FAILED* ]━━━╮\n` +
-                    `┣ Telegram got an *empty* charge id.\n` +
-                    `┣ On file: \`${shortCid(cid)}\`\n` +
-                    (diag ? `┣ 🔍 ${diag}\n` : "") +
-                    `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
-                    `┣ 🧾 Full id (tap to copy):\n` +
-                    `┣ \`${cid}\`\n` +
-                    `┣━━━━━━━━━━━━━━━━━━━━━━\n` +
-                    `┣ Copy the id from \`/starsbalance\`,\n` +
-                    `┣ then \`/refundstars <paste>\`.\n` +
-                    `┣ Still fails? The ⭐ stay in the bot\n` +
-                    `┣ balance — withdraw later via Fragment.\n` +
-                    `╰━━━━━━━━━━━━━━━━━━━━╯`);
+                    `\u256d\u2501\u2501\u2501[ \u274c *REFUND FAILED* ]\u2501\u2501\u2501\u256e\n` +
+                    `\u2523 Telegram got an *empty* charge id.\n` +
+                    `\u2523 On file: \`${shortCid(cid)}\`\n` +
+                    (diag ? `\u2523 \u{1F50D} ${diag}\n` : "") +
+                    `\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+                    `\u2523 \u{1F9FE} Full id (tap to copy):\n` +
+                    `>>> \`${cid}\`\n` +
+                    `\u2523\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n` +
+                    `\u2523 Copy the id from \`/starsbalance\`,\n` +
+                    `\u2523 then \`/refundstars <paste>\`.\n` +
+                    `\u2523 Still fails? The \u2b50 stay in the bot\n` +
+                    `\u2523 balance \u2014 withdraw later via Fragment.\n` +
+                    `\u2570\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u256f`);
             }
             if (flat.includes("CHARGENOTFOUND") || flat.includes("CHARGEIDINVALID") || flat.includes("INVALIDCHARGE")) {
                 return sendText(uid,
-                    `╭━━━[ ❌ *REFUND FAILED* ]━━━╮\n` +
-                    `┣ Telegram doesn't know this charge.\n` +
-                    `┣ \`${shortCid(cid)}\` · 👤 ${payUid}\n` +
-                    (diag ? `┣ 🔍 ${diag}\n` : "") +
-                    `┣ Check \`/starsbalance\` for the real id.\n` +
-                    `╰━━━━━━━━━━━━━━━━━━━━╯`);
+                    `\u256d\u2501\u2501\u2501[ \u274c *REFUND FAILED* ]\u2501\u2501\u2501\u256e\n` +
+                    `\u2523 Telegram doesn't know this charge.\n` +
+                    `\u2523 \`${shortCid(cid)}\` \u00b7 \u{1F464} ${payUid}\n` +
+                    (diag ? `\u2523 \u{1F50D} ${diag}\n` : "") +
+                    `\u2523 Check \`/starsbalance\` for the real id.\n` +
+                    `\u2570\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u256f`);
             }
             return sendText(uid,
-                `❌ Refund of \`${shortCid(cid)}\` failed: ${desc}` +
-                (diag ? `\n🔍 ${diag}` : ""));
+                `\u274c Refund of \`${shortCid(cid)}\` failed: ${desc}` +
+                (diag ? `\n\u{1F50D} ${diag}` : ""));
         }
-        // Refunds remove ONLY the refunded pack, pro-rata: if the user paid
-        // for several stacked plans, the remaining time must survive.
-        const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
-        logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString() });
-        const stillActive = remaining && Number(remaining) > Date.now();
+        if (r.ok === "synced") {
+            const { rec, cid, stillActive } = r;
+            return sendText(uid,
+                `\u26a0\ufe0f Telegram already refunded \`${shortCid(cid)}\` earlier \u2014 ledger synced` +
+                (stillActive
+                    ? `, uid ${rec.uid} keeps *${rec.tier}* till *${new Date(r.remaining).toLocaleDateString("en-GB")}*.`
+                    : `, *${rec.tier}* revoked from uid ${rec.uid}.`));
+        }
+        const { rec, cid, payUid, payerFixed, resolvedByUid, remaining, stillActive } = r;
         sendText(Number(rec.uid),
             stillActive
                 ? `⭐ *Refund processed — ${starWord(rec.stars)} back in your Stars balance.*\n\nYour *${rec.tier}* stays active till *${new Date(remaining).toLocaleDateString("en-GB")}*.`
@@ -612,7 +637,7 @@ function installStars(bot) {
         ];
         if (resolvedByUid) out.push(`┣ 🔍 Found via buyer uid \`${arg}\``);
         if (payerFixed) out.push(`┣ 🔍 Payer corrected per Telegram`);
-        out.push(`┣ 🧾 \`${shortCid(cid)}\``, `┣ \`${cid}\``, `╰━━━━━━━━━━━━━━━━━━━━╯`);
+        out.push(`┣ 🧾 \`${shortCid(cid)}\``, `>>> \`${cid}\``, `╰━━━━━━━━━━━━━━━━━━━━╯`);
         return sendText(uid, out.join("\n"));
     });
 
@@ -624,20 +649,12 @@ function installStars(bot) {
     bot.onText(/\/starsbalance(?:@\w+)?(?:\s|$)/, async (msg) => {
         const uid = msg.from && msg.from.id;
         if (!isOwner(uid)) return;
-        let balText = "n/a", txns = [], warn = "";
-        try {
-            const bal = await tgApi("getMyStarBalance", {});
-            const amt = bal && typeof bal.amount === "number" ? bal.amount : bal;
-            balText = starWord(amt);
-        } catch (e) {
-            warn += `┣ ⚠️ Balance failed: ${e.message}\n`;
-        }
-        try {
-            const tx = await tgApi("getStarTransactions", { limit: 5 });
-            txns = (tx && tx.transactions) || [];
-        } catch (e) {
-            warn += `┣ ⚠️ Transactions failed: ${e.message}\n`;
-        }
+        const ov = await getStarsOverview(5);
+        const balText = ov.balance === null || ov.balance === undefined ? "n/a" : starWord(ov.balance);
+        const txns = ov.transactions;
+        let warn = "";
+        if (ov.balanceError) warn += `┣ ⚠️ Balance failed: ${ov.balanceError}\n`;
+        if (ov.txnError) warn += `┣ ⚠️ Transactions failed: ${ov.txnError}\n`;
         const ledger = listStarsPayments();
         const live = ledger.filter(r => !r.refunded);
         const liveSum = live.reduce((s, r) => s + (Number(r.stars) || 0), 0);
@@ -657,7 +674,7 @@ function installStars(bot) {
                 const rec = id !== "?" ? getStarsPayment(id) : null;
                 const tag = rec ? ` · ${rec.tier} ${rec.days}d` : ` · ⚠️ unlogged`;
                 out.push(`┣ ${amt < 0 ? "-" : "+"}${starWord(Math.abs(amt))} · ${dt}${who}${tag}`);
-                out.push(`┣ \`${id}\``);
+                out.push(`>>> \`${id}\``);
             }
         } else {
             out.push(`┣ (no Telegram transactions)`);
