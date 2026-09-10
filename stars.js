@@ -25,7 +25,7 @@
 const config = require("./config");
 const {
     getDB, registerUser, extendPlanStack,
-    logStarsPayment, getStarsPayment, removeSubscriber, removeVIP,
+    logStarsPayment, getStarsPayment, revokePlanDays,
     isOwner, isAdmin, markTrialUsed, hasUsedTrial
 } = require("./database");
 
@@ -133,9 +133,14 @@ module.exports = { installStars, enabled, plans, findPlan, ownerHandle, planTitl
 function installStars(bot) {
     if (!bot) return;
 
-    const safeEdit = (chatId, messageId, text, markup) =>
-        bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: "Markdown", reply_markup: markup })
+    const safeEdit = (chatId, messageId, text, markup) => {
+        // Inline-mode callbacks have no message to edit — send a fresh one.
+        if (!messageId) {
+            return bot.sendMessage(chatId, text, { parse_mode: "Markdown", reply_markup: markup }).catch(() => {});
+        }
+        return bot.editMessageText(text, { chat_id: chatId, message_id: messageId, parse_mode: "Markdown", reply_markup: markup })
             .catch((e) => { if (!String(e.message || e.description || "").includes("is not modified")) console.error("❌ [Stars] edit:", e.message); });
+    };
 
     const sendText = (chatId, text, markup) =>
         bot.sendMessage(chatId, text, { parse_mode: "Markdown", reply_markup: markup }).catch(() => {});
@@ -429,12 +434,20 @@ function installStars(bot) {
         if (rec.refunded) return sendText(uid, `⚠️ This payment (${cid}) was already refunded.`);
         try {
             await bot.refundStarPayment(Number(rec.uid), cid);
-            if (String(rec.tier).toUpperCase() === "VIP") removeVIP(rec.uid);
-            else removeSubscriber(rec.uid);
+            // Refunds remove ONLY the refunded pack, pro-rata: if the user paid
+            // for several stacked plans, the remaining time must survive.
+            // (Previously this called removeSubscriber/removeVIP, which nulled
+            // the expiry and wiped every other paid renewal too.)
+            const remaining = revokePlanDays(rec.uid, rec.tier, rec.days);
             logStarsPayment({ ...rec, refunded: true, refundedAt: new Date().toISOString() });
+            const stillActive = remaining && Number(remaining) > Date.now();
             sendText(Number(rec.uid),
-                `⭐ *Refund processed.* Charge ${cid} was refunded and your ${rec.tier} access was revoked.`);
-            return sendText(uid, `✅ Refunded *${rec.stars} Stars* for charge ${cid} and revoked ${rec.tier} from uid ${rec.uid}.`);
+                stillActive
+                    ? `⭐ *Refund processed.* Charge ${cid} was refunded. Your *${rec.tier}* access stays active until ${new Date(remaining).toLocaleDateString("en-GB")}.`
+                    : `⭐ *Refund processed.* Charge ${cid} was refunded and your ${rec.tier} access was revoked.`);
+            return sendText(uid, stillActive
+                ? `✅ Refunded *${rec.stars} Stars* for charge ${cid}. uid ${rec.uid} keeps *${rec.tier}* until ${new Date(remaining).toLocaleDateString("en-GB")} (other paid time untouched).`
+                : `✅ Refunded *${rec.stars} Stars* for charge ${cid} and revoked ${rec.tier} from uid ${rec.uid}.`);
         } catch (e) {
             return sendText(uid, `❌ Refund failed: ${e.message || e.description || "unknown"}`);
         }

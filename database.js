@@ -390,11 +390,40 @@ const isOwner = (uid) => Number(uid) === config.OWNER_ID;
 function addAdmin(uid) { const db = getDB(); uid = Number(uid); if (!db.admins.includes(uid)) { db.admins.push(uid); saveDB(db); } }
 function removeAdmin(uid) { const db = getDB(); uid = Number(uid); if (uid !== config.OWNER_ID) { db.admins = db.admins.filter(i => i !== uid); saveDB(db); } }
 
+// NOTE: grants STACK on any remaining time (matching extendPlanStack and the
+// shop's "renewals stack" promise). These used to do an absolute
+// `Date.now() + days`, so redeeming a voucher or running /addpro on a user who
+// still had time left could silently SHORTEN their paid plan.
 function addSubscriber(uid, days = 30) {
     const db = getDB(); uid = Number(uid); if (!db.users[uid]) return false;
-    db.users[uid].proExpiry = Date.now() + (days * 86400000);
+    const now = Date.now();
+    const cur = Number(db.users[uid].proExpiry) || 0;
+    const base = cur > now ? cur : now;
+    db.users[uid].proExpiry = base + Number(days) * 86400000;
     if (!db.subscribers.includes(uid)) db.subscribers.push(uid);
     saveDB(db); return true;
+}
+
+// Subtract time from a plan (used by refunds). Only drops the tier once the
+// remaining time actually runs out — refunding ONE of several stacked
+// purchases must not erase the rest of the user's paid access.
+function revokePlanDays(uid, tier, days) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) return null;
+    const now = Date.now();
+    const isVip = String(tier).toUpperCase() === "VIP";
+    const field = isVip ? "vipExpiry" : "proExpiry";
+    const cur = Number(db.users[uid][field]) || 0;
+    const next = cur - Number(days) * 86400000;
+    if (next > now) {
+        db.users[uid][field] = next;
+    } else {
+        db.users[uid][field] = null;
+        if (isVip) db.vips = db.vips.filter(i => i !== uid);
+        else db.subscribers = db.subscribers.filter(i => i !== uid);
+    }
+    saveDB(db);
+    return db.users[uid][field];
 }
 function removeSubscriber(uid) {
     const db = getDB(); uid = Number(uid);
@@ -402,10 +431,13 @@ function removeSubscriber(uid) {
     if(db.users[uid]) db.users[uid].proExpiry = null; saveDB(db);
 }
 
-// NEW: VIP Management
+// NEW: VIP Management  (stacks on remaining time — see addSubscriber note)
 function addVIP(uid, days = 30) {
     const db = getDB(); uid = Number(uid); if (!db.users[uid]) return false;
-    db.users[uid].vipExpiry = Date.now() + (days * 86400000);
+    const now = Date.now();
+    const cur = Number(db.users[uid].vipExpiry) || 0;
+    const base = cur > now ? cur : now;
+    db.users[uid].vipExpiry = base + Number(days) * 86400000;
     if (!db.vips.includes(uid)) db.vips.push(uid);
     saveDB(db); return true;
 }
@@ -583,7 +615,7 @@ module.exports = {
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
-    ensureUserRow, extendPlanStack, openSupport, isSupportOpen, closeSupport,
+    ensureUserRow, extendPlanStack, revokePlanDays, openSupport, isSupportOpen, closeSupport,
     markTrialUsed, hasUsedTrial,
     logStarsPayment, getStarsPayment, listStarsPayments, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase

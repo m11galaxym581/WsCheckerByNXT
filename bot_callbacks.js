@@ -116,9 +116,12 @@ module.exports = (bot) => {
     // 🕹️ CALLBACK QUERY HANDLER
     // ============================================================
     bot.on("callback_query", async (q) => {
+        if (!q || !q.from) return;
         const uid  = q.from.id;
         const data = q.data;
-        const msgId = q.message.message_id;
+        if (typeof data !== "string") return;
+        // Inline-mode callbacks arrive without a message object — guard it.
+        const msgId = q.message && q.message.message_id;
 
         // Answer callback to remove Telegram loading spinner
         try { await bot.answerCallbackQuery(q.id); } catch (_) {}
@@ -133,6 +136,10 @@ module.exports = (bot) => {
 
         // ── Helper: Edit Message (Auto-Delete Old Content) ──
         const safeEdit = (text, markup) => {
+            // Inline-mode callbacks have no message to edit — send a fresh one.
+            if (!msgId) {
+                return bot.sendMessage(uid, text, { parse_mode: "Markdown", reply_markup: markup }).catch(() => {});
+            }
             return bot.editMessageText(text, {
                 chat_id: uid,
                 message_id: msgId,
@@ -448,14 +455,27 @@ module.exports = (bot) => {
             const users = getDB().users; const ids = Object.keys(users);
             if (!ids.length) return safeEdit("👥 *No users.*", backBtn("open_admin_panel"));
             safeEdit(`⏳ *Generating Database CSV via Bot...*`, backBtn("open_admin_panel"));
-            
-            // Generate native CSV for Telegram
+
+            // Generate native CSV for Telegram.
+            // Fields are quoted AND escaped (a name containing a quote or a
+            // newline used to corrupt every following row), and the file is
+            // written to the data dir (__dirname can be read-only in prod).
+            const csvCell = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""').replace(/[\r\n]+/g, " ")}"`;
             let csv = "ID,Name,Username,Banned\n";
-            ids.forEach(id => { csv += `${id},"${users[id].name}","${users[id].username}","${users[id].banned}"\n`; });
-            const filePath = path.join(__dirname, `DB_Dump_${Date.now()}.csv`);
-            fs.writeFileSync(filePath, csv);
-            await bot.sendDocument(uid, filePath, { caption: "👥 Database Export" }).catch(()=>{});
-            fs.unlinkSync(filePath);
+            ids.forEach(id => {
+                const u = users[id] || {};
+                csv += [csvCell(id), csvCell(u.name), csvCell(u.username), csvCell(u.banned)].join(",") + "\n";
+            });
+            const filePath = path.join(config.DATA_ROOT, `DB_Dump_${Date.now()}.csv`);
+            try {
+                fs.writeFileSync(filePath, csv);
+                await bot.sendDocument(uid, filePath, { caption: `👥 Database Export (${ids.length} users)` }).catch(() => {});
+            } catch (e) {
+                console.error("❌ [DB Dump] export failed:", e.message);
+                return safeEdit("❌ Could not generate the CSV export.", backBtn("open_admin_panel"));
+            } finally {
+                try { fs.unlinkSync(filePath); } catch (_) {}
+            }
             return;
         }
 

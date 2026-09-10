@@ -888,3 +888,33 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   ~50 ms later and overwrote the freshly-granted PRO/VIP expiry. `saveDB()`
   now cancels any pending debounced write so the newest state always wins
   (previously a user could pay for Stars and still not receive the plan).
+
+### v6.0.1 bug-fix pass (bot internals)
+
+- **`/runlist` and `/retryfailed` were broken** — numbers were joined with a
+  *literal* `\n` (backslash-n) instead of a real newline, so `parseNumbers()`
+  saw one giant token and the job never started. Same escaping bug made
+  `/queue` and `/mylists` print a literal `\n`.
+- **`/appcheck` also fired the `/app` handler** (substring regex match), sending
+  the generic Mini-App text *plus* the diagnostics. The `/app` pattern is now
+  anchored (still supports `/app@BotName`).
+- **Callbacks without a message crashed the bot** — inline-mode callbacks have
+  no `q.message`; `q.message.message_id` threw a `TypeError`. Now guarded, and
+  the edit helpers fall back to sending a new message when there is nothing to
+  edit.
+- **Commands crashed on messages without `from`** — channel posts and
+  anonymous-admin group messages carry no `from`, so every `/command` handler
+  threw on `msg.from.id`. All command handlers now go through a guarded
+  registration wrapper.
+- **Plan time could be *lost*** — `addSubscriber()` / `addVIP()` wrote an
+  absolute `now + days` expiry, so redeeming a voucher or running `/addpro` on
+  a user who still had time could **shorten** their paid plan. Grants now stack
+  on any remaining time.
+- **Refunds wiped all stacked time** — refunding one of several stacked
+  purchases called `removeSubscriber/removeVIP`, which nulled the whole expiry.
+  Refunds are now pro-rata (`revokePlanDays`), and the confirmation messages
+  say whether access remains.
+- **DB CSV export** — fields are now properly quoted/escaped (a name with a
+  quote or newline corrupted every following row), the file is written to the
+  data dir instead of `__dirname`, and write/send/unlink failures no longer
+  crash the handler.
