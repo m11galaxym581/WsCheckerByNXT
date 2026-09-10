@@ -26,10 +26,33 @@ const config = require("./config");
 const {
     getDB, registerUser, extendPlanStack,
     logStarsPayment, getStarsPayment, removeSubscriber, removeVIP,
-    isOwner, isAdmin
+    isOwner, isAdmin, markTrialUsed, hasUsedTrial
 } = require("./database");
 
 const EMO = { PRO: "💎", VIP: "🔥" };
+
+// ── 🎁 One-time free trial ──────────────────────────────────
+// Built-in plan (never read from the dynamic file) so it is always
+// available, and consumed only once per user.
+const TRIAL_ID = "trial_1";
+
+function trialEnabled() {
+    const d = config.dynamic || {};
+    return !!(d.STARS_ENABLED && d.STARS_TRIAL_ENABLED !== false);
+}
+
+function trialPlan() {
+    if (!trialEnabled()) return null;
+    const t = (config.dynamic && config.dynamic.STARS_TRIAL) || {};
+    const days = Number(t.days) || 1;
+    const stars = Number(t.stars) || 1;
+    const tier = String(t.tier || "PRO").toUpperCase();
+    return { id: TRIAL_ID, tier, days, stars, trial: true };
+}
+
+function isTrialPlan(id) {
+    return String(id) === TRIAL_ID;
+}
 
 // Alternative (non-Star) networks offered via owner-DM routing.
 const ALT_METHODS = [
@@ -51,7 +74,20 @@ function plans() {
 }
 
 function findPlan(id) {
-    return plans().find((p) => p.id === String(id)) || null;
+    const paid = plans().find((p) => p.id === String(id));
+    if (paid) return paid;
+    const t = trialPlan();
+    return t && t.id === String(id) ? t : null;
+}
+
+// Which plans a given user may currently see. The one-time trial is hidden
+// as soon as the user has consumed it.
+function visiblePlans(uid) {
+    const list = plans();
+    const t = trialPlan();
+    if (!t) return list;
+    if (uid != null && hasUsedTrial(uid)) return list;
+    return [t, ...list];
 }
 
 function enabled() {
@@ -59,6 +95,9 @@ function enabled() {
 }
 
 function planTitle(p) {
+    if (p && p.trial) {
+        return `🎁 FREE TRIAL • ${p.days} Day${p.days > 1 ? "s" : ""} for ${p.stars} ⭐`;
+    }
     return `${EMO[p.tier] || "⭐"} ${p.tier} • ${p.days} Day${p.days > 1 ? "s" : ""}`;
 }
 
@@ -103,21 +142,31 @@ function installStars(bot) {
 
     const backPlanGrid = () => ({ inline_keyboard: [[{ text: "🔙 Back to Plans", callback_data: "stars_shop" }]] });
     const backMethods = (planId) => ({ inline_keyboard: [[{ text: "🔙 Back to Methods", callback_data: `up_${planId}` }]] });
-    const planGridMarkup = () => {
-        const rows = plans().map((p) => [
-            { text: `${planTitle(p)} — ${p.stars} ⭐ · choose payment`, callback_data: `up_${p.id}` }
-        ]);
+    const planGridMarkup = (uid) => {
+        const list = visiblePlans(uid);
+        const rows = [];
+        // The one-time trial gets its own, clearly-labelled row on top.
+        const trial = list.find((p) => p.trial);
+        if (trial) {
+            rows.push([{ text: `🎁 ONE-TIME FREE TRIAL — ${trial.days} Day for ${trial.stars} ⭐`, callback_data: `up_${trial.id}` }]);
+        }
+        list.filter((p) => !p.trial).forEach((p) => {
+            rows.push([{ text: `${planTitle(p)} — ${p.stars} ⭐ · choose payment`, callback_data: `up_${p.id}` }]);
+        });
         rows.push([{ text: "🔙 Back", callback_data: "back_main" }]);
         return { inline_keyboard: rows };
     };
     const methodChooserMarkup = (plan) => {
         const rows = [
             [{ text: `⭐ Pay ${plan.stars} Stars (instant)`, callback_data: `stars_buy_${plan.id}` }],
-            [{ text: "💠 Binance Pay", callback_data: `altpay_BINANCE_${plan.id}` }],
-            [{ text: "🪙 USDT (TRC20)", callback_data: `altpay_USDT_${plan.id}` }],
-            [{ text: "⛓️ Other Crypto (BTC/ETH)", callback_data: `altpay_CRYPTO_${plan.id}` }],
-            [{ text: "🔙 Back to Plans", callback_data: "stars_shop" }],
         ];
+        // The one-time trial is Stars-only (no owner-approval bypass).
+        if (!plan.trial) {
+            rows.push([{ text: "💠 Binance Pay", callback_data: `altpay_BINANCE_${plan.id}` }]);
+            rows.push([{ text: "🪙 USDT (TRC20)", callback_data: `altpay_USDT_${plan.id}` }]);
+            rows.push([{ text: "⛓️ Other Crypto (BTC/ETH)", callback_data: `altpay_CRYPTO_${plan.id}` }]);
+        }
+        rows.push([{ text: "🔙 Back to Plans", callback_data: "stars_shop" }]);
         return { inline_keyboard: rows };
     };
 
@@ -138,6 +187,13 @@ function installStars(bot) {
             "┣      you arrange with the *owner* and\n" +
             "┣      tap a button to get activated.\n" +
             "┣ ⏳ Renewals *stack* on remaining time.\n" +
+            (() => {
+                const t = trialPlan();
+                if (!t || hasUsedTrial(uid)) return "";
+                return "┣━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+                    `┣ 🎁 *ONE-TIME FREE TRIAL* — ${t.days} day of ${t.tier} for *${t.stars} ⭐*\n` +
+                    "┣    Usable *once only* — it is removed after.\n";
+            })() +
             "╰━━━━━━━━━━━━━━━━━━━━━━━━━━━╯";
     }
 
@@ -152,14 +208,18 @@ function installStars(bot) {
 
         // ── Plan grid (entry point from the 💎 Upgrade button) ──
         if (data === "stars_shop") {
-            if (msgId) return safeEdit(uid, msgId, shopText(uid), planGridMarkup());
-            return sendText(uid, shopText(uid), planGridMarkup());
+            if (msgId) return safeEdit(uid, msgId, shopText(uid), planGridMarkup(uid));
+            return sendText(uid, shopText(uid), planGridMarkup(uid));
         }
 
         // ── Method chooser for a specific plan ──
         if (data.startsWith("up_")) {
             const plan = findPlan(data.slice("up_".length));
             if (!plan) { if (msgId) return safeEdit(uid, msgId, "❌ Plan not found.", backPlanGrid()); return; }
+            if (plan.trial && hasUsedTrial(uid)) {
+                if (msgId) return safeEdit(uid, msgId, "⛔ *Free trial already used.*\n\nIt can only be claimed once. Please pick a regular plan below.", planGridMarkup(uid));
+                return;
+            }
             registerUser({ id: uid, first_name: (q.from.first_name || "User"), username: q.from.username });
             return safeEdit(uid, msgId,
                 `╭━━━[ ${planTitle(plan)} — ${plan.stars} ⭐ ]━━━╮\n┣ How would you like to pay?\n┣━━━━━━━━━━━━━━━━━━━━━\n┣ ⭐ Stars = instant auto-activation.\n┣ 💠/🪙/⛓️ = contact owner, pay, then tap\n┣     "✅ I've paid" to get activated.\n╰━━━━━━━━━━━━━━━━━━━━━╯`,
@@ -170,6 +230,10 @@ function installStars(bot) {
         if (data.startsWith("stars_buy_")) {
             const plan = findPlan(data.slice("stars_buy_".length));
             if (!plan) { if (msgId) return safeEdit(uid, msgId, "❌ Plan not found.", backPlanGrid()); return; }
+            if (plan.trial && hasUsedTrial(uid)) {
+                if (msgId) return safeEdit(uid, msgId, "⛔ *Free trial already used.*\n\nIt can only be claimed once.", planGridMarkup(uid));
+                return;
+            }
             registerUser({ id: uid, first_name: (q.from.first_name || "User"), username: q.from.username });
             const payload = `${plan.id}:${uid}:${Date.now()}`; // <128 bytes
             try {
@@ -196,6 +260,7 @@ function installStars(bot) {
             const plan = findPlan(planId);
             if (!plan) { if (msgId) return safeEdit(uid, msgId, "❌ Plan not found.", backPlanGrid()); return; }
             if (!method) { if (msgId) return safeEdit(uid, msgId, "❌ Invalid payment method.", backMethods(planId)); return; }
+            if (plan.trial) { if (msgId) return safeEdit(uid, msgId, "⭐ The free trial is payable with Stars only.", methodChooserMarkup(plan)); return; }
             const uname = ownerHandle();
             const prefill = encodeURIComponent(
                 `Hi! I'd like to upgrade to ${plan.tier} (${plan.days} days), paying ${method.note}. My Telegram ID: ${uid}. Please share payment details.`
@@ -223,6 +288,7 @@ function installStars(bot) {
             const { method, planId } = parseMethodPlan(data, "np_");
             const plan = findPlan(planId);
             if (!plan || !method) { if (msgId) return safeEdit(uid, msgId, "❌ Invalid request.", backPlanGrid()); return; }
+            if (plan.trial) { if (msgId) return safeEdit(uid, msgId, "⭐ The free trial is payable with Stars only.", methodChooserMarkup(plan)); return; }
             const name = q.from.first_name || "User";
             const kb = [[{ text: `✅ Approve ${plan.tier} ${plan.days}d`, callback_data: `ap_${plan.tier}${plan.days}_${uid}` }]];
             const msg =
@@ -275,7 +341,16 @@ function installStars(bot) {
         try {
             const payload = String(query.invoice_payload || "");
             const plan = findPlan(payload.split(":")[0]);
-            const ok = !!plan && Number(query.total_amount) === plan.stars;
+            let ok = !!plan && Number(query.total_amount) === plan.stars;
+            // One-time trial: refuse payment if this user already used it.
+            if (ok && plan.trial) {
+                const buyer = Number(query.from && query.from.id);
+                if (hasUsedTrial(buyer)) {
+                    ok = false;
+                    console.warn("⚠️ [Stars] trial replay blocked for uid", buyer);
+                    try { await bot.answerPreCheckoutQuery(query.id, false, "This one-time free trial has already been used."); return; } catch (_) {}
+                }
+            }
             if (!ok) console.warn("⚠️ [Stars] pre-checkout rejected:", payload, "amount", query.total_amount);
             await bot.answerPreCheckoutQuery(query.id, ok);
         } catch (e) {
@@ -301,8 +376,23 @@ function installStars(bot) {
             if (getStarsPayment(cid)) return; // already delivered (duplicate update)
 
             const grantUid = (puidRaw && Number.isFinite(Number(puidRaw)) && Number(puidRaw) > 0) ? Number(puidRaw) : chatUid;
+
+            // One-time trial: if it was already consumed, do not grant again.
+            if (plan.trial && hasUsedTrial(grantUid)) {
+                console.warn("⚠️ [Stars] trial already used — not granting again for uid", grantUid);
+                logStarsPayment({
+                    chargeId: cid, uid: grantUid, tier: plan.tier, days: plan.days,
+                    stars: plan.stars, currency: pay.currency || "XTR",
+                    planId: plan.id, refunded: false, duplicateTrial: true,
+                    at: new Date().toISOString(),
+                });
+                return;
+            }
+
             registerUser({ id: grantUid, first_name: from.first_name || "User", username: from.username });
             const expiry = extendPlanStack(grantUid, plan.tier, plan.days);
+            // Consume the trial permanently -> option disappears from the shop.
+            if (plan.trial) markTrialUsed(grantUid);
 
             logStarsPayment({
                 chargeId: cid, uid: grantUid, tier: plan.tier, days: plan.days,
@@ -312,8 +402,9 @@ function installStars(bot) {
             });
 
             const confirm =
-                `╭━━━[ ⭐ *PAYMENT RECEIVED* ]━━━╮\n` +
+                `╭━━━[ ${plan.trial ? "🎁 *FREE TRIAL ACTIVATED*" : "⭐ *PAYMENT RECEIVED*"} ]━━━╮\n` +
                 `┣ ${EMO[plan.tier] || ""} *${plan.tier}* ${plan.days} day${plan.days > 1 ? "s" : ""} activated!\n` +
+                (plan.trial ? `┣ ⏳ Enjoy your trial — the *1 ⭐* offer is now used up.\n` : "") +
                 `┣ ⭐ Paid: *${plan.stars} Stars*\n` +
                 `┣ 🗓️ New expiry: *${new Date(expiry).toLocaleDateString("en-GB")}*\n` +
                 `┣ 🧾 Charge: ${cid}\n` +

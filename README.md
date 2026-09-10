@@ -876,3 +876,15 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   redeploy (no more falling back to the generic handler after opening support).
   End Chat / /cancel / /start / Back button / starting a check all close it.
 - **🔚 End Chat button is styled red (danger)**.
+- **🎁 One-time Free Trial added to the Upgrade shop** — a built-in
+  `🎁 ONE-TIME FREE TRIAL — 1 Day for 1 ⭐` plan (configurable via
+  `STARS_TRIAL_ENABLED` / `STARS_TRIAL`). It can be bought **once per user**;
+  as soon as it is consumed it is removed from that user's shop. Enforced at
+  every layer: the shop grid, the trial button, invoice creation, and the
+  Stars pre-checkout (a replay is refused before payment is taken) — and a
+  duplicate delivery is never granted. The trial is Stars-only.
+- **Fixed a latent payment bug that could silently revert a purchase** —
+  `registerUser()` queued a debounced DB save whose stale snapshot fired
+  ~50 ms later and overwrote the freshly-granted PRO/VIP expiry. `saveDB()`
+  now cancels any pending debounced write so the newest state always wins
+  (previously a user could pay for Stars and still not receive the plan).

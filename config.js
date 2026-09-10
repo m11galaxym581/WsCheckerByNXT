@@ -102,6 +102,15 @@ const defaultDynamicConfig = {
     // whole-number price in Stars. Re-purchases stack on the active expiry.
     // Toggle the whole shop here, or live from the admin console.
     STARS_ENABLED: true,
+
+    // ── 🎁 One-Time Free Trial ────────────────────────────────
+    // A cheap trial offer shown at the top of the Upgrade shop. It can be
+    // bought ONLY ONCE per user — after a successful purchase the option is
+    // removed from that user's shop forever. Kept separate from STARS_PLANS
+    // so it can never be lost by an older dynamic-config file on disk.
+    STARS_TRIAL_ENABLED: true,
+    STARS_TRIAL: { tier: "PRO", days: 1, stars: 1 },
+
     STARS_PLANS: [
         { id: "pro_7",  tier: "PRO", days: 7,  stars: 1 },
         { id: "pro_15", tier: "PRO", days: 15, stars: 75 },

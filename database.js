@@ -119,6 +119,13 @@ function getDB() {
 
 function saveDB(db) {
     try {
+        // A synchronous save carries the freshest state. Any older snapshot
+        // still waiting in the debounce queue must be dropped — otherwise it
+        // would fire ~50ms later and overwrite this newer write (this used to
+        // silently revert plan grants: registerUser() queued a debounced save
+        // with proExpiry:null, then extendPlanStack() wrote the new expiry,
+        // and the stale snapshot clobbered it).
+        _cancelPendingSave();
         if (!db.meta) db.meta = {};
         db.meta.updatedAt = new Date().toISOString();
         if (PG_ENABLED && pgStore.ready) {
@@ -288,6 +295,23 @@ function closeSupport(uid) {
         saveDB(db); // sync flush
     }
     return true;
+}
+
+// ── Free Trial (one-time, per user) ─────────────────────────
+// Marks that the user has already consumed their single 1-day trial so
+// the cheap trial offer disappears from the Upgrade shop afterwards.
+function markTrialUsed(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) db.users[uid] = { id: uid, username: "User", name: "User", count: 0, banned: false, lang: "en", joinedAt: new Date().toISOString() };
+    db.users[uid].trialUsed = true;
+    db.users[uid].trialUsedAt = new Date().toISOString();
+    _cancelPendingSave();
+    saveDB(db); // sync flush so the offer disappears immediately
+    return true;
+}
+function hasUsedTrial(uid) {
+    const u = getDB().users[Number(uid)];
+    return !!(u && u.trialUsed);
 }
 
 // ── Webhook Management ──────────────────────────────────────
@@ -560,6 +584,7 @@ module.exports = {
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
     ensureUserRow, extendPlanStack, openSupport, isSupportOpen, closeSupport,
+    markTrialUsed, hasUsedTrial,
     logStarsPayment, getStarsPayment, listStarsPayments, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };
