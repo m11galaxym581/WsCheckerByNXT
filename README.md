@@ -934,3 +934,16 @@ Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
   always a ground-truth id to refund with. Stars revenue itself lives on
   Telegram's side (our DB only keeps the payment ledger); withdrawals go
   via Fragment (min 1,000 ⭐, 21-day hold per batch).
+
+### Stars smart refund + UI overhaul
+
+- `/refundstars` now pre-checks the charge against Telegram's own
+  transaction list and refunds with the Telegram-side payer id when it
+  disagrees with the ledger (forwarded-invoice safety), with the
+  diagnosis (`Telegram txn: N ⭐ from 👤 …`) shown on failures.
+- UI overhaul: 110-char charge ids never sit inside sentences anymore —
+  short `stxCjhSm…eq9f9U` ids inline, full ids alone on tap-to-copy code
+  lines. Boxed receipts for sales/refunds/failures, correct Star/Stars
+  and payment/payments grammar, and `/starsbalance` now shows payer +
+  plan per transaction (plus a ⚠️ unlogged tag for txns missing from
+  the local ledger).
