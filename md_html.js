@@ -31,6 +31,43 @@ function escapeHtml(s) {
     return String(s).replace(/[&<>]/g, (c) => ESC[c]);
 }
 
+// Only these URL schemes may become clickable links. Anything else
+// (e.g. markup-looking user content like "[a](b)") stays plain text —
+// Telegram rejects <a href> with a bad scheme and the whole message 400s.
+const SAFE_HREF = /^(https?:\/\/|tg:\/\/)/i;
+
+// Telegram drops the ENTIRE message (400: can't parse entities) when tags
+// mis-nest or an <a href> is bad. Validate our own output with a tiny
+// stack parser; anything suspicious falls back to plain text (below).
+function isWellFormed(html) {
+    const stack = [];
+    const re = /<\/?([a-zA-Z][a-zA-Z0-9]*)(\s[^<>]*)?\/?>/g;
+    let m;
+    while ((m = re.exec(html))) {
+        const full = m[0], tag = m[1].toLowerCase();
+        const isClose = full[1] === "/";
+        const isSelfClose = /\/>$/.test(full);
+        if (tag === "br" && !isClose) continue; // <br> / <br/> need no pair
+        if (isSelfClose && !isClose) {
+            // Only void-style tags may self-close; anything else is suspect.
+            return false;
+        }
+        if (isClose) {
+            if (!stack.length || stack.pop() !== tag) return false;
+        } else {
+            if (tag === "a") {
+                const hrefM = /href\s*=\s*"([^"]*)"/i.exec(full);
+                if (!hrefM || !SAFE_HREF.test(hrefM[1])) return false;
+            }
+            stack.push(tag);
+        }
+    }
+    if (stack.length) return false;
+    // No stray "<" may survive outside real tags (would 400 the send).
+    const leftovers = html.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(\s[^<>]*)?\/?>/g, "");
+    return !/<\/?(?![a-zA-Z!])/.test(leftovers);
+}
+
 // Heuristic: does the text carry any of the markup we understand?
 function hasMarkup(text) {
     if (typeof text !== "string") return false;
@@ -78,8 +115,10 @@ function markdownToHtml(text, allowQuote = true) {
     text = text.replace(/_([^_\n]+?)_/g, "<i>$1</i>");
 
     // Links. label & href were already HTML-escaped by the global
-    // pass above, so drop them straight into the <a> tag.
+    // pass above, so drop them straight into the <a> tag — but only for
+    // safe schemes (Telegram 400s the whole message on a bad href).
     text = text.replace(/\[([^\]\n]+?)\]\(([^)\n]+?)\)/g, (_m, label, href) => {
+        if (!SAFE_HREF.test(href)) return `${label} (${href})`;
         return `<a href="${href}">${label}</a>`;
     });
 
@@ -97,10 +136,14 @@ function markdownToHtml(text, allowQuote = true) {
         });
     }
 
-    if (text === escapeHtml(original) && !/<b>|<i>|<code>|<a /.test(text)) {
-        // Nothing structurally changed (only & < > were escaped) — safe either way.
+    // Final guard: never emit HTML Telegram would reject. On any doubt,
+    // send the same words as plain (escaped) text — the message always
+    // gets through, worst case without pretty formatting.
+    if (!isWellFormed(text)) {
+        try { console.warn("⚠️ [md_html] malformed output, plain fallback:", JSON.stringify(original).slice(0, 160)); } catch (_) {}
+        return escapeHtml(original);
     }
     return text;
 }
 
-module.exports = { escapeHtml, hasMarkup, markdownToHtml };
+module.exports = { escapeHtml, hasMarkup, markdownToHtml, isWellFormed };

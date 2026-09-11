@@ -235,7 +235,7 @@ module.exports = (bot) => {
         state.addProcessing(uid); 
         state.initWebState(uid, numbers.length);
         
-        const statusMsg = await bot.sendMessage(uid, `🚀 *Engine Fired Up!*\nInitializing deep scan for ${numbers.length} numbers using ${activeSocks.length} nodes...`, { parse_mode: "Markdown" }).catch(() => null);
+        const statusMsg = await bot.sendMessage(uid, `🚀 *Engine Fired Up!*\nInitializing deep scan for ${numbers.length} numbers using ${activeSocks.length} nodes...`, { parse_mode: "Markdown" }).catch((e) => { console.warn("⚠️ [TG] status message failed:", e.message); return null; });
 
         // Launch God Mode Checker
         runHumanChecker(uid, numbers, activeSocks, bot, statusMsg?.message_id).catch((err) => {
