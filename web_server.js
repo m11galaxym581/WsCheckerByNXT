@@ -24,6 +24,7 @@ const {
 const { warmupNodes, deleteSession, startSession, requestPairingCode, listUserSessions, listAllSessions } = require("./whatsapp");
 const state = require("./state");
 const proxyManager = require("./proxy_manager");
+const starsMod = require("./stars"); // owner handle + plan title helpers (no side effects)
 
 // ── Telegram Mini App initData verifier (auto-login) ─────────
 // Validates initData signed by Telegram using the bot token.
@@ -72,7 +73,12 @@ function startServer(bot) {
     });
     app.get('/sw.js', (req,res)=>res.type('application/javascript').sendFile(path.join(__dirname,'sw.js')));
     // Do NOT serve the project root. It may contain users.json, sessions, source files, etc.
-    app.get(["/", "/login", "/signup", "/dashboard", "/checker", "/history", "/sessions", "/profile", "/api", "/webhooks", "/jobs", "/lists", "/templates", "/files", "/proxies", "/audit", "/plans", "/vouchers", "/branding", "/force-join", "/security", "/help", "/status", "/changelog", "/system", "/docs", "/settings", "/support", "/admin", "/share/:id"], (req, res) => res.sendFile(path.join(__dirname, "index.html")));
+    // ── 🧩 Multi-Page Web: one HTML page per route, assembled from index.html ──
+    const mpa = require("./web_mpa");
+    app.get("/app.js", (req, res) => { res.type("application/javascript"); res.send(mpa.js); });
+    app.get("/app.css", (req, res) => { res.type("text/css"); res.send(mpa.css); });
+    for (const r of mpa.routeList()) app.get(r.path, (req, res) => res.send(mpa.page(r.tab, r.path)));
+    app.get("/share/:id", (req, res) => res.send(mpa.page(null, "/share")));
 
     // ── 🛡️ Lightweight API Rate Limiter ─────────────────────────────
     const rateBuckets = new Map();
@@ -809,6 +815,19 @@ function startServer(bot) {
     // ── Force Join Settings ──
     app.get("/api/force-join", requireAuth, async (req, res) => res.json({ ok:true, settings:{ enabled:!!config.dynamic.FORCE_JOIN_ENABLED, channels:config.dynamic.FORCE_JOIN_CHANNELS||[] }, status: await checkForceJoin(req.user.uid) }));
     app.post("/api/admin/force-join", requireAdmin, (req, res) => { const enabled=!!req.body.enabled; const channels=Array.isArray(req.body.channels)?req.body.channels:[]; const ok=config.setDynamicConfig({ FORCE_JOIN_ENABLED:enabled, FORCE_JOIN_CHANNELS:channels }); audit(req.user.uid,'force_join_update','settings',{enabled,channels}); res.json({ ok, settings:{enabled,channels} }); });
+    // Same probe as the bot's /forcejoin_test (bot-side channel check).
+    app.get("/api/admin/force-join/test", requireAdmin, async (req, res) => {
+        try {
+            const { probeChannel } = require("./force_join");
+            const channels = config.dynamic.FORCE_JOIN_CHANNELS || [];
+            const results = [];
+            for (const ch of channels) {
+                try { results.push(await probeChannel(bot, ch, Number(req.user.uid))); }
+                catch (e) { results.push({ label: ch.title || ch.chatId || "channel", reason: "crashed", detail: e.message }); }
+            }
+            res.json({ ok: true, results });
+        } catch (e) { res.json({ ok: false, error: e.message }); }
+    });
 
     app.post("/api/premium-request", requireAuth, (req, res) => { 
         const uid = req.user.uid;
@@ -824,6 +843,99 @@ function startServer(bot) {
             }).catch(()=>{});
         });
         res.json({ ok: true }); 
+    });
+
+    // ============================================================
+    // ⭐ TELEGRAM STARS PLAN SHOP — API (used by the web / Mini App)
+    // ============================================================
+    // Same catalog the bot shop shows, including the one-time trial (already
+    // filtered per user — used trials disappear). Trial payment/grant guards
+    // live bot-side (pre_checkout + successful_payment), so web needs none.
+    function starPlansPublic(uid) {
+        try {
+            if (starsMod.visiblePlans) return starsMod.visiblePlans(uid);
+        } catch (_) {}
+        const d = config.dynamic || {};
+        const list = Array.isArray(d.STARS_PLANS) ? d.STARS_PLANS : [];
+        return list
+            .filter(p => p && p.id && p.tier && Number(p.days) && Number(p.stars))
+            .map(p => ({ id: p.id, tier: String(p.tier).toUpperCase(), days: Number(p.days), stars: Number(p.stars) }));
+    }
+    // List the Stars catalog for the shop UI (auth required).
+    app.get("/api/stars/plans", requireAuth, (req, res) => {
+        res.json({ ok: true, enabled: !!config.dynamic.STARS_ENABLED, plans: starPlansPublic(Number(req.user.uid)) });
+    });
+    // Create a Stars invoice link for the logged-in user (Mini App purchase).
+    app.post("/api/stars/create-invoice", requireAuth, async (req, res) => {
+        try {
+            if (!config.dynamic.STARS_ENABLED) return res.status(400).json({ ok: false, error: "Stars shop is disabled." });
+            const planId = String((req.body && req.body.planId) || "");
+            const plan = starPlansPublic(Number(req.user.uid)).find(p => p.id === planId);
+            if (!plan) return res.status(400).json({ ok: false, error: "Invalid plan." });
+            const uid = Number(req.user.uid);
+            const payload = `${plan.id}:${uid}:${Date.now()}`;
+            const title = `${plan.tier} — ${plan.days} Day${plan.days > 1 ? "s" : ""}`;
+            const description = `WS CHECKER ${plan.tier} upgrade. ${plan.days} day${plan.days > 1 ? "s" : ""}. Auto-activated instantly on payment.`;
+            const link = await bot.createInvoiceLink(
+                title, description, payload, "",
+                "XTR", [{ label: `${plan.tier} ${plan.days} Day${plan.days > 1 ? "s" : ""}`, amount: plan.stars }]
+            );
+            audit(req.user.uid, "stars_invoice", planId, { stars: plan.stars });
+            res.json({ ok: true, invoiceUrl: link, plan, title, description });
+        } catch (e) {
+            console.error("❌ [Stars] create-invoice error:", e.message);
+            res.status(500).json({ ok: false, error: "Could not create Stars invoice." });
+        }
+    });
+    // Owner/Support handle (no @) for "pay via Binance/crypto — contact owner".
+    app.get("/api/stars/support", requireAuth, (req, res) => {
+        const username = starsMod.ownerHandle ? starsMod.ownerHandle() : config.SUPPORT_USERNAME || "";
+        res.json({ ok: true, username });
+    });
+    // Owner/Admin: view + edit the Stars catalog live.
+    app.get("/api/admin/stars", requireAdmin, (req, res) => {
+        res.json({ ok: true, enabled: !!config.dynamic.STARS_ENABLED, plans: config.dynamic.STARS_PLANS || [] });
+    });
+    app.post("/api/admin/stars", requireOwner, (req, res) => {
+        const enabled = req.body && typeof req.body.enabled === "boolean" ? req.body.enabled : !!config.dynamic.STARS_ENABLED;
+        const plans = Array.isArray(req.body && req.body.plans) ? req.body.plans : (config.dynamic.STARS_PLANS || []);
+        const ok = config.setDynamicConfig({ STARS_ENABLED: enabled, STARS_PLANS: plans });
+        if (ok) audit(req.user.uid, "stars_config", "shop", { enabled, plans });
+        res.json({ ok, enabled, plans });
+    });
+    // Local Stars payment ledger (newest first, capped).
+    app.get("/api/admin/stars/ledger", requireAdmin, (req, res) => {
+        const { listStarsPayments } = require("./database");
+        res.json({ ok: true, payments: listStarsPayments().slice(0, 200) });
+    });
+    // Live Telegram-side balance + recent transactions (ground truth).
+    app.get("/api/admin/stars/balance", requireAdmin, async (req, res) => {
+        try {
+            const ov = await starsMod.getStarsOverview(20);
+            res.json({ ok: true, balance: ov.balance, balanceError: ov.balanceError, transactions: ov.transactions, txnError: ov.txnError });
+        } catch (e) { res.json({ ok: false, error: e.message }); }
+    });
+    // Owner refund — same shared core as the bot's /refundstars.
+    app.post("/api/admin/stars/refund", requireOwner, async (req, res) => {
+        const arg = String((req.body && (req.body.chargeId || req.body.uid)) || "");
+        const r = await starsMod.refundStarsCharge(arg);
+        try { audit(req.user.uid, "stars_refund", arg, { ok: r.ok, code: r.code || null }); } catch (_) {}
+        if (!r.ok) return res.json({ ok: false, code: r.code, error: r.error || r.code, diag: r.diag || "" });
+        const rec = r.rec;
+        const buyerMsg = r.stillActive
+            ? `⭐ Refund processed — ${rec.stars} Star${Number(rec.stars) === 1 ? "" : "s"} back in your Stars balance. Your ${rec.tier} stays active till ${new Date(r.remaining).toLocaleDateString("en-GB")}.`
+            : `⭐ Refund processed — ${rec.stars} Star${Number(rec.stars) === 1 ? "" : "s"} back in your Stars balance. Your ${rec.tier} access has ended.`;
+        try { await bot.sendMessage(Number(rec.uid), buyerMsg); } catch (_) {}
+        try {
+            await bot.sendMessage(config.OWNER_ID,
+                `💸 *Stars refund (web)* — ${rec.stars} ⭐ → uid ${rec.uid}\n🧾 ${rec.chargeId}`,
+                { parse_mode: "Markdown" });
+        } catch (_) {}
+        res.json({
+            ok: true, status: r.ok, chargeId: r.cid, uid: Number(rec.uid),
+            stars: rec.stars, tier: rec.tier, stillActive: r.stillActive,
+            payerFixed: r.payerFixed, resolvedByUid: r.resolvedByUid, diag: r.diag || "",
+        });
     });
 
     // ============================================================

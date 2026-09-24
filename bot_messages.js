@@ -9,7 +9,7 @@ const {
     getDB, isAdmin, isSub, isVIP, isBanned, isOwner, getUserLang, 
     registerUser, addAdmin, removeAdmin, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
-    banUser, unbanUser 
+    banUser, unbanUser, isSupportOpen, closeSupport 
 } = require("./database");
 const { sendBroadcastReport, parseNumbers } = require("./utils");
 const { startSession, requestPairingCode }  = require("./whatsapp");
@@ -82,7 +82,7 @@ module.exports = (bot) => {
 
                     case "wait_vip_id":
                         addVIP(tid, 30); state.clearUserStep(uid);
-                        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account is now VIP. Enjoy maximum limits.`, { parse_mode: "Markdown" }).catch(() => {});
+                        bot.sendMessage(tid, `🔥 *VIP UNLOCKED!*\nYour account is now VIP. Enjoy maximum limits.`, { parse_mode: "Markdown" }).catch(() => {});
                         return send(`🔥 *VIP Granted* to \`${tid}\``);
                         
                     case "wait_rem_vip_id":
@@ -113,6 +113,13 @@ module.exports = (bot) => {
                         return sendBroadcastReport(bot, config.OWNER_ID, suc, fail);
                 }
             }
+        }
+
+        // ============================================================
+        // ⌨ GUIDED COMMAND FLOWS (cmd_flow prompts)
+        // ============================================================
+        if (step && typeof step === "object" && step.step === "cmdflow") {
+            return require("./cmd_flow").handleStep(bot, msg, send);
         }
 
         // ============================================================
@@ -157,23 +164,45 @@ module.exports = (bot) => {
         }
 
         // ============================================================
-        // 💬 SUPPORT CHAT vs 🔍 NUMBER CHECKER LOGIC
+        // 💬 SUPPORT DESK (opt-in)  vs  🔍 NUMBER CHECKER
         // ============================================================
         const numbers = parseNumbers(text);
-        
-        // ── 1. Support Chat (No valid phone numbers found in text) ──
+
         if (numbers.length === 0) {
-            if (!state.chats[uid]) state.chats[uid] = [];
-            state.chats[uid].push({ 
-                sender: 'user', 
-                text: text, 
-                ts: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) 
-            });
-            
-            // Push Notification to Web Dashboard
-            state.pushNotification(`💬 New Msg from ${msg.from.first_name}`, 'info');
-            return send(`📨 _Message sent to Support Desk. An Admin will review and reply here._`);
+            // ── Support messages are ONLY captured inside an explicit
+            //    support session that the user opened with 💬 Support ──
+            if (isSupportOpen(uid)) {
+                if (!state.chats[uid]) state.chats[uid] = [];
+                state.chats[uid].push({
+                    sender: 'user',
+                    text: text,
+                    ts: new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })
+                });
+                state.pushNotification(`💬 New Msg from ${msg.from.first_name}`, 'info');
+                return send(`📨 _Message sent to Support Desk. An Admin will review and reply here._`);
+            }
+
+            // ── Not in a support session → never auto-open the help desk ──
+            const trimmed = text.trim();
+
+            // A voucher code typed plainly — point them to /redeem instead.
+            if (/^BLAZE[A-Za-z0-9]{2,}/i.test(trimmed) || /^[A-Za-z0-9]{4,}[-:][A-Za-z0-9]{4,}$/.test(trimmed)) {
+                return send(`🎟️ *Looks like a voucher code!*\n\nTo redeem it, send:\n\`/redeem ${trimmed.replace(/^\/redeem\s*/i, "")}\``);
+            }
+
+            // Generic unrecognised text.
+            return send(
+                `ℹ️ *I didn't catch that.*\n\n` +
+                `Nothing was sent to Support — open it first via the *💬 Support* button.\n\n` +
+                `• 📱 Send phone numbers to run a check\n` +
+                `• 🔍 Use /help to see the available commands\n` +
+                `• 💬 Press the *Support* button to talk to a human`
+            );
         }
+
+        // Phone numbers are present → this is a real check, so close any
+        // open support session and hand off to the checker engine.
+        if (isSupportOpen(uid)) closeSupport(uid);
 
         // ── 2. Number Checker Engine ──
         
@@ -206,7 +235,7 @@ module.exports = (bot) => {
         state.addProcessing(uid); 
         state.initWebState(uid, numbers.length);
         
-        const statusMsg = await bot.sendMessage(uid, `🚀 *Engine Fired Up!*\nInitializing deep scan for ${numbers.length} numbers using ${activeSocks.length} nodes...`, { parse_mode: "Markdown" }).catch(() => null);
+        const statusMsg = await bot.sendMessage(uid, `🚀 *Engine Fired Up!*\nInitializing deep scan for ${numbers.length} numbers using ${activeSocks.length} nodes...`, { parse_mode: "Markdown" }).catch((e) => { console.warn("⚠️ [TG] status message failed:", e.message); return null; });
 
         // Launch God Mode Checker
         runHumanChecker(uid, numbers, activeSocks, bot, statusMsg?.message_id).catch((err) => {

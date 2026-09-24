@@ -1,8 +1,8 @@
-# WS CHECKER v6.0.0
+# WS CHECKER v6.0.1
 
 A Telegram bot + web dashboard for WhatsApp number checking, sessions/nodes management, result exports, saved lists, jobs/queue, API keys, webhooks, proxy pool, and admin tools.
 
-> Current package/version: **v6.0.0**
+> Current package/version: **v6.0.1**
 
 ---
 
@@ -783,3 +783,167 @@ Changes:
 - Mobile checker layout fixed for result tabs and copy buttons.
 - Sidebar navigation cleaned and grouped.
 - Bot menu simplified and cleaned.
+
+## 22. ⭐ Telegram Stars Plan Shop (automatic upgrades)
+
+Sell PRO / VIP plan upgrades for **Telegram Stars** (`currency: "XTR"`) with
+zero manual approval — the plan is granted automatically the moment Telegram
+confirms the payment.
+
+### How users buy
+- **Bot:** main menu → `💎 Upgrade` → pick a pack → choose a payment method.
+- **Web / Mini App:** the profile `UPGRADE TIER ⭐` button opens the pack list;
+  inside Telegram it calls `Telegram.WebApp.openInvoice()` for a seamless pay.
+
+### Payment methods
+- **⭐ Telegram Stars — automatic.** Pick a pack → `Pay ⭐ …` → Telegram's native
+  Stars checkout opens in the chat. The tier is granted instantly on payment.
+- **💠 Binance Pay / 🪙 USDT (TRC20) / ⛓️ other networks — routed to the owner.**
+  Pick a non-Star method → a "Message Owner to Pay" deep link opens the owner's
+  chat pre-filled with the plan + network. After the buyer has paid they tap
+  `✅ I've Paid — Notify Owner`, which DMs the owner a request with a one-tap
+  `Approve {tier} {days}d` button that grants the exact pack. (No gateway
+  credentials are wired — the owner confirms receipt out-of-band.)
+- Manual `/addpro`, `/addvip` and vouchers remain available as an admin fallback.
+
+### Behaviour
+- **Instant & automatic.** On `successful_payment` the tier is granted with no
+  admin in the loop (old "premium request → admin approves" flow is bypassed).
+- **Stacking renewals.** Buying while the same tier is still active extends the
+  expiry by the purchased days on top of the remaining time (not reset).
+- Every payment is logged by `telegram_payment_charge_id` in `db.starsPayments`
+  (file or Postgres), ready for support/refunds.
+
+### Owner command
+```
+/refundstars <charge_id>     # refund the Stars and revoke the granted days
+```
+
+### Configuring prices / packs (live, no restart)
+Defaults are in `config.js` (`STARS_ENABLED`, `STARS_PLANS`) and can be edited
+live via the admin API:
+
+```txt
+GET  /api/admin/stars            # view enabled + packs (admin)
+POST /api/admin/stars            # owner: set { enabled, plans }
+GET  /api/stars/plans            # catalog for the shop UI (auth)
+POST /api/stars/create-invoice   # create a Stars invoice link (auth)
+```
+
+Default packs: PRO 7/15/30d (40/75/130 ⭐) and VIP 7/15/30d (70/130/240 ⭐).
+Edit `STARS_PLANS` to change them (whole-number Star amounts).
+
+> **Setup note:** Telegram Stars are enabled for every bot by default — no payment
+> provider token is needed (`provider_token` is left empty). Payments require a
+> real bot token; test with a private chat between the bot and the buyer.
+
+## 23. v6.0.1 — Telegram bot polish (this release)
+
+Bug-fix / polish pass focused on the **Telegram bot** side (no web changes):
+
+- **Version bumped to v6.0.1** (config `BRAND_VER`, `package.json`, boot banner).
+- **`/help` rewritten** to list only real commands (was referencing a non-existent
+  `/info`) and is now role-aware (Basics / Checker / Plans for users, plus Admin
+  and Owner sections when applicable).
+- **`/start` welcome cleaned up**: dynamic brand+version header, removed stray
+  spacing/`\u00A0`, condensed to key lines, and it now actually shows the
+  **🛜 Open Web App** button it used to reference (kept behind the existing
+  domain-whitelist auto-fallback).
+- **Menus made consistent between `/admin` & button panels** — the Owner panel
+  now includes the Free/Subscription mode toggles from both entry points.
+- **Standardised submenu "Back" labels** across both bot modules.
+- **Removed dead legacy "buy premium" flow** (hard-coded `@firstoget`/“BLAZE NXT”
+  promotion spam) — upgrades now route through the Stars / owner-DM flow.
+- **Consistent tier naming** — removed confusing “GOD TIER / GOD PANEL” wording in
+  favour of “VIP” and “OWNER”.
+- **My History summary** now shows all four counters (reg / biz / unreg / failed).
+- Cleaned up minor copy (support desk, redeem prompt, owner panel).
+- **HTML rendering for every bot message** — fixed asterisks (`*bold*`), backticks
+  (`code`) and underscores (`_italic_`) leaking through literally on the bot.
+  Added a Markdown→HTML converter (`md_html.js`) wired into `sendMessage` /
+  `editMessageText`, so messages render via Telegram HTML mode (`parse_mode:
+  "HTML"`) and the markup characters never appear raw. & < > are escaped so
+  Telegram never fails to parse a message.
+- **Support Desk is now fully isolated (opt-in)** — the bot no longer captures
+  every unrecognised message as a support ticket. A user must explicitly open
+  Support via the 💬 Support button, and only messages sent while that session
+  is open reach the desk (🔚 End Chat / /cancel / /start / back button all
+  close it). Typing a plain voucher code (e.g. `BLAZEVIP-E24FBA70`) no longer
+  triggers Support — it now tells the user to run `/redeem <code>`.
+- **Support session now persists (DB-backed)** — the "Support is open" flag is
+  stored on the user record and flushed synchronously, so tapping 💬 Support
+  reliably routes the user's next messages to the desk even across a restart /
+  redeploy (no more falling back to the generic handler after opening support).
+  End Chat / /cancel / /start / Back button / starting a check all close it.
+- **🔚 End Chat button is styled red (danger)**.
+- **🎁 One-time Free Trial added to the Upgrade shop** — a built-in
+  `🎁 ONE-TIME FREE TRIAL — 1 Day for 1 ⭐` plan (configurable via
+  `STARS_TRIAL_ENABLED` / `STARS_TRIAL`). It can be bought **once per user**;
+  as soon as it is consumed it is removed from that user's shop. Enforced at
+  every layer: the shop grid, the trial button, invoice creation, and the
+  Stars pre-checkout (a replay is refused before payment is taken) — and a
+  duplicate delivery is never granted. The trial is Stars-only.
+- **Fixed a latent payment bug that could silently revert a purchase** —
+  `registerUser()` queued a debounced DB save whose stale snapshot fired
+  ~50 ms later and overwrote the freshly-granted PRO/VIP expiry. `saveDB()`
+  now cancels any pending debounced write so the newest state always wins
+  (previously a user could pay for Stars and still not receive the plan).
+
+### v6.0.1 bug-fix pass (bot internals)
+
+- **`/runlist` and `/retryfailed` were broken** — numbers were joined with a
+  *literal* `\n` (backslash-n) instead of a real newline, so `parseNumbers()`
+  saw one giant token and the job never started. Same escaping bug made
+  `/queue` and `/mylists` print a literal `\n`.
+- **`/appcheck` also fired the `/app` handler** (substring regex match), sending
+  the generic Mini-App text *plus* the diagnostics. The `/app` pattern is now
+  anchored (still supports `/app@BotName`).
+- **Callbacks without a message crashed the bot** — inline-mode callbacks have
+  no `q.message`; `q.message.message_id` threw a `TypeError`. Now guarded, and
+  the edit helpers fall back to sending a new message when there is nothing to
+  edit.
+- **Commands crashed on messages without `from`** — channel posts and
+  anonymous-admin group messages carry no `from`, so every `/command` handler
+  threw on `msg.from.id`. All command handlers now go through a guarded
+  registration wrapper.
+- **Plan time could be *lost*** — `addSubscriber()` / `addVIP()` wrote an
+  absolute `now + days` expiry, so redeeming a voucher or running `/addpro` on
+  a user who still had time could **shorten** their paid plan. Grants now stack
+  on any remaining time.
+- **Refunds wiped all stacked time** — refunding one of several stacked
+  purchases called `removeSubscriber/removeVIP`, which nulled the whole expiry.
+  Refunds are now pro-rata (`revokePlanDays`), and the confirmation messages
+  say whether access remains.
+- **DB CSV export** — fields are now properly quoted/escaped (a name with a
+  quote or newline corrupted every following row), the file is written to the
+  data dir instead of `__dirname`, and write/send/unlink failures no longer
+  crash the handler.
+
+### Stars refund hardening (`/refundstars`, `/starsbalance`)
+
+- Refunds now go through a direct HTTPS JSON POST to `refundStarPayment`
+  (the exact shape from Telegram's docs) instead of the bot library's
+  form-encoded request, and Telegram's raw errors are translated into
+  actionable owner guidance (`CHARGE_ID_EMPTY`, `CHARGE_NOT_FOUND`,
+  `CHARGE_ALREADY_REFUNDED` — the last one self-heals the ledger).
+- `/refundstars` accepts the buyer's numeric user id as well as the full
+  charge id (it refunds their most recent unrefunded payment), strips
+  pasted code ticks, and refuses to call Telegram with an empty id.
+- New owner command `/starsbalance` shows the bot's real Stars balance
+  held by Telegram plus recent Telegram-side transaction ids, so there is
+  always a ground-truth id to refund with. Stars revenue itself lives on
+  Telegram's side (our DB only keeps the payment ledger); withdrawals go
+  via Fragment (min 1,000 ⭐, 21-day hold per batch).
+
+### Stars smart refund + UI overhaul
+
+- `/refundstars` now pre-checks the charge against Telegram's own
+  transaction list and refunds with the Telegram-side payer id when it
+  disagrees with the ledger (forwarded-invoice safety), with the
+  diagnosis (`Telegram txn: N ⭐ from 👤 …`) shown on failures.
+- UI overhaul: 110-char charge ids never sit inside sentences anymore —
+  short `stxCjhSm…eq9f9U` ids inline, full ids alone on tap-to-copy code
+  lines. Boxed receipts for sales/refunds/failures, correct Star/Stars
+  and payment/payments grammar, and `/starsbalance` now shows payer +
+  plan per transaction (plus a ⚠️ unlogged tag for txns missing from
+  the local ledger).

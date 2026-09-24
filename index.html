@@ -964,6 +964,7 @@ h3 .ic{ vertical-align:-0.16em; }
     <button class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('tab-admin', this)" data-i18n="nav_admin" data-ic="crown">Console</button>
     <button class="nav-item" id="nav-audit" style="display:none;" onclick="switchTab('tab-audit', this)">Audit Logs</button>
     <button class="nav-item" id="nav-vouchers" style="display:none;" onclick="switchTab('tab-vouchers', this)">Vouchers</button>
+    <button class="nav-item" id="nav-stars" style="display:none;" onclick="switchTab('tab-stars', this)">⭐ Stars</button>
     <button class="nav-item" id="nav-proxies" style="display:none;" onclick="switchTab('tab-proxies', this)">Proxies</button>
     <button class="nav-item" id="nav-forcejoin" style="display:none;" onclick="switchTab('tab-forcejoin', this)">Force Join</button>
     <button class="nav-item" id="nav-branding" style="display:none;" onclick="switchTab('tab-branding', this)">Branding</button>
@@ -1111,7 +1112,7 @@ h3 .ic{ vertical-align:-0.16em; }
           </div>
         </div>
         <div style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
-            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="buyPrem()" data-i18n="upgrade_tier" data-ic="gem"> UPGRADE TIER</button>
+            <button class="btn btn-gold" style="flex:1; min-width:140px;" onclick="openStarsShop()" data-i18n="upgrade_tier" data-ic="gem"> UPGRADE TIER ⭐</button>
             <button class="btn btn-danger" style="flex:1; min-width:140px;" onclick="cmdReset()" data-i18n="reset_engine" data-ic="reload"> RESET ENGINE</button>
         </div>
         <div style="border-top:1px solid var(--border); padding-top:25px;">
@@ -1155,7 +1156,7 @@ h3 .ic{ vertical-align:-0.16em; }
 
     <div id="tab-files" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-folder" xlink:href="#i-folder"></use></svg> FILE MANAGER / SHARE</div><p style="color:var(--text2);font-family:'Space Mono'">Create temporary result share links and view saved file records.</p><button class="btn btn-primary btn-sm" onclick="shareCurrentResults()"><svg class="ic" aria-hidden="true"><use href="#i-link" xlink:href="#i-link"></use></svg> SHARE CURRENT RESULTS</button><div id="share-box" style="margin-top:12px;font-family:'Space Mono';color:var(--accent2)"></div><div id="files-box" class="pro-list" style="margin-top:18px"></div></div></div>
 
-    <div id="tab-forcejoin" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-lock" xlink:href="#i-lock"></use></svg> FORCE JOIN SETTINGS</div><div class="mini-toolbar"><select id="fj-enabled" class="mini-input"><option value="false">Disabled</option><option value="true">Enabled</option></select><button class="btn btn-primary btn-sm" onclick="saveForceJoinSettings()">SAVE</button></div><textarea id="fj-channels" placeholder='One per line: title|@channel|https://t.me/channel' style="min-height:150px"></textarea><div id="forcejoin-box" class="pro-list"></div></div></div>
+    <div id="tab-forcejoin" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-lock" xlink:href="#i-lock"></use></svg> FORCE JOIN SETTINGS</div><div class="mini-toolbar"><select id="fj-enabled" class="mini-input"><option value="false">Disabled</option><option value="true">Enabled</option></select><button class="btn btn-primary btn-sm" onclick="saveForceJoinSettings()">SAVE</button><button class="btn btn-gold btn-sm" onclick="testForceJoin()">TEST</button></div><textarea id="fj-channels" placeholder='One per line: title|@channel|https://t.me/channel' style="min-height:150px"></textarea><div id="forcejoin-box" class="pro-list"></div></div></div>
 
     <div id="tab-proxies" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-shield" xlink:href="#i-shield"></use></svg> RESIDENTIAL PROXY POOL <button class="btn btn-ghost btn-sm" onclick="fetchProxies()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div class="mini-toolbar"><button class="btn btn-primary btn-sm" onclick="toggleProxyPool(true)">ENABLE</button><button class="btn btn-danger btn-sm" onclick="toggleProxyPool(false)">DISABLE</button><button class="btn btn-ghost btn-sm" onclick="reloadProxies()">RELOAD</button></div><div id="proxy-summary" style="font-family:'Space Mono';font-size:12px;color:var(--accent2);margin-bottom:12px"></div><div id="proxy-list" class="pro-list">Loading proxies...</div></div></div>
 
@@ -1163,6 +1164,7 @@ h3 .ic{ vertical-align:-0.16em; }
 
     <div id="tab-audit" class="tab-section"><div class="card"><div class="card-title"><svg class="ic" aria-hidden="true"><use href="#i-shield" xlink:href="#i-shield"></use></svg> ADMIN AUDIT LOGS <button class="btn btn-ghost btn-sm" onclick="fetchAuditLogsFull()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><input id="audit-search" class="mini-input" placeholder="Search audit logs..." oninput="renderAuditLogs()"><div id="audit-full-box" class="pro-list"></div></div></div>
     <div id="tab-vouchers" class="tab-section"><div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent-gold);font-family:'Syne'"><svg class="ic" aria-hidden="true"><use href="#i-gift" xlink:href="#i-gift"></use></svg> Generate Voucher</h3><select id="vm-type" class="mini-input"><option value="PRO">PRO</option><option value="VIP">VIP</option></select><input id="vm-days" class="mini-input" type="number" value="30" placeholder="Days"><input id="vm-count" class="mini-input" type="number" value="1" placeholder="Uses"><input id="vm-bulk" class="mini-input" type="number" value="1" placeholder="Bulk count"><input id="vm-expiry" class="mini-input" type="date" placeholder="Expiry"><button class="btn btn-gold" onclick="genVoucherManager()">GENERATE</button><button class="btn btn-ghost btn-sm" onclick="exportVouchersCSV()">EXPORT CSV</button><div id="vm-result" style="margin-top:12px;color:var(--accent-gold);font-family:'Space Mono'"></div></div><div class="card"><div class="card-title">Voucher Manager <button class="btn btn-ghost btn-sm" onclick="fetchVoucherManager()"><svg class="ic" aria-hidden="true"><use href="#i-refresh" xlink:href="#i-refresh"></use></svg></button></div><div id="voucher-manager-box" class="pro-list"></div></div></div></div>
+    <div id="tab-stars" class="tab-section"><div class="pro-grid"><div class="pro-side"><h3 style="color:var(--accent-gold);font-family:'Syne'">⭐ Stars Revenue</h3><div id="stars-balance-box" style="font-family:'Space Mono';font-size:13px;margin-bottom:12px">Loading…</div><h3 style="color:var(--accent-gold);font-family:'Syne'">🧾 Refund</h3><input id="stars-refund-id" class="mini-input" placeholder="Charge id or buyer user id"><button class="btn btn-danger btn-sm" onclick="refundStarsWeb()">REFUND</button><div id="stars-refund-result" style="margin-top:10px;font-family:'Space Mono';font-size:12px"></div><h3 style="color:var(--accent-gold);font-family:'Syne';margin-top:16px">🛒 Shop Catalog</h3><select id="stars-enabled" class="mini-input"><option value="true">Shop enabled</option><option value="false">Shop disabled</option></select><textarea id="stars-plans-json" class="mini-input" style="min-height:110px;font-family:'Space Mono';font-size:11px" placeholder='[{"id":"pro_7","tier":"PRO","days":7,"stars":40}]'></textarea><button class="btn btn-gold btn-sm" onclick="saveStarsCatalog()">SAVE CATALOG</button></div><div class="card"><div class="card-title">Payment Ledger <button class="btn btn-ghost btn-sm" onclick="fetchStarsAdmin()"><svg class="ic" aria-hidden="true"><use href="#i-refresh"></use></svg></button></div><div id="stars-ledger-box" class="pro-list"></div><div class="card-title" style="margin-top:14px">Telegram Transactions</div><div id="stars-txns-box" class="pro-list"></div></div></div></div>
     <div id="tab-branding" class="tab-section"><div class="card"><div class="card-title"> OWNER WHITE-LABEL BRANDING</div><div class="mini-toolbar"><input id="brand-app" class="mini-input" placeholder="App name"><input id="brand-powered" class="mini-input" placeholder="Powered by"><input id="brand-support" class="mini-input" placeholder="Support username"><input id="brand-domain" class="mini-input" placeholder="Custom domain"><input id="brand-footer" class="mini-input" placeholder="Footer text"><input id="brand-primary" class="mini-input" placeholder="Primary color #00ff88"><input id="brand-logo-file" type="file" accept="image/*" onchange="loadBrandLogo(this.files[0])"><button class="btn btn-primary btn-sm" onclick="saveBranding()">SAVE BRANDING</button></div><div id="brand-logo-preview" style="margin:10px 0"></div><div id="branding-box" class="pro-list"></div></div></div>
 
     <div id="tab-docs" class="tab-section"><div class="card"><div class="card-title"> INTERACTIVE API DOCS</div><div class="mini-toolbar"><input id="docs-api-key" class="mini-input" placeholder="API Key"><input id="docs-number" class="mini-input" placeholder="Number e.g. 919999999999"><button class="btn btn-primary btn-sm" onclick="tryApiDocs()">TRY REQUEST</button></div><div class="grid-2"><pre class="bot-console" id="docs-code">curl "${location.origin}/api/v1/check?key=API_KEY&number=919999999999"
@@ -1713,7 +1715,7 @@ function escAttr(v){ return esc(v).replace(/`/g,'&#96;'); }
 
 const ROUTES = {
   'tab-dashboard':'/dashboard', 'tab-check':'/checker', 'tab-history':'/history', 'tab-session':'/sessions',
-  'tab-profile':'/profile', 'tab-sysinfo':'/system', 'tab-jobs':'/jobs', 'tab-lists':'/lists', 'tab-templates':'/templates', 'tab-files':'/files', 'tab-proxies':'/proxies', 'tab-webhook-logs':'/webhooks', 'tab-docs':'/docs', 'tab-settings':'/settings', 'tab-audit':'/audit', 'tab-vouchers':'/vouchers', 'tab-branding':'/branding', 'tab-forcejoin':'/force-join', 'tab-security':'/security', 'tab-help':'/help', 'tab-status':'/status', 'tab-changelog':'/changelog', 'tab-support':'/support', 'tab-admin':'/admin'
+  'tab-profile':'/profile', 'tab-sysinfo':'/system', 'tab-jobs':'/jobs', 'tab-lists':'/lists', 'tab-templates':'/templates', 'tab-files':'/files', 'tab-proxies':'/proxies', 'tab-webhook-logs':'/webhooks', 'tab-docs':'/docs', 'tab-settings':'/settings', 'tab-audit':'/audit', 'tab-vouchers':'/vouchers', 'tab-stars':'/stars', 'tab-branding':'/branding', 'tab-forcejoin':'/force-join', 'tab-security':'/security', 'tab-help':'/help', 'tab-status':'/status', 'tab-changelog':'/changelog', 'tab-support':'/support', 'tab-admin':'/admin'
 };
 const PATH_TO_TAB = Object.fromEntries(Object.entries(ROUTES).map(([k,v])=>[v,k]));
 function routeForTab(tab){ return ROUTES[tab] || '/checker'; }
@@ -1787,6 +1789,7 @@ function switchTab(t, el, push=true){
     if(t==='tab-webhook-logs') fetchWebhookLogs();
     if(t==='tab-audit') fetchAuditLogsFull();
     if(t==='tab-vouchers') fetchVoucherManager();
+    if(t==='tab-stars') fetchStarsAdmin();
     if(t==='tab-branding') fetchBranding();
     if(t==='tab-forcejoin') fetchForceJoinSettings();
     if(t==='tab-security') fetchSecurityCenter();
@@ -1844,7 +1847,7 @@ function applyAuthSuccess(d, uid){
   setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
   setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
   if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
-  setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
+  setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-stars','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
   hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('btn-menu','block'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
   switchTab(safeInitialTab(), null, false);
   fetchSysStatus();
@@ -1909,7 +1912,7 @@ async function hydrateSession(){
     setTxt('api-key-box',d.user.apiKey||'No API Key. Click Generate.');
     setTxt('prof-expiry',d.user.vipExpiry?"VIP Expiry: "+new Date(d.user.vipExpiry).toLocaleDateString():(d.user.proExpiry?"PRO Expiry: "+new Date(d.user.proExpiry).toLocaleDateString():"Expiry: Lifetime"));
     if(d.user.webhookUrl) setVal('webhook-input', d.user.webhookUrl);
-    setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
+    setDisplay('btn-notif','block'); setInterval(pollNotifs,5000); if(d.isAdmin){ setDisplay('nav-admin-head','block'); setDisplay('nav-admin','block'); setDisplay('nav-support','block'); setDisplay('nav-audit','block'); setDisplay('nav-vouchers','block'); setDisplay('nav-stars','block'); setDisplay('nav-proxies','block'); setDisplay('nav-forcejoin','block'); if(d.isOwner) setDisplay('nav-branding','block'); setDisplay('nav-security','block'); } if(d.isOwner) setDisplay('owner-mode-card','block');
     hidePublicPanels(); setDisplay('main-nav','flex'); setDisplay('btn-menu','block'); setDisplay('app-container','block'); setDisplay('global-status','flex'); setDisplay('logout-btn','block'); setDisplay('live-clock','block');
     switchTab(safeInitialTab(), null, false); fetchSysStatus(); if(prefs.refresh && !liveStatusPoll) liveStatusPoll=setInterval(fetchSysStatus,10000);
     welcomeVoice(); return true;
@@ -2005,7 +2008,7 @@ async function startCheck(){
         setTxt('c-reg',d.progress.reg); setTxt('c-unreg',d.progress.unreg); setTxt('c-failed',d.progress.failed||0);
         if(d.progress.status==="Completed"||d.progress.status==="Cancelled"){
           checking=false; jobDuration=Date.now()-jobStartTime;
-          regNums=d.results.reg||[]; unregNums=d.results.unreg||[]; failedNums=d.results.failed||[];
+          regNums=d.results.reg||[]; unregNums=d.results.unreg||[]; failedNums=d.results.failed||[]; try{sessionStorage.setItem('mpa_failed',JSON.stringify(failedNums));}catch(e){}
           if(cBtn){cBtn.innerHTML=icMark('zap')+' '+langTxt('fire_engine'); cBtn.disabled=false;}
           showRes('reg');
           if(d.progress.status==="Completed"){ updateConsole('done',{total:d.progress.total,reg:d.progress.reg,bizCount:d.progress.bizCount}); setDisplay('btn-dl-txt','block'); setDisplay('btn-dl-csv','block'); setDisplay('btn-copy-res','block'); toast('Scan Complete','success'); playSuccessSound(); }
@@ -2114,19 +2117,20 @@ function dlHist(idx){
 /* ============================================================
    FEATURE PACK: Retry, Lists, Jobs, Templates, Files, Admin Tools
    ============================================================ */
-async function retryFailedNumbers(){ if(!failedNums.length) return toast('No failed numbers to retry','error'); setVal('numbers-input',failedNums.join('\n')); updateNumberPreview(); switchTab('tab-check'); toast(`Loaded ${failedNums.length} failed numbers`,'success'); }
-async function saveCurrentList(){ const {nums}=normalizeInputNumbers(); if(!nums.length) return toast('No numbers to save','error'); const name=getVal('list-name')||`List ${new Date().toLocaleString()}`; try{ const r=await apiFetch('/api/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,numbers:nums,description:getVal('list-desc')})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed'); toast('List saved','success'); fetchLists(); }catch(e){toast(e.message,'error');} }
+async function retryFailedNumbers(){ try{if(!failedNums.length) failedNums=JSON.parse(sessionStorage.getItem('mpa_failed')||'[]');}catch(e){} if(!failedNums.length) return toast('No failed numbers to retry','error'); try{const k=JSON.parse(sessionStorage.getItem('mpa_keep')||'{}'); k['numbers-input']=failedNums.join('\n'); sessionStorage.setItem('mpa_keep',JSON.stringify(k));}catch(e){} setVal('numbers-input',failedNums.join('\n')); updateNumberPreview(); switchTab('tab-check'); toast(`Loaded ${failedNums.length} failed numbers`,'success'); }
+async function saveCurrentList(){ let {nums}=normalizeInputNumbers(); try{if(!nums.length){ const k=JSON.parse(sessionStorage.getItem('mpa_keep')||'{}'); const raw=String(k['numbers-input']||''); const seen=new Set(); nums=raw.split(/[\r\n,;\s]+/).map(n=>n.replace(/[^0-9]/g,'')).filter(n=>n.length>=7&&n.length<=15).filter(n=>{if(seen.has(n))return false;seen.add(n);return true;}); }}catch(e){} if(!nums.length) return toast('No numbers to save','error'); const name=getVal('list-name')||`List ${new Date().toLocaleString()}`; try{ const r=await apiFetch('/api/lists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,numbers:nums,description:getVal('list-desc')})}); const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed'); toast('List saved','success'); fetchLists(); }catch(e){toast(e.message,'error');} }
 let savedListsCache=[];
 async function fetchLists(){
   try{ const r=await apiFetch('/api/lists'); const d=await r.json(); if(!d.ok) return; savedListsCache=d.lists||[];
     setHTML('lists-box', savedListsCache.length?savedListsCache.map(l=>`<div class="list-item" style="align-items:flex-start"><div><b style="color:var(--accent)">${esc(l.name)}</b> <span class="pill">${l.numbers.length} nums</span><br><span>${esc(l.createdAt)}</span><br><small>${esc(l.description||'')}</small></div><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="loadSavedList('${escAttr(l.id)}')">Load</button><button class="btn btn-ghost btn-sm" onclick="copyText(savedListsCache.find(x=>x.id==='${escAttr(l.id)}').numbers.join('\\n'),'List copied')">Copy</button><button class="btn btn-danger btn-sm" onclick="deleteList('${escAttr(l.id)}')">Delete</button></div></div>`).join(''):'<div style="text-align:center;padding:30px;opacity:.6">No saved lists yet. Save your current checker input.</div>');
   }catch(e){}
 }
-function loadSavedList(id){ const l=savedListsCache.find(x=>x.id===id); if(!l) return; setVal('numbers-input',l.numbers.join('\n')); updateNumberPreview(); switchTab('tab-check'); }
+function loadSavedList(id){ const l=savedListsCache.find(x=>x.id===id); if(!l) return; try{const k=JSON.parse(sessionStorage.getItem('mpa_keep')||'{}'); k['numbers-input']=l.numbers.join('\n'); sessionStorage.setItem('mpa_keep',JSON.stringify(k));}catch(e){} setVal('numbers-input',l.numbers.join('\n')); updateNumberPreview(); switchTab('tab-check'); }
 async function deleteList(id){ if(!confirm('Delete this list?')) return; try{await apiFetch(`/api/lists/${id}`,{method:'DELETE'}); fetchLists();}catch(e){} }
 async function fetchJobs(){ try{ const r=await apiFetch('/api/jobs'); const d=await r.json(); if(!d.ok) return; const queued=(d.queued||[]).map((j,i)=>`<div class="list-item"><div><b>Queued #${i+1}</b><br>${j.numbers?.length||0} numbers | ${esc(j.queuedAt)}</div><span class="pill">Waiting</span></div>`).join(''); const jobs=(d.jobs||[]).map(j=>`<div class="list-item"><div><b>${esc(j.status||'Job')}</b><br>UID ${j.uid} | ${j.checked||0}/${j.total||0} | Remaining ${(j.remaining||[]).length}<br>${esc(j.updatedAt||'')}</div><button class="btn btn-primary btn-sm" onclick="resumeLastJob()">Resume</button></div>`).join(''); setHTML('jobs-list', queued+jobs || 'No jobs found.'); }catch(e){} }
 async function saveTemplate(){ try{ const r=await apiFetch('/api/templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:getVal('tpl-name')||'Template',speed:getVal('tpl-speed'),deepScan:document.getElementById('tpl-deep')?.checked})}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); toast('Template saved','success'); fetchTemplates(); }catch(e){toast(e.message,'error');} }
-async function fetchTemplates(){ try{ const r=await apiFetch('/api/templates'); const d=await r.json(); if(!d.ok) return; setHTML('templates-box', d.templates.length?d.templates.map(t=>`<div class="list-item"><div><b>${esc(t.name)}</b><br><span class="pill">${esc(({safe:'Safe',balanced:'Balanced',fast:'Fast',beast:'Max'})[t.speed]||t.speed)}</span> <span class="pill">Deep: ${t.deepScan?'yes':'no'}</span></div><button class="btn btn-primary btn-sm" onclick="setVal('scan-speed','${escAttr(t.speed)}');document.getElementById('deep-scan').checked=${!!t.deepScan};switchTab('tab-check')">Use</button></div>`).join(''):'No templates.'); }catch(e){} }
+function useTemplateSpeed(speed,deep){ try{const k=JSON.parse(sessionStorage.getItem('mpa_keep')||'{}'); k['scan-speed']=speed; k['deep-scan']=deep?'1':'0'; sessionStorage.setItem('mpa_keep',JSON.stringify(k));}catch(e){} setVal('scan-speed',speed); const d=document.getElementById('deep-scan'); if(d) d.checked=!!deep; switchTab('tab-check'); }
+async function fetchTemplates(){ try{ const r=await apiFetch('/api/templates'); const d=await r.json(); if(!d.ok) return; setHTML('templates-box', d.templates.length?d.templates.map(t=>`<div class="list-item"><div><b>${esc(t.name)}</b><br><span class="pill">${esc(({safe:'Safe',balanced:'Balanced',fast:'Fast',beast:'Max'})[t.speed]||t.speed)}</span> <span class="pill">Deep: ${t.deepScan?'yes':'no'}</span></div><button class="btn btn-primary btn-sm" onclick="useTemplateSpeed('${escAttr(t.speed)}',${!!t.deepScan})">Use</button></div>`).join(''):'No templates.'); }catch(e){} }
 async function fetchFiles(){ try{ const r=await apiFetch('/api/files'); const d=await r.json(); if(d.ok) setHTML('files-box', d.files.length?d.files.map(f=>`<div class="list-item"><div>${esc(f.name||f.id)}</div></div>`).join(''):'No saved files yet.'); }catch(e){} }
 async function shareCurrentResults(){ try{ const r=await apiFetch('/api/share-result',{method:'POST'}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setHTML('share-box',`Share link: <b>${esc(location.origin+d.url)}</b> <button class="btn-icon copy-mini" onclick="copyText('${escAttr(location.origin+d.url)}','Share link copied')">${icMark('copy')}</button>`); }catch(e){toast(e.message,'error');} }
 async function testWebhook(){ try{ const r=await apiFetch('/api/webhook/test',{method:'POST'}); const d=await r.json(); toast(d.ok?'Webhook OK':'Webhook failed',d.ok?'success':'error'); fetchWebhookLogs(); }catch(e){toast('Webhook test failed','error');} }
@@ -2144,6 +2148,46 @@ async function fetchPlans(){ const r=await apiFetch('/api/admin/plans'); const d
 async function fetchVouchers(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); setHTML('admin-feature-box',`<pre>${esc(JSON.stringify(d.vouchers,null,2))}</pre>`); }
 async function fetchVoucherManager(){ const r=await apiFetch('/api/admin/vouchers'); const d=await r.json(); const entries=Object.entries(d.vouchers||{}); setHTML('voucher-manager-box', entries.length?entries.map(([code,v])=>`<div class="list-item"><div><b style="color:var(--accent-gold)">${esc(code)}</b><br><span class="pill">${esc(v.type)}</span> <span class="pill">${esc(v.days)} days</span> <span class="pill">Uses left: ${esc(v.uses)}</span><br>Used by: ${(v.usedBy||[]).map(esc).join(', ')||'none'}</div><div style="display:flex;gap:6px"><button class="btn-icon copy-mini" onclick="copyText('${escAttr(code)}','Voucher copied')">${icMark('copy')}</button><button class="btn btn-danger btn-sm" onclick="disableVoucher('${escAttr(code)}')">Disable</button></div></div>`).join(''):'No vouchers yet.'); }
 async function genVoucherManager(){ try{ const bulk=Number(getVal('vm-bulk')||1); const exp=getVal('vm-expiry')?new Date(getVal('vm-expiry')).getTime():null; const endpoint=bulk>1?'/api/admin/vouchers/bulk':'/api/admin/voucher'; const body=bulk>1?{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),uses:Number(getVal('vm-count')||1),count:bulk,expiresAt:exp}:{adminUid:USER_ID,type:getVal('vm-type'),days:Number(getVal('vm-days')||30),count:Number(getVal('vm-count')||1),expiresAt:exp}; const r=await apiFetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!d.ok) throw new Error('Failed'); setTxt('vm-result',d.code||`${d.codes.length} codes generated`); fetchVoucherManager(); }catch(e){toast('Voucher failed','error')} }
+async function fetchStarsAdmin(){
+  try{
+    setHTML('stars-ledger-box','Loading…');
+    const [b,l,c]=await Promise.all([apiFetch('/api/admin/stars/balance').then(r=>r.json()).catch(()=>({ok:false})),apiFetch('/api/admin/stars/ledger').then(r=>r.json()).catch(()=>({ok:false})),apiFetch('/api/admin/stars').then(r=>r.json()).catch(()=>({ok:false}))]);
+    if(b.ok) setHTML('stars-balance-box',`Telegram holds: <b style="color:var(--accent-gold)">${esc(b.balance??'n/a')} ⭐</b>${b.balanceError?`<br><small>Balance: ${esc(b.balanceError)}</small>`:''}${b.txnError?`<br><small>Txns: ${esc(b.txnError)}</small>`:''}`);
+    else setHTML('stars-balance-box','Balance unavailable.');
+    const txns=(b.ok&&b.transactions)||[];
+    setHTML('stars-txns-box',txns.length?txns.map(t=>`<div class="list-item"><div><b>${t.amount>=0?'+':''}${esc(t.amount)} ⭐</b> <span class="pill">${esc(t.date?new Date(t.date*1000).toLocaleDateString():'?')}</span><br><small style="word-break:break-all">${esc(t.id)}</small>${t.source&&t.source.user?`<br><small>👤 ${esc(t.source.user.id)}</small>`:''}</div></div>`).join(''):'No transactions.');
+    const pays=(l.ok&&l.payments)||[];
+    setHTML('stars-ledger-box',pays.length?pays.map(p=>`<div class="list-item"><div><b>${esc(p.stars)} ⭐</b> <span class="pill">${esc(p.tier)} ${esc(p.days)}d</span> ${p.refunded?'<span class="pill">refunded</span>':''} ${p.planId==='trial_1'?'<span class="pill">trial</span>':''}<br><small>👤 ${esc(p.uid)} · ${esc(p.at||'')}</small><br><small style="word-break:break-all">${esc(p.chargeId)}</small></div>${p.refunded?'':`<button class="btn btn-danger btn-sm" onclick="refundStarsWeb('${escAttr(p.chargeId)}')">Refund</button>`}</div>`).join(''):'No payments yet.');
+    if(c.ok){ setVal('stars-enabled',String(!!c.enabled)); setVal('stars-plans-json',JSON.stringify(c.plans||[],null,1)); }
+  }catch(e){ toast('Stars load failed','error'); }
+}
+async function refundStarsWeb(chargeId){
+  const id=chargeId||getVal('stars-refund-id'); if(!id) return toast('Enter a charge id or buyer uid','error');
+  if(!confirm(`Refund ${id}? Stars move instantly and the plan pack is revoked.`)) return;
+  try{
+    const r=await apiFetch('/api/admin/stars/refund',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chargeId:id})});
+    const d=await r.json();
+    setHTML('stars-refund-result',d.ok?`✅ Refunded ${esc(d.stars)} ⭐ → uid ${esc(d.uid)}${d.stillActive?' (plan stays active)':''}`:`❌ ${esc(d.error||d.code||'failed')}${d.diag?`<br><small>${esc(d.diag)}</small>`:''}`);
+    if(d.ok){ setVal('stars-refund-id',''); fetchStarsAdmin(); }
+    toast(d.ok?'Refunded':'Refund failed',d.ok?'success':'error');
+  }catch(e){ toast('Refund failed','error'); }
+}
+async function saveStarsCatalog(){
+  try{
+    const plans=JSON.parse(getVal('stars-plans-json')||'[]');
+    const r=await apiFetch('/api/admin/stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:getVal('stars-enabled')==='true',plans})});
+    const d=await r.json(); toast(d.ok?'Catalog saved':'Save failed',d.ok?'success':'error');
+  }catch(e){ toast('Invalid JSON','error'); }
+}
+async function testForceJoin(){
+  try{
+    setHTML('forcejoin-box','Testing channels…');
+    const r=await apiFetch('/api/admin/force-join/test'); const d=await r.json();
+    if(!d.ok) throw new Error(d.error||'failed');
+    setHTML('forcejoin-box',(d.results||[]).map(p=>`<div class="list-item"><div>${p.joined||p.reason==='not_joined'?'✅':'❌'} <b>${esc(p.label||'channel')}</b><br><small>${esc(p.reason||'')}${p.detail?' · '+esc(p.detail):''}${p.status?' · you: '+esc(p.status):''}</small></div></div>`).join('')||'No channels configured.');
+  }catch(e){ toast('Force-join test failed','error'); }
+}
+
 function exportVouchersCSV(){ window.open('/api/admin/vouchers-export','_blank'); }
 async function disableVoucher(code){ await apiFetch(`/api/admin/vouchers/${encodeURIComponent(code)}/disable`,{method:'POST'}); fetchVoucherManager(); }
 let brandLogoData='';
@@ -2243,7 +2287,57 @@ async function reMyNode(sid){
     }catch(e){ toast('Network Error','error'); }
 }
 
-async function buyPrem(){ try{await apiFetch('/api/premium-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Request Sent','success'); }
+// ⭐ Telegram Stars plan shop (profile UPGRADE TIER button / Mini App)
+function removeStarsModal(){ const o=document.getElementById('stars-overlay'); if(o) o.remove(); }
+function showStarsShop(plans){
+  removeStarsModal();
+  const overlay=document.createElement('div'); overlay.id='stars-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box=document.createElement('div');
+  box.style.cssText='background:#0b0f17;border:1px solid var(--border,#26324a);border-radius:16px;padding:20px;max-width:420px;width:100%;color:var(--text,#e7ecf5);font-family:Space Mono,monospace;max-height:88vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.6);';
+  let rows='<div style="text-align:center;font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:1px">💳 UPGRADE PLAN</div>'
+    +'<div style="font-size:11px;opacity:.7;margin-bottom:12px;text-align:center">Tap a pack to pay with ⭐ Stars (instant) — or use Binance/USDT below.</div>';
+  for(const p of plans){
+    rows+=`<button onclick="buyStarsPlan('${escAttr(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;margin:6px 0;padding:12px 14px;background:#101627;border:1px solid #22304a;border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;font-size:13px"><span>${p.trial?'🎁':(p.tier==='VIP'?'🔥':'💎')} ${esc(p.tier)} &middot; ${p.days}d</span><span style="color:#ffd34d">${p.stars} ⭐${p.trial?' · one-time':''}</span></button>`;
+  }
+  rows+='<div style="margin:14px 0 2px;text-align:center;font-size:10px;opacity:.55">— or pay by another method —</div>'
+    +'<button onclick="altOwnerContact()" style="display:block;width:100%;padding:11px 14px;background:#101627;border:1px solid #2a3a5c;border-radius:10px;cursor:pointer;color:inherit;font-family:inherit;font-size:13px">💠 Pay via Binance / USDT / other → contact Owner</button>';
+  rows+='<div style="text-align:center;margin-top:12px"><button onclick="removeStarsModal()" style="padding:8px 22px;border-radius:8px;background:transparent;border:1px solid #22304a;cursor:pointer;color:inherit;font-family:inherit">Close</button></div>';
+  box.innerHTML=rows; overlay.appendChild(box); document.body.appendChild(overlay);
+}
+async function altOwnerContact(){
+  let username='';
+  try{ const r=await apiFetch('/api/stars/support'); const d=await r.json(); if(d.ok) username=d.username||''; }catch(e){}
+  if(username){
+    const msg=encodeURIComponent(`Hi! I'd like to upgrade my plan and pay via Binance / USDT (or another network). My Telegram ID: ${USER_ID}. Please share payment details.`);
+    window.open(`https://t.me/${username}?text=${msg}`,'_blank');
+  }
+  removeStarsModal();
+  toast(username?('Opening owner chat to arrange payment…'):'Message the owner from the bot chat —💎 Upgrade','info');
+}
+async function openStarsShop(){
+  if(!USER_ID) return toast('Login required','error');
+  try{
+    const r=await apiFetch('/api/stars/plans'); const d=await r.json();
+    if(!d.ok||!d.enabled||!d.plans||!d.plans.length) return toast('Stars shop is currently disabled','error');
+    showStarsShop(d.plans);
+  }catch(e){ toast('Failed to load plans','error'); }
+}
+async function buyStarsPlan(planId){
+  const tg = window.Telegram && window.Telegram.WebApp;
+  if(!tg || typeof tg.openInvoice !== 'function'){ toast('Open the ⭐ Upgrade menu inside the bot chat to pay with Stars','error'); removeStarsModal(); return; }
+  let invoiceUrl;
+  try{
+    const r=await apiFetch('/api/stars/create-invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({planId})});
+    const d=await r.json(); if(!d.ok) throw new Error(d.error||'Failed to create invoice'); invoiceUrl=d.invoiceUrl;
+  }catch(e){ return toast(e.message||'Could not create Stars invoice','error'); }
+  try{
+    tg.openInvoice(invoiceUrl, function(status){
+      if(status==='paid'){ toast('Payment received — upgrading now…','success'); removeStarsModal(); setTimeout(function(){ window.location.reload(); },1500); }
+      else if(status==='cancelled'){ toast('Payment cancelled','info'); }
+    });
+  }catch(e){ toast('Could not open payment. Try the bot chat ⭐ Upgrade menu.','error'); }
+}
 async function cmdReset(){ try{await apiFetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:USER_ID})});}catch(e){} toast('Engine Reset','success'); }
 
 async function fetchApiUsage(){
@@ -2393,7 +2487,7 @@ async function fetchAllUsers(){
     try{
         const r=await apiFetch(`/api/admin/users/${USER_ID}`); const d=await r.json(); if(!d.ok) return;
         allUsersData=d.users; let h="";
-        Object.keys(d.users).forEach(id=>{ let u=d.users[id]; let b=d.admins.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent-gold)"><use href="#i-crown"></use></svg>':(d.vips.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent)"><use href="#i-flame"></use></svg>':(d.subs.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent2)"><use href="#i-gem"></use></svg>':'')); h+=`<div class="list-item"><div><b style="color:#fff;">${esc(id)}</b> ${b}</div> <div style="color:var(--text2);">@${esc(u.username||'N/A')} - ${esc(u.name)}</div></div>`; });
+        Object.keys(d.users).forEach(id=>{ let u=d.users[id]; let b=d.admins.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent-gold)"><use href="#i-crown"></use></svg>':(d.vips.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent)"><use href="#i-flame"></use></svg>':(d.subs.includes(Number(id))?'<svg class="ic" aria-hidden="true" style="color:var(--accent2)"><use href="#i-gem"></use></svg>':'')); h+=`<div class="list-item"><div><b style="color:#fff;">${esc(id)}</b> ${b}${u.trialUsed?'<span class="pill">🎁 trial used</span>':''}</div> <div style="color:var(--text2);">@${esc(u.username||'N/A')} - ${esc(u.name)}</div></div>`; });
         setHTML('admin-users-list',h||"No users.");
     } catch(e){}
 }

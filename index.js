@@ -27,7 +27,7 @@ console.log(`
 ██████╔╝███████╗██║  ██║███████╗███████╗    ██║ ╚████║██╔╝ ██╗   ██║   
 ╚═════╝ ╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝    ╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝   
                                             
-      🔥 WS CHECKER v6.0.0 — READY
+      🔥 WS CHECKER v6.0.1 — READY
       Owner: @firstoget | Port: ${config.PORT}
 `);
 
@@ -117,6 +117,11 @@ async function main() {
     require("./bot_commands")(bot);
     require("./bot_callbacks")(bot);
     require("./bot_messages")(bot);
+    require("./cmd_flow").installCmdFlows(bot);
+
+    // ── ⭐ TELEGRAM STARS PLAN SHOP (automated upgrades) ──────
+    try { require("./stars").installStars(bot); }
+    catch (err) { console.error("❌ [Stars] Shop init failed:", err.message); }
 
     // ── ⚙️ AUTO-SETUP (zero-touch server-side configuration) ──
     // Bot name, description, command menu and the Mini App button are all
@@ -128,9 +133,14 @@ async function main() {
 
     // ── 🔄 LIVE PROGRESS HOOK (Sync Telegram Edits to Web) ────
     const { colorizeOptions } = require("./tg_colors");
+    const { hasMarkup, markdownToHtml } = require("./md_html");
     const _origEdit = bot.editMessageText.bind(bot);
     bot.editMessageText = async function (text, options) {
         options = colorizeOptions(options);
+        if (typeof text === "string" && hasMarkup(text)) {
+            options = { ...options, parse_mode: "HTML" };
+            text = markdownToHtml(text);
+        }
         if (typeof text === "string" && (text.includes("𝗟𝗜𝗩𝗘 𝗘𝗡𝗚𝗜𝗡𝗘") || text.includes("𝗚𝗢𝗗 𝗠𝗢𝗗𝗘"))) {
             const uid = options?.chat_id;
             const progMatch = text.match(/Progress:\s*(\d+)\/(\d+)/);

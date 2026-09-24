@@ -209,7 +209,7 @@ async function runHumanChecker(uid, numbers, activeSocks, bot, statusMsgId) {
                     `┣ ⏱️ *ETA:* ${getETA(startedAt, checked, total)}\n` +
                     `╰━━━━━━━━━━━━━━━━━━━━━━╯`, 
                     { chat_id: uid, message_id: statusMsgId, parse_mode: "Markdown" }
-                ).catch(() => { editFails++; });
+                ).catch((e) => { editFails++; console.warn(`⚠️ [TG] live progress edit failed (${editFails}x):`, e.message); });
             }
         }
 

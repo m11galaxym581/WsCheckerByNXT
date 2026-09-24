@@ -8,7 +8,8 @@
 const {
     getDB, saveDB, isAdmin, isSub, isVIP, isOwner, isBanned, getUserLang, setUserLang,
     addAdmin, removeAdmin, addSubscriber, removeSubscriber, addVIP, removeVIP,
-    banUser, unbanUser, generateWebPass, generateApiKey, createVoucher, getStats
+    banUser, unbanUser, generateWebPass, generateApiKey, createVoucher, getStats,
+    openSupport, closeSupport
 } = require("./database");
 const { warmupNodes, deleteSession, listUserSessions, listAllSessions, startSession } = require("./whatsapp");
 const config = require("./config");
@@ -41,14 +42,13 @@ module.exports = (bot) => {
     // ============================================================
 
     function mainMenu(uid) {
-        const L = getUserLang(uid);
         const btns = [
-            [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
-            [{ text: "📱 Add Node", callback_data: "add_sess_req" }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
-            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
-            [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
-            [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
-            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            [{ text: "🚀 New Check",       callback_data: "start_check"    }, { text: "📊 My Stats", callback_data: "my_stats" }],
+            [{ text: "📱 Add Node",        callback_data: "add_sess_req"   }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
+            [{ text: "📜 History",         callback_data: "my_history"     }, { text: "🔐 Web Login", callback_data: "gen_web_pass" }],
+            [{ text: "⚙️ API & Webhooks", callback_data: "api_menu"       }, { text: "🌐 Language", callback_data: "language_menu" }],
+            [{ text: "💬 Support",         callback_data: "support_chat"   }, { text: "ℹ️ About",    callback_data: "show_info" }],
+            [{ text: "💎 Upgrade",         callback_data: "stars_shop"     }, { text: "🎟️ Redeem",  callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);
@@ -60,7 +60,7 @@ module.exports = (bot) => {
             inline_keyboard: [
                 [{ text: "🔑 Generate API Key", callback_data: "gen_api_key"   }],
                 [{ text: "🔗 Set Webhook URL",  callback_data: "set_webhook"   }],
-                [{ text: "🔙 Back to Main Menu",callback_data: "back_main"     }]
+                [{ text: "🔙 Back",callback_data: "back_main"     }]
             ]
         };
     }
@@ -72,7 +72,7 @@ module.exports = (bot) => {
                 [{ text: "🗄️ Manage Sessions",   callback_data: "m_sessions"     }, { text: "🛡️ Ping Nodes",   callback_data: "warmup_nodes"   }],
                 [{ text: "⚙️ User Management",   callback_data: "user_mgmt_menu" }, { text: "🎁 Vouchers",     callback_data: "voucher_menu"   }],
                 [{ text: "👥 DB Dump (CSV)",     callback_data: "all_users_list" }],
-                [{ text: "🔙 Back to Main Menu", callback_data: "back_main"      }],
+                [{ text: "🔙 Back", callback_data: "back_main"      }],
             ]
         };
     }
@@ -83,7 +83,7 @@ module.exports = (bot) => {
                 [{ text: "⭐ Add PRO User",      callback_data: "add_sub_req"    }, { text: "➖ Remove PRO",   callback_data: "rem_sub_list"   }],
                 [{ text: "🔥 Add VIP User",      callback_data: "add_vip_req"    }, { text: "➖ Remove VIP",   callback_data: "rem_vip_list"   }],
                 [{ text: "🚫 Ban User",          callback_data: "ban_req"        }, { text: "✅ Unban User",   callback_data: "unban_req"      }],
-                [{ text: "🔙 Back to Admin Panel",callback_data: "open_admin_panel" }]
+                [{ text: "🔙 Back to Admin",callback_data: "open_admin_panel" }]
             ]
         };
     }
@@ -93,7 +93,7 @@ module.exports = (bot) => {
             inline_keyboard: [
                 [{ text: "🎁 Generate 30-Day PRO", callback_data: "gen_vouch_pro_30" }],
                 [{ text: "🔥 Generate 30-Day VIP", callback_data: "gen_vouch_vip_30" }],
-                [{ text: "🔙 Back to Admin Panel", callback_data: "open_admin_panel" }]
+                [{ text: "🔙 Back to Admin", callback_data: "open_admin_panel" }]
             ]
         };
     }
@@ -104,7 +104,8 @@ module.exports = (bot) => {
                 [{ text: "👑 Add Admin",         callback_data: "add_adm_req"    }, { text: "🗑️ Remove Admin", callback_data: "rem_adm_list"   }],
                 [{ text: "🚧 Toggle Maintenance",callback_data: "toggle_maint"   }, { text: "💾 Force Backup", callback_data: "force_backup"   }],
                 [{ text: "🌍 Free Mode", callback_data: "mode_free" }, { text: "💎 Subscription Mode", callback_data: "mode_subscription" }],
-                [{ text: "🔙 Back to Main Menu", callback_data: "back_main"      }]
+                [{ text: "⌨ All Commands", callback_data: "cmds" }],
+                [{ text: "🔙 Back", callback_data: "back_main"      }]
             ]
         };
     }
@@ -116,9 +117,12 @@ module.exports = (bot) => {
     // 🕹️ CALLBACK QUERY HANDLER
     // ============================================================
     bot.on("callback_query", async (q) => {
+        if (!q || !q.from) return;
         const uid  = q.from.id;
         const data = q.data;
-        const msgId = q.message.message_id;
+        if (typeof data !== "string") return;
+        // Inline-mode callbacks arrive without a message object — guard it.
+        const msgId = q.message && q.message.message_id;
 
         // Answer callback to remove Telegram loading spinner
         try { await bot.answerCallbackQuery(q.id); } catch (_) {}
@@ -133,6 +137,10 @@ module.exports = (bot) => {
 
         // ── Helper: Edit Message (Auto-Delete Old Content) ──
         const safeEdit = (text, markup) => {
+            // Inline-mode callbacks have no message to edit — send a fresh one.
+            if (!msgId) {
+                return bot.sendMessage(uid, text, { parse_mode: "Markdown", reply_markup: markup }).catch(() => {});
+            }
             return bot.editMessageText(text, {
                 chat_id: uid,
                 message_id: msgId,
@@ -158,8 +166,10 @@ module.exports = (bot) => {
         // ============================================================
         if (data === "back_main") {
             state.clearUserStep(uid);
-            let statusBadge = isOwner(uid) ? "⚡ GOD (OWNER)" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
-            return safeEdit(`╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n┣ 👤 *Welcome back,* ${q.from.first_name}!\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
+            closeSupport(uid);
+            let statusBadge = isOwner(uid) ? "⚡ OWNER" : (isAdmin(uid) ? "👑 ADMIN" : (isVIP(uid) ? "🔥 VIP TIER" : (isSub(uid) ? "💎 PRO TIER" : "🧊 FREE TIER")));
+            const brandTag = `${config.BRAND_NAME} ${config.BRAND_VER}`;
+            return safeEdit(`╭━━━━━━[ ✅ *${brandTag}* ]━━━━━━╮\n┣ 👤 *Welcome back, ${q.from.first_name}!*\n┣ 🎖️ *Status:* ${statusBadge}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, mainMenu(uid));
         }
 
 
@@ -189,7 +199,7 @@ module.exports = (bot) => {
 
         if (data === "open_owner_panel" && isOwner(uid)) {
             state.clearUserStep(uid);
-            return safeEdit(`╭━━━━━[ ⚡ *𝗚𝗢𝗗 𝗣𝗔𝗡𝗘𝗟* ]━━━━━╮\n┣ Root Access Granted.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, ownerPanel());
+            return safeEdit(`╭━━━━━[ ⚡ *𝗢𝗪𝗡𝗘𝗥 𝗣𝗔𝗡𝗘𝗟* ]━━━━━╮\n┣ Owner controls for this engine.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, ownerPanel());
         }
 
         if (data === "api_menu") {
@@ -230,29 +240,6 @@ module.exports = (bot) => {
             return safeEdit(`╭━━━━[ 🔐 *𝗪𝗘𝗕 𝗗𝗔𝗦𝗛𝗕𝗢𝗔𝗥𝗗* ]━━━━╮\n┣ 🆔 *User ID:* \`${uid}\`\n┣ 🔑 *Password:* \`${pass}\`\n┣━━━━━━━━━━━━━━━━━━━━━━━━━━\n┣ 💡 Login at the Web URL to use Drag & Drop.\n┣ 🛜 *Auto-Login (inside Telegram):*\n┣    ${miniApp}\n┣    No password needed when opened from Telegram\n┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL}\n╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main", "🔙 Back"));
         }
 
-        if (data === "buy_prem_req") {
-            safeEdit("🚀 乂 𝐁𝐋𝐀𝐙𝐄 𝐍𝐗𝐓 乂\n\n" +
-"💎 𝗣𝗥𝗘𝗠𝗜𝗨𝗠 𝗥𝗘𝗤𝗨𝗘𝗦𝗧 𝗦𝗘𝗡𝗧!\n\n" +
-"⏳ Your request has been successfully sent to our Admin team.\n" +
-"⚡ Approval usually takes 𝗮 𝗳𝗲𝘄 𝗺𝗶𝗻𝘂𝘁𝗲𝘀.\n\n" +
-"━━━━━━━━━━━━━━━━━━━\n" +
-"🔥 𝗪𝗛𝗬 𝗚𝗢 𝗣𝗥𝗘𝗠𝗜𝗨𝗠?\n" +
-"• ⚡ Ultra Fast Checking Speed\n" +
-"• 🔢 Up to Unlimited Numbers per check\n" +
-"• 🚀 Priority Server Access\n" +
-"• 💎 Premium Experience\n" +
-"━━━━━━━━━━━━━━━━━━━\n\n" +
-"📞 𝗖𝗢𝗡𝗧𝗔𝗖𝗧 𝗔𝗗𝗠𝗜𝗡 𝗙𝗢𝗥 𝗙𝗔𝗦𝗧 𝗔𝗣𝗣𝗥𝗢𝗩𝗔𝗟:\n" +
-"• @firstoget\n\n" +
-"© *Developed by:* @firstoget\n" +
-"⚡ Powered by 乂 𝐁𝐋𝐀𝐙𝐄 𝐍𝐗𝐓 乂", backBtn("back_main"));
-            db.admins.forEach(aid => {
-                bot.sendMessage(aid, `🚨 *UPGRADE REQUEST*\n┣ 👤 Name: ${q.from.first_name}\n┣ 🆔 ID: \`${uid}\``, {
-                    parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "✅ Approve PRO 30d", callback_data: `apr_sub_${uid}` }]] }
-                }).catch(()=>{});
-            });
-            return;
-        }
 
         if (data.startsWith("apr_sub_") && isAdmin(uid)) {
             const tid = Number(data.split("_")[2]);
@@ -343,7 +330,11 @@ module.exports = (bot) => {
         if (data === "my_history") {
             const hist = db.history?.[uid];
             if (!hist || hist.length === 0) return safeEdit("📜 *No check history found.*", backBtn("back_main"));
-            const lines = hist.slice(0,10).map((h, i) => `${i + 1}. 📅 ${h.date}\n   Total: ${h.total} | ✅ ${h.reg} | 💼 Biz: ${h.isBiz||0} | ❌ ${h.unreg}`).join("\n\n");
+            const lines = hist.slice(0,10).map((h, i) =>
+                `${i + 1}. 📅 ${h.date}\n` +
+                `   🔢 ${h.total} total  •  ✅ ${h.reg} reg\n` +
+                `   💼 ${h.isBiz || 0} biz  •  ❌ ${h.unreg} unreg  •  ⚠️ ${h.failed || 0} failed`
+            ).join("\n\n");
             return safeEdit(`╭━━━[ 📜 *𝗠𝗬 𝗛𝗜𝗦𝗧𝗢𝗥𝗬* (Last 10) ]━━━╮\n\n${lines}\n\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
         }
 
@@ -354,11 +345,31 @@ module.exports = (bot) => {
         }
 
         if (data === "support_chat") {
-            return safeEdit(`╭━━━[ 💬 *𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗗𝗘𝗦𝗞* ]━━━╮\n┣ Type your message directly in chat.\n┣ (Do not include phone numbers)\n┣ Admins will reply here shortly.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main", "🔙 Back to Main"));
+            openSupport(uid);
+            return safeEdit(
+                `╭━━━[ 💬 *𝗦𝗨𝗣𝗣𝗢𝗥𝗧 𝗗𝗘𝗦𝗞* ]━━━╮\n` +
+                `┣ You are connected to Support.\n` +
+                `┣ Type your question below and press send —\n` +
+                `┣    it is delivered to our team and answered\n` +
+                `┣    right here in this chat.\n` +
+                `┣━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `┣ 📌 Only messages you send *now* go to Support.\n` +
+                `┣ 🔚 Press *End Chat* (or send /cancel) to close.\n` +
+                `╰━━━━━━━━━━━━━━━━━━━━━━━╯`,
+                { inline_keyboard: [
+                    [{ text: "🔚 End Chat", callback_data: "support_end", style: "danger" }],
+                    [{ text: "🔙 Back", callback_data: "back_main" }],
+                ] }
+            );
+        }
+
+        if (data === "support_end") {
+            closeSupport(uid);
+            return safeEdit("✅ *Support chat closed.*\n\nYou are back on the main menu.", mainMenu(uid));
         }
 
         if (data === "redeem_prompt") {
-            return safeEdit(`╭━━━[ 🎁 *𝗥𝗘𝗗𝗘𝗘𝗠 𝗩𝗢𝗨𝗖𝗛𝗘𝗥* ]━━━╮\n┣ To redeem a Promo Code, send the command:\n┣ \`/redeem BLAZE<TIER>-XXXXXX\`\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
+            return safeEdit(`╭━━━[ 🎁 *𝗥𝗘𝗗𝗘𝗘𝗠 𝗩𝗢𝗨𝗖𝗛𝗘𝗥* ]━━━╮\n┣ To claim a voucher, send the code as:\n┣ \`/redeem BLAZEPRO-XXXXXXXX\`\n┣\n┣ Example:\n┣ /redeem BLAZEVIP-E24FBA70\n┣\n┣ ⚠️ Just typing the code (without /redeem)\n┣    will not redeem it.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, backBtn("back_main"));
         }
 
         // ── API & Webhooks ──
@@ -445,14 +456,27 @@ module.exports = (bot) => {
             const users = getDB().users; const ids = Object.keys(users);
             if (!ids.length) return safeEdit("👥 *No users.*", backBtn("open_admin_panel"));
             safeEdit(`⏳ *Generating Database CSV via Bot...*`, backBtn("open_admin_panel"));
-            
-            // Generate native CSV for Telegram
+
+            // Generate native CSV for Telegram.
+            // Fields are quoted AND escaped (a name containing a quote or a
+            // newline used to corrupt every following row), and the file is
+            // written to the data dir (__dirname can be read-only in prod).
+            const csvCell = (v) => `"${String(v == null ? "" : v).replace(/"/g, '""').replace(/[\r\n]+/g, " ")}"`;
             let csv = "ID,Name,Username,Banned\n";
-            ids.forEach(id => { csv += `${id},"${users[id].name}","${users[id].username}","${users[id].banned}"\n`; });
-            const filePath = path.join(__dirname, `DB_Dump_${Date.now()}.csv`);
-            fs.writeFileSync(filePath, csv);
-            await bot.sendDocument(uid, filePath, { caption: "👥 Database Export" }).catch(()=>{});
-            fs.unlinkSync(filePath);
+            ids.forEach(id => {
+                const u = users[id] || {};
+                csv += [csvCell(id), csvCell(u.name), csvCell(u.username), csvCell(u.banned)].join(",") + "\n";
+            });
+            const filePath = path.join(config.DATA_ROOT, `DB_Dump_${Date.now()}.csv`);
+            try {
+                fs.writeFileSync(filePath, csv);
+                await bot.sendDocument(uid, filePath, { caption: `👥 Database Export (${ids.length} users)` }).catch(() => {});
+            } catch (e) {
+                console.error("❌ [DB Dump] export failed:", e.message);
+                return safeEdit("❌ Could not generate the CSV export.", backBtn("open_admin_panel"));
+            } finally {
+                try { fs.unlinkSync(filePath); } catch (_) {}
+            }
             return;
         }
 

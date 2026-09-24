@@ -26,6 +26,7 @@ function defaultDB() {
         banned: [],
         dailyStats: {},
         vouchers: {},
+        starsPayments: {},    // Telegram Stars ledger: chargeId -> payment record
         meta: { 
             version: 4, 
             maintenance: false, 
@@ -48,6 +49,7 @@ function repairDB(db) {
     if (!db.history) { db.history = {}; changed = true; }
     if (!db.banned) { db.banned = []; changed = true; }
     if (!db.vouchers) { db.vouchers = {}; changed = true; }
+    if (!db.starsPayments) { db.starsPayments = {}; changed = true; }
     if (!db.dailyStats) { db.dailyStats = {}; changed = true; }
     if (!db.meta) { db.meta = {}; changed = true; }
     if (db.meta.maintenance === undefined) { db.meta.maintenance = false; changed = true; }
@@ -117,6 +119,13 @@ function getDB() {
 
 function saveDB(db) {
     try {
+        // A synchronous save carries the freshest state. Any older snapshot
+        // still waiting in the debounce queue must be dropped — otherwise it
+        // would fire ~50ms later and overwrite this newer write (this used to
+        // silently revert plan grants: registerUser() queued a debounced save
+        // with proExpiry:null, then extendPlanStack() wrote the new expiry,
+        // and the stale snapshot clobbered it).
+        _cancelPendingSave();
         if (!db.meta) db.meta = {};
         db.meta.updatedAt = new Date().toISOString();
         if (PG_ENABLED && pgStore.ready) {
@@ -258,6 +267,53 @@ function registerUser(from) {
     return db;
 }
 
+// ── Support Desk Session (opt-in, persisted per user) ───────
+// Records whether the user has an *open* support chat so that a
+// redeploy/restart between tapping 💬 Support and typing a message
+// never drops the user back to the generic handler.
+function openSupport(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) db.users[uid] = { id: uid, username: "User", name: "User", count: 0, banned: false, lang: "en", joinedAt: new Date().toISOString() };
+    db.users[uid].supportOpen = true;
+    _cancelPendingSave(); // drop any older snapshot that could overwrite this
+    saveDB(db); // sync — getDB() re-reads the store, so flush immediately
+    return true;
+}
+function _cancelPendingSave() {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    _pendingDB = null;
+}
+function isSupportOpen(uid) {
+    const u = getDB().users[Number(uid)];
+    return !!(u && u.supportOpen);
+}
+function closeSupport(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (db.users[uid] && db.users[uid].supportOpen) {
+        delete db.users[uid].supportOpen;
+        _cancelPendingSave(); // drop any older snapshot that could overwrite this
+        saveDB(db); // sync flush
+    }
+    return true;
+}
+
+// ── Free Trial (one-time, per user) ─────────────────────────
+// Marks that the user has already consumed their single 1-day trial so
+// the cheap trial offer disappears from the Upgrade shop afterwards.
+function markTrialUsed(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) db.users[uid] = { id: uid, username: "User", name: "User", count: 0, banned: false, lang: "en", joinedAt: new Date().toISOString() };
+    db.users[uid].trialUsed = true;
+    db.users[uid].trialUsedAt = new Date().toISOString();
+    _cancelPendingSave();
+    saveDB(db); // sync flush so the offer disappears immediately
+    return true;
+}
+function hasUsedTrial(uid) {
+    const u = getDB().users[Number(uid)];
+    return !!(u && u.trialUsed);
+}
+
 // ── Webhook Management ──────────────────────────────────────
 function setWebhook(uid, url) {
     const db = getDB(); uid = Number(uid);
@@ -334,11 +390,40 @@ const isOwner = (uid) => Number(uid) === config.OWNER_ID;
 function addAdmin(uid) { const db = getDB(); uid = Number(uid); if (!db.admins.includes(uid)) { db.admins.push(uid); saveDB(db); } }
 function removeAdmin(uid) { const db = getDB(); uid = Number(uid); if (uid !== config.OWNER_ID) { db.admins = db.admins.filter(i => i !== uid); saveDB(db); } }
 
+// NOTE: grants STACK on any remaining time (matching extendPlanStack and the
+// shop's "renewals stack" promise). These used to do an absolute
+// `Date.now() + days`, so redeeming a voucher or running /addpro on a user who
+// still had time left could silently SHORTEN their paid plan.
 function addSubscriber(uid, days = 30) {
     const db = getDB(); uid = Number(uid); if (!db.users[uid]) return false;
-    db.users[uid].proExpiry = Date.now() + (days * 86400000);
+    const now = Date.now();
+    const cur = Number(db.users[uid].proExpiry) || 0;
+    const base = cur > now ? cur : now;
+    db.users[uid].proExpiry = base + Number(days) * 86400000;
     if (!db.subscribers.includes(uid)) db.subscribers.push(uid);
     saveDB(db); return true;
+}
+
+// Subtract time from a plan (used by refunds). Only drops the tier once the
+// remaining time actually runs out — refunding ONE of several stacked
+// purchases must not erase the rest of the user's paid access.
+function revokePlanDays(uid, tier, days) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) return null;
+    const now = Date.now();
+    const isVip = String(tier).toUpperCase() === "VIP";
+    const field = isVip ? "vipExpiry" : "proExpiry";
+    const cur = Number(db.users[uid][field]) || 0;
+    const next = cur - Number(days) * 86400000;
+    if (next > now) {
+        db.users[uid][field] = next;
+    } else {
+        db.users[uid][field] = null;
+        if (isVip) db.vips = db.vips.filter(i => i !== uid);
+        else db.subscribers = db.subscribers.filter(i => i !== uid);
+    }
+    saveDB(db);
+    return db.users[uid][field];
 }
 function removeSubscriber(uid) {
     const db = getDB(); uid = Number(uid);
@@ -346,10 +431,13 @@ function removeSubscriber(uid) {
     if(db.users[uid]) db.users[uid].proExpiry = null; saveDB(db);
 }
 
-// NEW: VIP Management
+// NEW: VIP Management  (stacks on remaining time — see addSubscriber note)
 function addVIP(uid, days = 30) {
     const db = getDB(); uid = Number(uid); if (!db.users[uid]) return false;
-    db.users[uid].vipExpiry = Date.now() + (days * 86400000);
+    const now = Date.now();
+    const cur = Number(db.users[uid].vipExpiry) || 0;
+    const base = cur > now ? cur : now;
+    db.users[uid].vipExpiry = base + Number(days) * 86400000;
     if (!db.vips.includes(uid)) db.vips.push(uid);
     saveDB(db); return true;
 }
@@ -357,6 +445,85 @@ function removeVIP(uid) {
     const db = getDB(); uid = Number(uid);
     db.vips = db.vips.filter(i => i !== uid);
     if(db.users[uid]) db.users[uid].vipExpiry = null; saveDB(db);
+}
+
+// Ensure a numeric uid exists in db.users (minimal record). Returns the user
+// row AND persists, so it is safe to use standalone (single getDB under the hood).
+// For multi-field mutations prefer extendPlanStack (self-contained on one db).
+function ensureUserRow(uid) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) {
+        db.users[uid] = {
+            id: uid, username: "NoUser", name: "User", count: 0, banned: false,
+            web_pass: "", apiKey: null, webhookUrl: null, lang: "en",
+            proExpiry: null, vipExpiry: null,
+            joinedAt: new Date().toISOString(), lastSeen: new Date().toISOString()
+        };
+        saveDB(db);
+    }
+    return db.users[uid];
+}
+
+// ⭐ Stars plan activation with STACKING: if the user already has an active
+// expiry on the same tier, the purchased days are added on top of it instead of
+// resetting the clock. tier = "PRO" | "VIP". Returns the new expiry timestamp.
+// Self-contained on ONE db snapshot so all mutations land in the same save.
+function extendPlanStack(uid, tier, days) {
+    const db = getDB(); uid = Number(uid);
+    if (!db.users[uid]) {
+        db.users[uid] = {
+            id: uid, username: "NoUser", name: "User", count: 0, banned: false,
+            web_pass: "", apiKey: null, webhookUrl: null, lang: "en",
+            proExpiry: null, vipExpiry: null,
+            joinedAt: new Date().toISOString(), lastSeen: new Date().toISOString()
+        };
+    }
+    const u = db.users[uid];
+    const ms = Number(days) * 86400000;
+    const now = Date.now();
+    let expiry;
+    if (String(tier).toUpperCase() === "VIP") {
+        const base = (u.vipExpiry && Number(u.vipExpiry) > now) ? Number(u.vipExpiry) : now;
+        expiry = base + ms;
+        u.vipExpiry = expiry;
+        if (!db.vips.includes(uid)) db.vips.push(uid);
+    } else {
+        const base = (u.proExpiry && Number(u.proExpiry) > now) ? Number(u.proExpiry) : now;
+        expiry = base + ms;
+        u.proExpiry = expiry;
+        if (!db.subscribers.includes(uid)) db.subscribers.push(uid);
+    }
+    saveDB(db);
+    return expiry;
+}
+
+// ⭐ Telegram Stars payment ledger (chargeId keyed — needed for refunds).
+function logStarsPayment(rec) {
+    const db = getDB(); if (!db.starsPayments) db.starsPayments = {};
+    const cid = rec && rec.chargeId;
+    if (!cid) return null;
+    db.starsPayments[cid] = { ...rec, chargeId: cid, at: rec.at || new Date().toISOString() };
+    saveDB(db);
+    return db.starsPayments[cid];
+}
+function getStarsPayment(chargeId) {
+    const db = getDB(); return (db.starsPayments || {})[chargeId] || null;
+}
+function listStarsPayments() {
+    const db = getDB();
+    return Object.values(db.starsPayments || {})
+        .sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+}
+// Most-recent-first payments for one buyer (used by /refundstars <user_id>).
+function listStarsPaymentsByUid(uid) {
+    uid = Number(uid);
+    return listStarsPayments().filter(r => Number(r.uid) === uid);
+}
+function removeStarsPayment(chargeId) {
+    const db = getDB(); if (db.starsPayments && db.starsPayments[chargeId]) {
+        delete db.starsPayments[chargeId]; saveDB(db); return true;
+    }
+    return false;
 }
 
 function banUser(uid) { const db = getDB(); uid = Number(uid); if (db.users[uid]) db.users[uid].banned = true; if (!db.banned.includes(uid)) db.banned.push(uid); saveDB(db); }
@@ -453,5 +620,8 @@ module.exports = {
     banUser, unbanUser, createVoucher, redeemVoucher, 
     generateApiKey, getUidByApiKey, setWebhook, setUserLang, getUserLang,
     setMaintenance, saveSessionMeta, deleteSessionMeta, generateWebPass, verifyWebPass, getStats,
+    ensureUserRow, extendPlanStack, revokePlanDays, openSupport, isSupportOpen, closeSupport,
+    markTrialUsed, hasUsedTrial,
+    logStarsPayment, getStarsPayment, listStarsPayments, listStarsPaymentsByUid, removeStarsPayment,
     initDB, syncDB, dbBackend, storageInfo, warnStorageIfEphemeral, restoreDatabase
 };

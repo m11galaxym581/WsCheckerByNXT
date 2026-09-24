@@ -10,7 +10,7 @@ const {
     registerUser, getStats, redeemVoucher, createVoucher, getUserLang, setUserLang, 
     setWebhook, generateApiKey, addAdmin, removeAdmin, 
     addSubscriber, removeSubscriber, addVIP, removeVIP, 
-    banUser, unbanUser, setMaintenance 
+    banUser, unbanUser, setMaintenance, closeSupport 
 } = require("./database");
 const { sendBroadcastReport } = require("./utils");
 const { warmupNodes, listAllSessions } = require("./whatsapp");
@@ -21,6 +21,20 @@ const { tr, langKeyboard }    = require("./i18n");
 module.exports = (bot) => {
 
     const { checkForceJoin, missingReasonLine, matchJoinRequestChannel } = require("./force_join");
+
+    // ── Safe command registration ─────────────────────────────
+    // Every handler below reads msg.from.id, but channel posts and
+    // anonymous-admin group messages carry NO `from` field. Registering
+    // through this wrapper drops those before they can throw.
+    const onText = (re, fn) => bot.onText(re, (msg, match) => {
+        if (!msg || !msg.from || typeof msg.from.id === "undefined") return;
+        try {
+            const r = fn(msg, match);
+            if (r && typeof r.catch === "function") r.catch((e) => console.error("❌ [Command] handler error:", e.message));
+        } catch (e) {
+            console.error("❌ [Command] handler error:", e.message);
+        }
+    });
 
     function forceJoinMarkup(missing) {
         const kb = missing.map(m => {
@@ -43,15 +57,14 @@ module.exports = (bot) => {
 
     // ── 1. User Main Menu ──
     function mainMenu(uid) {
-        const L = getUserLang(uid);
         const btns = [
-            [{ text: "🛜 Open Web App", web_app: { url: config.MENU_BUTTON_URL || config.DASHBOARD_URL } }],
-            [{ text: "🚀 New Check", callback_data: "start_check" }, { text: "📊 My Stats", callback_data: "my_stats" }],
-            [{ text: "📱 Add Node", callback_data: "add_sess_req" }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
-            [{ text: "🔐 Web Login", callback_data: "gen_web_pass" }, { text: "📜 History", callback_data: "my_history" }],
-            [{ text: "🌐 Language", callback_data: "language_menu" }, { text: "⚙️ API & Webhooks", callback_data: "api_menu" }],
-            [{ text: "ℹ️ System Info", callback_data: "show_info" }, { text: "💬 Support", callback_data: "support_chat" }],
-            [{ text: "💎 Upgrade", callback_data: "buy_prem_req" }, { text: "🎟️ Redeem", callback_data: "redeem_prompt" }],
+            // [action]                [account / tools]
+            [{ text: "🚀 New Check",       callback_data: "start_check"    }, { text: "📊 My Stats", callback_data: "my_stats" }],
+            [{ text: "📱 Add Node",        callback_data: "add_sess_req"   }, { text: "🗄️ My Nodes", callback_data: "my_nodes" }],
+            [{ text: "📜 History",         callback_data: "my_history"     }, { text: "🔐 Web Login", callback_data: "gen_web_pass" }],
+            [{ text: "⚙️ API & Webhooks", callback_data: "api_menu"       }, { text: "🌐 Language", callback_data: "language_menu" }],
+            [{ text: "💬 Support",         callback_data: "support_chat"   }, { text: "ℹ️ About",    callback_data: "show_info" }],
+            [{ text: "💎 Upgrade",         callback_data: "stars_shop"     }, { text: "🎟️ Redeem",  callback_data: "redeem_prompt" }],
         ];
         if (isAdmin(uid)) btns.push([{ text: "👑 Admin Console", callback_data: "open_admin_panel" }]);
         if (isOwner(uid)) btns.push([{ text: "⚡ Owner Panel", callback_data: "open_owner_panel" }]);
@@ -65,7 +78,7 @@ module.exports = (bot) => {
                 inline_keyboard: [
                     [{ text: "🔑 Generate API Key", callback_data: "gen_api_key"   }],
                     [{ text: "🔗 Set Webhook URL",  callback_data: "set_webhook"   }],
-                    [{ text: "🔙 Back to Main",     callback_data: "back_main"     }]
+                    [{ text: "🔙 Back",             callback_data: "back_main"     }]
                 ]
             }
         };
@@ -80,7 +93,7 @@ module.exports = (bot) => {
                     [{ text: "🗄️ Manage Sessions",   callback_data: "m_sessions"     }, { text: "🛡️ Ping Nodes",   callback_data: "warmup_nodes"   }],
                     [{ text: "⚙️ User Management",   callback_data: "user_mgmt_menu" }, { text: "🎁 Vouchers",     callback_data: "voucher_menu"   }],
                     [{ text: "👥 DB Dump (CSV)",     callback_data: "all_users_list" }],
-                    [{ text: "🔙 Back to Main",      callback_data: "back_main"      }],
+                    [{ text: "🔙 Back",              callback_data: "back_main"      }],
                 ],
             },
         };
@@ -100,14 +113,15 @@ module.exports = (bot) => {
         };
     }
 
-    // ── 5. Owner God Panel ──
+    // ── 5. Owner Panel ──
     function ownerPanel() {
         return {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "👑 Add Admin",         callback_data: "add_adm_req"    }, { text: "🗑️ Remove Admin", callback_data: "rem_adm_list"   }],
-                    [{ text: "🚧 Toggle Maintenance",callback_data: "toggle_maint"   }, { text: "💾 Force Backup", callback_data: "force_backup"   }],
-                    [{ text: "🔙 Back to Main",      callback_data: "back_main"      }]
+                    [{ text: "👑 Add Admin",          callback_data: "add_adm_req"    }, { text: "🗑️ Remove Admin", callback_data: "rem_adm_list"   }],
+                    [{ text: "🚧 Maintenance",        callback_data: "toggle_maint"   }, { text: "💾 Force Backup", callback_data: "force_backup"   }],
+                    [{ text: "🌍 Free Mode",          callback_data: "mode_free"       }, { text: "💎 Subscription Mode", callback_data: "mode_subscription" }],
+                    [{ text: "🔙 Back",               callback_data: "back_main"      }]
                 ]
             }
         };
@@ -154,9 +168,10 @@ module.exports = (bot) => {
     }
 
     // ── /start ────────────────────────────────────────────────
-    bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
+    onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const uid = msg.from.id;
         registerUser(msg.from);
+        closeSupport(uid); // leaving support back to main
         const fj = await checkForceJoin(uid, bot);
         if (!fj.ok) return bot.sendMessage(uid, `🔒 Please join required channels to use this bot.${forceJoinNote(fj.missing)}`, { parse_mode: "Markdown", ...forceJoinMarkup(fj.missing) });
         
@@ -191,25 +206,28 @@ module.exports = (bot) => {
             ? `┣ 🛜 *Mini App:* ${miniAppDeepLink()}\n`
             : "┣ 🛜 *Mini App:* tap *Open Web App* below ⤵\n";
 
+        const brandTag = `${config.BRAND_NAME} ${config.BRAND_VER}`;
         const welcomeText =
-            `╭━━━━━━[ ✅ *𝗪𝗦 𝗖𝗛𝗘𝗖𝗞𝗘𝗥  v6* ]━━━━━━╮\n` +
-            `┣ 👤 *Welcome,* ${msg.from.first_name}!\n` +
+            `╭━━━━━[ ✅ *${brandTag}* ]━━━━━╮\n` +
+            `┣ 👤 *Welcome, ${msg.from.first_name}!*\n` +
             `┣ 🆔 *Your ID:* \`${uid}\`\n` +
             `┣ 🎖️ *Status:* ${statusBadge}\n` +
-            `┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+            `┣━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
             `┣ 🔌 *Nodes Active:* ${connCount}/${sessCount} Connected\n` +
             `┣ 🌐 *System Mode:* ${freeMode ? 'FREE' : 'SUBSCRIPTION'}\n` +
-            `┣ 🚀 *Engine Mode:* 0-Delay Multi-Thread\n` +
-            `┣ 🛡️ *Security:* Proxied Anti-Ban\n` +
             miniAppLine +
-             `┣ 🌐 *Web Dashboard:* ${config.DASHBOARD_URL} \n` +
-            `╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
+            `╰━━━━━━━━━━━━━━━━━━━━━━━━━╯`;
 
-        return sendWithWebApp(uid, welcomeText, { parse_mode: "Markdown" }, mainMenu(uid).reply_markup.inline_keyboard);
+        const mm = mainMenu(uid).reply_markup.inline_keyboard;
+        const kb = [[{ text: "🛜 Open Web App", web_app: { url: dashboardUrl() } }]].concat(mm);
+        return sendWithWebApp(uid, welcomeText, { parse_mode: "Markdown" }, kb);
     });
 
     // ── /app — Open the Mini App / Web App ────────────────────
-    bot.onText(/\/app/, async (msg) => {
+    // NOTE: must not be the bare /\/app/ — that also matches "/appcheck"
+    // (Telegram/onText is a substring match), so both handlers fired and the
+    // user got the generic Mini-App text plus the diagnostics output.
+    onText(/\/app(?:@\w+)?(?:\s|$)/, async (msg) => {
         const uid = msg.from.id;
         const url = dashboardUrl();
         let uname = state.BOT_INFO?.username;
@@ -237,7 +255,7 @@ module.exports = (bot) => {
     });
 
     // ── /appcheck — Mini App diagnostics (owner/admin) ────────
-    bot.onText(/\/appcheck/, async (msg) => {
+    onText(/\/appcheck/, async (msg) => {
         const uid = msg.from.id;
         if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
         const url = dashboardUrl();
@@ -329,7 +347,7 @@ module.exports = (bot) => {
     });
 
     // ── /autosetup — Re-run server-side auto-setup (owner) ────
-    bot.onText(/\/autosetup/, async (msg) => {
+    onText(/\/autosetup/, async (msg) => {
         const uid = msg.from.id;
         if (uid !== config.OWNER_ID && !isAdmin(uid)) return;
         const s = await bot.sendMessage(uid, "⚙️ Running auto-setup…").catch(() => {});
@@ -345,23 +363,56 @@ module.exports = (bot) => {
     });
 
     // ── /help ─────────────────────────────────────────────────
-    bot.onText(/\/help/, async (msg) => {
+    onText(/\/help/, async (msg) => {
         const uid = msg.from.id;
-        const text = `
-╭━━━[ 🛠️ *𝗛𝗘𝗟𝗣 & 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ]━━━╮
-┣ /start - Open Main Menu
-┣ /app - Open Mini App (auto login)
-┣ /reset - Clear active jobs & web state
-┣ /redeem \`<code>\` - Claim Promo Voucher
-┣ /setwebhook \`<url>\` - Set API Webhook
-┣ /info - System Information
-╰━━━━━━━━━━━━━━━━━━━━━━╯`;
-        return bot.sendMessage(uid, text, { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{text: "🔙 Back", callback_data: "back_main"}]] } });
+        const isAdm = isAdmin(uid);
+        const isOwn = isOwner(uid);
+        const parts = [];
+        parts.push("╭━━━━━━[ 🛠️ *𝗛𝗘𝗟𝗣 & 𝗖𝗢𝗠𝗠𝗔𝗡𝗗𝗦* ]━━━━━━╮");
+        parts.push("┣ 👤 *Basics*");
+        parts.push("┣  /start — open the main menu");
+        parts.push("┣  /help — show this help");
+        parts.push("┣  /app — open the dashboard / Mini App");
+        parts.push("┣  /language — change language");
+        parts.push("┣  /reset — cancel / clear a running job");
+        parts.push("┣ 🚀 *Checker*");
+        parts.push("┣  /mystats — your usage statistics");
+        parts.push("┣  /queue — see queued jobs");
+        parts.push("┣  /retryfailed — re-run failed numbers");
+        parts.push("┣  /mylists  •  /runlist <id> — saved lists");
+        parts.push("┣ 💳 *Plans & Tools*");
+        parts.push("┣  /redeem <code> — claim a voucher");
+        parts.push("┣  /setwebhook <url> — set a webhook (PRO)");
+        if (isAdm) {
+            parts.push("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            parts.push("┣ 👑 *Admin*");
+            parts.push("┣  /admin  •  /stats — console & stats");
+            parts.push("┣  /sessions  •  /warmup — manage nodes");
+            parts.push("┣  /addpro <id> [d]  •  /addvip <id> [d]");
+            parts.push("┣  /rempro <id>  •  /remvip <id>");
+            parts.push("┣  /ban <id>  •  /unban <id>");
+            parts.push("┣  /broadcast <msg>");
+            parts.push("┣  /genvoucher PRO|VIP <days> <uses>");
+            parts.push("┣  /appcheck — Mini App diagnostics");
+        }
+        if (isOwn) {
+            parts.push("┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            parts.push("┣ ⚡ *Owner*");
+            parts.push("┣  /owner — owner panel");
+            parts.push("┣  /addadmin <id>  •  /remadmin <id>");
+            parts.push("┣  /maintenance on|off");
+            parts.push("┣  /systemmode free|subscription");
+            parts.push("┣  /autosetup — re-run auto config");
+            parts.push("┣  /refundstars <charge_id|user_id> — Stars refund");
+            parts.push("┣  /starsbalance — bot Stars balance + txns");
+        }
+        parts.push("╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯");
+        return bot.sendMessage(uid, parts.join("\n"), { parse_mode: "Markdown", reply_markup: { inline_keyboard: [[{ text: "⌨ All Commands", callback_data: "cmds" }, { text: "🔙 Back", callback_data: "back_main" }]] } });
     });
 
 
     // ── /language ─────────────────────────────────────────────
-    bot.onText(/\/language/, async (msg) => {
+    onText(/\/language/, async (msg) => {
         const uid = msg.from.id;
         registerUser(msg.from);
         const L = getUserLang(uid);
@@ -369,7 +420,7 @@ module.exports = (bot) => {
     });
 
     // ── /reset ────────────────────────────────────────────────
-    bot.onText(/\/reset/, async (msg) => {
+    onText(/\/reset/, async (msg) => {
         const uid = msg.from.id;
         if (isAdmin(uid)) {
             state.processingUsers.clear();
@@ -381,12 +432,13 @@ module.exports = (bot) => {
         
         state.removeProcessing(uid);
         state.clearUserStep(uid);
+        closeSupport(uid); // closing any open support session
         if (global.webState?.[uid]) global.webState[uid].status = "Cancelled";
         return bot.sendMessage(uid, `╭━━━[ 🔄 *𝗔𝗖𝗧𝗜𝗢𝗡 𝗖𝗔𝗡𝗖𝗘𝗟𝗟𝗘𝗗* ]━━━╮\n┣ ✅ Your session has been reset.\n╰━━━━━━━━━━━━━━━━━━━━━━╯`, { parse_mode: "Markdown" });
     });
 
     // ── /redeem <code> ────────────────────────────────────────
-    bot.onText(/\/redeem (.+)/, async (msg, match) => {
+    onText(/\/redeem (.+)/, async (msg, match) => {
         const uid = msg.from.id;
         const code = match[1].trim();
         const result = redeemVoucher(uid, code);
@@ -405,7 +457,7 @@ module.exports = (bot) => {
     });
 
     // ── /setwebhook <url> ─────────────────────────────────────
-    bot.onText(/\/setwebhook (.+)/, async (msg, match) => {
+    onText(/\/setwebhook (.+)/, async (msg, match) => {
         const uid = msg.from.id;
         if (!isSub(uid)) return bot.sendMessage(uid, `❌ *PRO/VIP Tier required to use Webhooks.*`, { parse_mode: "Markdown" });
         
@@ -419,7 +471,7 @@ module.exports = (bot) => {
 
 
     // ── /mystats ──────────────────────────────────────────────
-    bot.onText(/\/mystats/, async (msg) => {
+    onText(/\/mystats/, async (msg) => {
         const uid = msg.from.id;
         registerUser(msg.from);
         const db = getDB(); const hist = db.history[uid] || [];
@@ -437,7 +489,7 @@ module.exports = (bot) => {
     });
 
     // ── /queue ────────────────────────────────────────────────
-    bot.onText(/\/queue/, async (msg) => {
+    onText(/\/queue/, async (msg) => {
         const uid = msg.from.id;
         const queued = (state.jobQueue || []).filter(j => Number(j.uid) === Number(uid));
         const running = state.isProcessing(uid);
@@ -445,14 +497,14 @@ module.exports = (bot) => {
 
 Running: *${running ? 'YES' : 'NO'}*
 Queued Jobs: *${queued.length}*
-${queued.map((j,i)=>`${i+1}. ${j.numbers?.length||0} numbers`).join('\\n') || ''}`, { parse_mode:'Markdown' });
+${queued.map((j,i)=>`${i+1}. ${j.numbers?.length||0} numbers`).join('\n') || ''}`, { parse_mode:'Markdown' });
     });
 
     // ── /mylists ──────────────────────────────────────────────
-    bot.onText(/\/mylists/, async (msg) => {
+    onText(/\/mylists/, async (msg) => {
         const uid = msg.from.id; const u = getDB().users[uid]; const lists = u?.savedLists || [];
         if (!lists.length) return bot.sendMessage(uid, '📚 No saved lists found. Save lists from web dashboard.');
-        const text = lists.slice(0,20).map((l,i)=>`${i+1}. \`${l.id}\` — *${l.name}* (${l.numbers?.length||0})`).join('\\n');
+        const text = lists.slice(0,20).map((l,i)=>`${i+1}. \`${l.id}\` — *${l.name}* (${l.numbers?.length||0})`).join('\n');
         return bot.sendMessage(uid, `📚 *My Lists*
 
 ${text}
@@ -460,17 +512,17 @@ ${text}
 Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
-    bot.onText(/\/runlist (.+)/, async (msg, match) => {
+    onText(/\/runlist (.+)/, async (msg, match) => {
         const uid = msg.from.id; const id = match[1].trim(); const u = getDB().users[uid]; const list = (u?.savedLists || []).find(l => l.id === id);
         if (!list) return bot.sendMessage(uid, '❌ List not found. Use /mylists');
-        bot.emit('message', { from: msg.from, chat: { id: uid }, text: (list.numbers||[]).join('\\n') });
+        bot.emit('message', { from: msg.from, chat: { id: uid }, text: (list.numbers||[]).join('\n') });
         return bot.sendMessage(uid, `🚀 Started list: *${list.name}* (${list.numbers.length} numbers)`, { parse_mode:'Markdown' });
     });
 
-    bot.onText(/\/retryfailed/, async (msg) => {
+    onText(/\/retryfailed/, async (msg) => {
         const uid = msg.from.id; const failed = state.lastResults[uid]?.failed || [];
         if (!failed.length) return bot.sendMessage(uid, 'No failed numbers found to retry.');
-        bot.emit('message', { from: msg.from, chat: { id: uid }, text: failed.join('\\n') });
+        bot.emit('message', { from: msg.from, chat: { id: uid }, text: failed.join('\n') });
         return bot.sendMessage(uid, `🔁 Retrying ${failed.length} failed numbers...`);
     });
 
@@ -481,7 +533,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     // ============================================================
 
     // ── /admin ────────────────────────────────────────────────
-    bot.onText(/\/admin/, async (msg) => {
+    onText(/\/admin/, async (msg) => {
         const uid = msg.from.id;
         if (!isAdmin(uid)) return bot.sendMessage(uid, `⛔ *Restricted.* Admin access required.`, { parse_mode: "Markdown" });
         
@@ -499,7 +551,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
     // ── /stats ────────────────────────────────────────────────
-    bot.onText(/\/stats/, async (msg) => {
+    onText(/\/stats/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const s = getStats();
         const connected = Object.values(state.sessions).filter(x => x.status === "Connected").length;
@@ -518,7 +570,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
     // ── /sessions ─────────────────────────────────────────────
-    bot.onText(/\/sessions/, async (msg) => {
+    onText(/\/sessions/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const rows = listAllSessions();
         if (!rows.length) return bot.sendMessage(msg.chat.id, "❌ No sessions found.");
@@ -528,7 +580,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
     // ── /warmup ───────────────────────────────────────────────
-    bot.onText(/\/warmup/, async (msg) => {
+    onText(/\/warmup/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         bot.sendMessage(msg.chat.id, `⏳ *Initiating Anti-Ban Warmup Protocol...*`, { parse_mode: "Markdown" });
         const res = await warmupNodes();
@@ -537,7 +589,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
     // ── /genvoucher <type> <days> <count> ─────────────────────
-    bot.onText(/\/genvoucher (PRO|VIP) (\d+) (\d+)/i, async (msg, match) => {
+    onText(/\/genvoucher (PRO|VIP) (\d+) (\d+)/i, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const type = match[1].toUpperCase();
         const days = Number(match[2]);
@@ -556,7 +608,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     });
 
     // ── Direct Assignment Commands ────────────────────────────
-    bot.onText(/\/addpro (\d+) (\d+)?/, async (msg, match) => {
+    onText(/\/addpro (\d+) (\d+)?/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addSubscriber(tid, days);
@@ -564,36 +616,36 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         bot.sendMessage(tid, `✨ *Congratulations!* Your PRO subscription has been activated for ${days} days.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
-    bot.onText(/\/rempro (\d+)/, async (msg, match) => {
+    onText(/\/rempro (\d+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return; const tid = Number(match[1]);
         removeSubscriber(tid); bot.sendMessage(msg.chat.id, `✅ PRO removed for \`${tid}\``, { parse_mode: "Markdown" });
     });
 
-    bot.onText(/\/addvip (\d+) (\d+)?/, async (msg, match) => {
+    onText(/\/addvip (\d+) (\d+)?/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const tid = Number(match[1]); const days = Number(match[2] || 30);
         addVIP(tid, days);
         bot.sendMessage(msg.chat.id, `🔥 VIP activated for \`${tid}\` (${days} Days)`, { parse_mode: "Markdown" });
-        bot.sendMessage(tid, `🔥 *GOD TIER UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
+        bot.sendMessage(tid, `🔥 *VIP UNLOCKED!*\nYour account has been upgraded to VIP for ${days} days. Enjoy maximum limits.\n✅ WS CHECKER v6`, { parse_mode: "Markdown" }).catch(() => {});
     });
 
-    bot.onText(/\/remvip (\d+)/, async (msg, match) => {
+    onText(/\/remvip (\d+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return; const tid = Number(match[1]);
         removeVIP(tid); bot.sendMessage(msg.chat.id, `✅ VIP removed for \`${tid}\``, { parse_mode: "Markdown" });
     });
 
-    bot.onText(/\/ban (\d+)/, async (msg, match) => {
+    onText(/\/ban (\d+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return; const tid = Number(match[1]);
         if(isOwner(tid)) return bot.sendMessage(msg.chat.id, "❌ Cannot ban the Owner.");
         banUser(tid); bot.sendMessage(msg.chat.id, `🚫 User \`${tid}\` banned.`, { parse_mode: "Markdown" });
     });
 
-    bot.onText(/\/unban (\d+)/, async (msg, match) => {
+    onText(/\/unban (\d+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return; const tid = Number(match[1]);
         unbanUser(tid); bot.sendMessage(msg.chat.id, `✅ User \`${tid}\` unbanned.`, { parse_mode: "Markdown" });
     });
 
-    bot.onText(/\/broadcast (.+)/, async (msg, match) => {
+    onText(/\/broadcast (.+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const text = match[1]; const db = getDB(); const suc = [], fail = [];
         bot.sendMessage(msg.chat.id, "⏳ Broadcasting...");
@@ -606,13 +658,13 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
 
 
     // ── Force Join Admin Commands ─────────────────────────────
-    bot.onText(/\/forcejoin (on|off)/i, async (msg, match) => {
+    onText(/\/forcejoin (on|off)/i, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const enabled = match[1].toLowerCase() === 'on';
         config.setDynamicConfig({ FORCE_JOIN_ENABLED: enabled });
         bot.sendMessage(msg.chat.id, `🔒 Force Join: *${enabled ? 'ON' : 'OFF'}*`, { parse_mode:'Markdown' });
     });
-    bot.onText(/\/forcejoin_add (.+)/, async (msg, match) => {
+    onText(/\/forcejoin_add (.+)/, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const parts = match[1].split('|').map(x=>x.trim());
         const title = parts[0];
@@ -624,7 +676,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
         config.setDynamicConfig({ FORCE_JOIN_CHANNELS: channels });
         bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}\n\n📌 Make this bot an *admin* of the channel (private: enable *Invite users* too), then run /forcejoin_test.`, { parse_mode: 'Markdown' }).catch(() => bot.sendMessage(msg.chat.id, `✅ Added force-join channel: ${title || chatId || url}`));
     });
-    bot.onText(/\/forcejoin_list/, async (msg) => {
+    onText(/\/forcejoin_list/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
         const auto = dyn.FORCE_JOIN_AUTO_APPROVE ? "ON (auto-approve join requests)" : "OFF";
@@ -634,14 +686,14 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
 
     // ============================================================
     // Auto-approve join requests for force-join channels (needs bot admin with Invite users right).
-    bot.onText(/\/forcejoin_auto (on|off)/i, async (msg, match) => {
+    onText(/\/forcejoin_auto (on|off)/i, async (msg, match) => {
         if (!isAdmin(msg.from.id)) return;
         const enabled = match[1].toLowerCase() === 'on';
         config.setDynamicConfig({ FORCE_JOIN_AUTO_APPROVE: enabled });
         bot.sendMessage(msg.chat.id, `🔓 Force-join auto-approve: *${enabled ? 'ON' : 'OFF'}*`, { parse_mode:'Markdown' });
     });
     // Live diagnostic: resolves every channel and reports bot-side verification state.
-    bot.onText(/\/forcejoin_test/, async (msg) => {
+    onText(/\/forcejoin_test/, async (msg) => {
         if (!isAdmin(msg.from.id)) return;
         const { probeChannel, channelLabel } = require("./force_join");
         const dyn = config.dynamic; const channels = dyn.FORCE_JOIN_CHANNELS || [];
@@ -691,32 +743,32 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
     // ============================================================
 
     // ── /owner ────────────────────────────────────────────────
-    bot.onText(/\/owner/, async (msg) => {
+    onText(/\/owner/, async (msg) => {
         const uid = msg.from.id;
         if (!isOwner(uid)) return;
         return bot.sendMessage(uid,
-            `╭━━━━━[ ⚡ *𝗚𝗢𝗗 𝗣𝗔𝗡𝗘𝗟* ]━━━━━╮\n` +
-            `┣ Welcome to the root terminal, Creator.\n` +
+            `╭━━━━━[ ⚡ *𝗢𝗪𝗡𝗘𝗥 𝗣𝗔𝗡𝗘𝗟* ]━━━━━╮\n` +
+            `┣ Owner controls for this engine.\n` +
             `╰━━━━━━━━━━━━━━━━━━━━━━╯`,
             { parse_mode: "Markdown", ...ownerPanel() }
         );
     });
 
     // ── /addadmin <uid> ───────────────────────────────────────
-    bot.onText(/\/addadmin (\d+)/, async (msg, match) => {
+    onText(/\/addadmin (\d+)/, async (msg, match) => {
         if (!isOwner(msg.from.id)) return;
         const tid = Number(match[1]); addAdmin(tid);
         bot.sendMessage(msg.chat.id, `👑 \`${tid}\` is now an Admin.`, { parse_mode: "Markdown" });
     });
 
-    bot.onText(/\/remadmin (\d+)/, async (msg, match) => {
+    onText(/\/remadmin (\d+)/, async (msg, match) => {
         if (!isOwner(msg.from.id)) return;
         const tid = Number(match[1]); removeAdmin(tid);
         bot.sendMessage(msg.chat.id, `🗑️ \`${tid}\` removed from Admin.`, { parse_mode: "Markdown" });
     });
 
     // ── /maintenance <on|off> ─────────────────────────────────
-    bot.onText(/\/maintenance (on|off)/i, async (msg, match) => {
+    onText(/\/maintenance (on|off)/i, async (msg, match) => {
         if (!isOwner(msg.from.id)) return;
         const maintOn = match[1].toLowerCase() === 'on';
         setMaintenance(maintOn);
@@ -725,7 +777,7 @@ Use /runlist <id>`, { parse_mode:'Markdown' });
 
 
     // ── /systemmode <free|subscription> ───────────────────────
-    bot.onText(/\/systemmode (free|subscription)/i, async (msg, match) => {
+    onText(/\/systemmode (free|subscription)/i, async (msg, match) => {
         if (!isOwner(msg.from.id)) return;
         const mode = match[1].toLowerCase();
         const ok = config.setDynamicConfig({ SYSTEM_MODE: mode });

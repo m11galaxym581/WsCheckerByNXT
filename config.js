@@ -94,7 +94,31 @@ const defaultDynamicConfig = {
     WA_MAX_RECONNECT_TRIES: 9,          // reconnect attempts before giving up + notifying
     ENABLE_WEBHOOKS: true,     // Allow POSTing results to external servers
     FORCE_JOIN_ENABLED: false,
-    FORCE_JOIN_CHANNELS: []    // [{ title:"Channel", chatId:"@channel", url:"https://t.me/channel" }]
+    FORCE_JOIN_CHANNELS: [],   // [{ title:"Channel", chatId:"@channel", url:"https://t.me/channel" }]
+
+    // ── ⭐ Telegram Stars Plan Shop ───────────────────────────
+    // Sell PRO / VIP plan upgrades for Telegram Stars (currency "XTR").
+    // Each entry: { id, tier:"PRO"|"VIP", days, stars } — `stars` is the
+    // whole-number price in Stars. Re-purchases stack on the active expiry.
+    // Toggle the whole shop here, or live from the admin console.
+    STARS_ENABLED: true,
+
+    // ── 🎁 One-Time Free Trial ────────────────────────────────
+    // A cheap trial offer shown at the top of the Upgrade shop. It can be
+    // bought ONLY ONCE per user — after a successful purchase the option is
+    // removed from that user's shop forever. Kept separate from STARS_PLANS
+    // so it can never be lost by an older dynamic-config file on disk.
+    STARS_TRIAL_ENABLED: true,
+    STARS_TRIAL: { tier: "PRO", days: 1, stars: 1 },
+
+    STARS_PLANS: [
+        { id: "pro_7",  tier: "PRO", days: 7,  stars: 1 },
+        { id: "pro_15", tier: "PRO", days: 15, stars: 75 },
+        { id: "pro_30", tier: "PRO", days: 30, stars: 130 },
+        { id: "vip_7",  tier: "VIP", days: 7,  stars: 70 },
+        { id: "vip_15", tier: "VIP", days: 15, stars: 130 },
+        { id: "vip_30", tier: "VIP", days: 30, stars: 240 }
+    ]
 };
 
 // ── Auto-Create Dynamic Config File ─────────────────────────
@@ -109,11 +133,15 @@ const config = {
     WEB_SECRET: env("WEB_SECRET", env("TG_TOKEN", "change-me-web-secret")),
     DASHBOARD_URL: env("DASHBOARD_URL", process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${env("PORT", "9812")}`),
     OWNER_ID: Number(env("OWNER_ID", "8708907310")),
+    // Owner/Support Telegram username (no @) used for the "pay via Binance /
+    // crypto" deep-link to the owner DM. When empty, the bot auto-derives it
+    // from the owner's registered profile (falls back to no deep link).
+    SUPPORT_USERNAME: String(env("SUPPORT_USERNAME", "")).replace(/^@/, "").trim(),
     PORT: (() => { const p = Number(env("PORT", "9812")); return Number.isFinite(p) && p > 0 ? p : 9812; })(),
     MAX_HISTORY: 50, // Increased history storage
     DB_FILE: env("DB_FILE", "users.json"),
     BRAND_NAME: "WS CHECKER",
-    BRAND_VER: "v6.0.0",
+    BRAND_VER: "v6.0.1",
     WA_BROWSER: ["Ubuntu", "Chrome", "20.0.04"],
 
     // ── Telegram Auto-Setup (zero-touch, runs on boot) ───────
